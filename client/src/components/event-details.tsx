@@ -7,11 +7,11 @@ import djSwayImage from "@assets/DJ SWAY_1757156832390.jpg";
 import djAfrokeyzImage from "@assets/DJ AFROKEYZ_1757156832386.jpg";
 
 const artists = [
-  { name: "DJ ALVIN", genre: "Electronic", image: djAlvinImage },
-  { name: "DJ LUVLESH", genre: "Electronic", image: djLuvleshImage },
-  { name: "STEVOTHEDJ", genre: "Electronic", image: djStevoImage },
-  { name: "DJ SWAY", genre: "Electronic", image: djSwayImage },
-  { name: "DJ AFROKEYZ", genre: "Electronic", image: djAfrokeyzImage },
+  { name: "DJ ALVIN", genre: "Hip Hop", image: djAlvinImage },
+  { name: "DJ LUVLESH", genre: "Amapiano", image: djLuvleshImage },
+  { name: "STEVOTHEDJ", genre: "Afrobeats & Dancehall", image: djStevoImage },
+  { name: "DJ SWAY", genre: "Afrohouse & Amapiano", image: djSwayImage },
+  { name: "DJ AFROKEYZ", genre: "Amapiano & 3 Steps", image: djAfrokeyzImage },
 ];
 
 export default function EventDetails() {
