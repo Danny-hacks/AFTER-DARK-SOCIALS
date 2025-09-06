@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { toPng } from "html-to-image";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { Download, Share, Mail, MessageCircle } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { Button } from "@/components/ui/button";
@@ -18,27 +19,36 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
   const downloadTicket = async () => {
     if (ticketRef.current) {
       try {
-        const dataUrl = await toPng(ticketRef.current, {
-          quality: 0.95,
+        const canvas = await html2canvas(ticketRef.current, {
+          scale: 2,
+          backgroundColor: '#1a1a1a',
           width: 800,
           height: 600,
-          backgroundColor: '#1a1a1a',
         });
         
-        const link = document.createElement('a');
-        link.download = `AFTR-Ticket-${ticket.referenceCode}.png`;
-        link.href = dataUrl;
-        link.click();
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: [200, 150] // Custom size to fit ticket
+        });
+        
+        // Calculate dimensions to fit the ticket properly
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`AFTR-Ticket-${ticket.referenceCode}.pdf`);
         
         toast({
           title: "Success",
-          description: "Ticket downloaded successfully",
+          description: "Ticket PDF downloaded successfully",
         });
       } catch (error) {
         console.error('Error generating ticket:', error);
         toast({
           title: "Error",
-          description: "Failed to generate ticket",
+          description: "Failed to generate ticket PDF",
           variant: "destructive",
         });
       }
@@ -49,13 +59,27 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
     if (!ticketRef.current) return;
     
     try {
-      // Generate ticket image
-      const dataUrl = await toPng(ticketRef.current, {
-        quality: 0.95,
+      // Generate ticket PDF
+      const canvas = await html2canvas(ticketRef.current, {
+        scale: 2,
+        backgroundColor: '#1a1a1a',
         width: 800,
         height: 600,
-        backgroundColor: '#1a1a1a',
       });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: [200, 150]
+      });
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      
+      const pdfBlob = pdf.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
       
       const message = `🎉 Your AFTR Rave Ticket is Ready! 🎉\n\n` +
         `📧 Customer: ${ticket.customerName}\n` +
@@ -64,16 +88,19 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
         `📅 Date: 27th September 2025\n` +
         `📍 Venue: Shotz, Flic en Flac\n` +
         `🕙 Door opens: 10:00 PM\n\n` +
-        `Your digital ticket image will be downloaded automatically. Please upload it to WhatsApp along with this message!\n\n` +
+        `Your digital ticket PDF will be downloaded automatically. Please upload it to WhatsApp along with this message!\n\n` +
         `See you on the dance floor! 🎵🔥`;
       
-      // Always download the ticket first
+      // Always download the PDF first
       const link = document.createElement('a');
-      link.download = `AFTR-Ticket-${ticket.referenceCode}.png`;
-      link.href = dataUrl;
+      link.download = `AFTR-Ticket-${ticket.referenceCode}.pdf`;
+      link.href = pdfUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
+      // Clean up the blob URL
+      setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
       
       // Then open WhatsApp with message
       setTimeout(() => {
@@ -84,7 +111,7 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       
       toast({
         title: "WhatsApp Ready!",
-        description: "Ticket downloaded! WhatsApp opening with message - just upload the image.",
+        description: "Ticket PDF downloaded! WhatsApp opening with message - just upload the PDF.",
       });
     } catch (error) {
       console.error('Error sharing via WhatsApp:', error);
@@ -100,13 +127,27 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
     if (!ticketRef.current) return;
     
     try {
-      // Generate ticket image
-      const dataUrl = await toPng(ticketRef.current, {
-        quality: 0.95,
+      // Generate ticket PDF
+      const canvas = await html2canvas(ticketRef.current, {
+        scale: 2,
+        backgroundColor: '#1a1a1a',
         width: 800,
         height: 600,
-        backgroundColor: '#1a1a1a',
       });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: [200, 150]
+      });
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      
+      const pdfBlob = pdf.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
       
       const subject = `Your AFTR Rave Ticket - ${ticket.referenceCode}`;
       const body = `Hello ${ticket.customerName},\n\n` +
@@ -121,7 +162,7 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
         `• Reference Code: ${ticket.referenceCode}\n` +
         `• Price: ${ticket.price}\n` +
         `• Type: ${ticket.ticketType}\n\n` +
-        `Your digital ticket image has been downloaded automatically. Please attach it to this email and send it to the customer.\n\n` +
+        `Your digital ticket PDF has been downloaded automatically. Please attach it to this email and send it to the customer.\n\n` +
         `Important Notes:\n` +
         `• Keep your ticket safe - this is your entry pass\n` +
         `• Arrive early to avoid queues\n` +
@@ -130,13 +171,16 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
         `Best regards,\n` +
         `After Dark Socials Team`;
       
-      // Always download the ticket first
+      // Always download the PDF first
       const link = document.createElement('a');
-      link.download = `AFTR-Ticket-${ticket.referenceCode}.png`;
-      link.href = dataUrl;
+      link.download = `AFTR-Ticket-${ticket.referenceCode}.pdf`;
+      link.href = pdfUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
+      // Clean up the blob URL
+      setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
       
       // Then open email client
       setTimeout(() => {
@@ -148,7 +192,7 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       
       toast({
         title: "Email Ready!",
-        description: "Ticket downloaded! Email client opening - just attach the image and send.",
+        description: "Ticket PDF downloaded! Email client opening - just attach the PDF and send.",
       });
     } catch (error) {
       console.error('Error sharing via email:', error);
