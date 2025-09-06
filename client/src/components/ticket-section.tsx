@@ -2,8 +2,15 @@ import { Crown, Ticket, CreditCard, Check } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 
 export default function TicketSection() {
+  // Check if we're in Phase 2 (after September 18, 2025)
+  const currentDate = new Date();
+  const phase2StartDate = new Date('2025-09-18');
+  const isPhase2 = currentDate >= phase2StartDate;
+  
   const openWhatsApp = () => {
-    const message = encodeURIComponent("Hi! I'd like to purchase tickets for AFTR rave on 27th September. I have sent the payment and will share the proof now.");
+    const phase = isPhase2 ? "Phase 2" : "Phase 1";
+    const price = isPhase2 ? "Rs 500" : "Rs 350";
+    const message = encodeURIComponent(`Hi! I'd like to purchase ${phase} tickets for AFTR rave on 27th September (${price}). I have sent the payment and will share the proof now.`);
     window.open(`https://wa.me/23058205220?text=${message}`, '_blank');
   };
 
@@ -25,11 +32,15 @@ export default function TicketSection() {
           </p>
         </div>
         
-        <div className="max-w-2xl mx-auto mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto mb-12">
           {/* Phase 1 Ticket */}
-          <div className="bg-card border-2 border-primary rounded-2xl p-8 hover:scale-105 transition-transform relative overflow-hidden" data-testid="phase1-card">
-            <div className="absolute top-0 right-0 bg-accent text-accent-foreground px-3 py-1 text-sm font-bold" data-testid="available-badge">
-              PHASE 1
+          <div className={`bg-card border-2 rounded-2xl p-8 transition-all relative overflow-hidden ${
+            !isPhase2 ? 'border-primary hover:scale-105' : 'border-border opacity-60'
+          }`} data-testid="phase1-card">
+            <div className={`absolute top-0 right-0 px-3 py-1 text-sm font-bold ${
+              !isPhase2 ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'
+            }`} data-testid="phase1-badge">
+              PHASE 1 {isPhase2 ? '- EXPIRED' : '- ACTIVE'}
             </div>
             <div className="text-center mb-6">
               <Ticket className="text-4xl gradient-text mb-4 mx-auto" />
@@ -59,12 +70,64 @@ export default function TicketSection() {
               </li>
             </ul>
             <div className="text-center space-y-2">
-              <div className="text-sm text-destructive font-semibold bg-destructive/10 px-4 py-2 rounded-lg">
-                ⏰ Phase 1 ends September 18th
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Phase 2 pricing: TBA
-              </div>
+              {!isPhase2 ? (
+                <div className="text-sm text-destructive font-semibold bg-destructive/10 px-4 py-2 rounded-lg">
+                  ⏰ Phase 1 ends September 18th
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground font-semibold bg-muted/10 px-4 py-2 rounded-lg">
+                  ❌ Phase 1 has expired
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Phase 2 Ticket */}
+          <div className={`bg-card border-2 rounded-2xl p-8 transition-all relative overflow-hidden ${
+            isPhase2 ? 'border-primary hover:scale-105' : 'border-border opacity-60'
+          }`} data-testid="phase2-card">
+            <div className={`absolute top-0 right-0 px-3 py-1 text-sm font-bold ${
+              isPhase2 ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'
+            }`} data-testid="phase2-badge">
+              PHASE 2 {isPhase2 ? '- ACTIVE' : '- COMING SOON'}
+            </div>
+            <div className="text-center mb-6">
+              <Crown className="text-4xl gradient-text mb-4 mx-auto" />
+              <h3 className="text-3xl font-black gradient-text tracking-wider uppercase" data-testid="phase2-title">AFTR Rave Entry</h3>
+              <p className="text-muted-foreground">Phase 2 Pricing</p>
+            </div>
+            <div className="text-center mb-6">
+              <div className="text-4xl font-black gradient-text" data-testid="phase2-price">Rs 500</div>
+              <div className="text-sm text-muted-foreground">per person</div>
+            </div>
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-center space-x-3" data-testid="phase2-feature-1">
+                <Check className="text-accent" />
+                <span>6 hours of non-stop energy</span>
+              </li>
+              <li className="flex items-center space-x-3" data-testid="phase2-feature-2">
+                <Check className="text-accent" />
+                <span>5 top electronic DJs</span>
+              </li>
+              <li className="flex items-center space-x-3" data-testid="phase2-feature-3">
+                <Check className="text-accent" />
+                <span>Premium sound system</span>
+              </li>
+              <li className="flex items-center space-x-3" data-testid="phase2-feature-4">
+                <Check className="text-accent" />
+                <span>Bar & refreshments available</span>
+              </li>
+            </ul>
+            <div className="text-center space-y-2">
+              {isPhase2 ? (
+                <div className="text-sm text-accent font-semibold bg-accent/10 px-4 py-2 rounded-lg">
+                  ✅ Phase 2 now available
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground font-semibold bg-muted/10 px-4 py-2 rounded-lg">
+                  📅 Available from September 18th
+                </div>
+              )}
             </div>
           </div>
         </div>
