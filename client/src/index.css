@@ -10,9 +10,9 @@
   --card-foreground: hsl(220, 9%, 95%);
   --popover: hsl(220, 13%, 11%);
   --popover-foreground: hsl(220, 9%, 95%);
-  --primary: hsl(280, 100%, 60%);
+  --primary: hsl(320, 100%, 58%);
   --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(320, 100%, 65%);
+  --secondary: hsl(310, 85%, 65%);
   --secondary-foreground: hsl(0, 0%, 100%);
   --muted: hsl(220, 13%, 18%);
   --muted-foreground: hsl(220, 9%, 70%);
@@ -22,7 +22,7 @@
   --destructive-foreground: hsl(0, 0%, 100%);
   --border: hsl(220, 13%, 18%);
   --input: hsl(220, 13%, 18%);
-  --ring: hsl(280, 100%, 60%);
+  --ring: hsl(320, 100%, 58%);
   --chart-1: hsl(203.8863, 88.2845%, 53.1373%);
   --chart-2: hsl(159.7826, 100%, 36.0784%);
   --chart-3: hsl(42.0290, 92.8251%, 56.2745%);
@@ -30,12 +30,12 @@
   --chart-5: hsl(341.4894, 75.2000%, 50.9804%);
   --sidebar: hsl(220, 13%, 11%);
   --sidebar-foreground: hsl(220, 9%, 95%);
-  --sidebar-primary: hsl(280, 100%, 60%);
+  --sidebar-primary: hsl(320, 100%, 58%);
   --sidebar-primary-foreground: hsl(0, 0%, 100%);
   --sidebar-accent: hsl(220, 13%, 18%);
-  --sidebar-accent-foreground: hsl(280, 100%, 60%);
+  --sidebar-accent-foreground: hsl(320, 100%, 58%);
   --sidebar-border: hsl(220, 13%, 18%);
-  --sidebar-ring: hsl(280, 100%, 60%);
+  --sidebar-ring: hsl(320, 100%, 58%);
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
@@ -49,9 +49,9 @@
   --card-foreground: hsl(220, 9%, 95%);
   --popover: hsl(220, 13%, 11%);
   --popover-foreground: hsl(220, 9%, 95%);
-  --primary: hsl(280, 100%, 60%);
+  --primary: hsl(320, 100%, 58%);
   --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(320, 100%, 65%);
+  --secondary: hsl(310, 85%, 65%);
   --secondary-foreground: hsl(0, 0%, 100%);
   --muted: hsl(220, 13%, 18%);
   --muted-foreground: hsl(220, 9%, 70%);
@@ -61,7 +61,7 @@
   --destructive-foreground: hsl(0, 0%, 100%);
   --border: hsl(220, 13%, 18%);
   --input: hsl(220, 13%, 18%);
-  --ring: hsl(280, 100%, 60%);
+  --ring: hsl(320, 100%, 58%);
 }
 
 @layer base {
@@ -77,19 +77,19 @@
 
 @layer utilities {
   .gradient-text {
-    background: linear-gradient(135deg, hsl(280 100% 60%), hsl(320 100% 65%));
+    background: linear-gradient(135deg, hsl(320 100% 58%), hsl(310 85% 65%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   
   .gradient-bg {
-    background: linear-gradient(135deg, hsl(280 100% 60%), hsl(320 100% 65%));
+    background: linear-gradient(135deg, hsl(320 100% 58%), hsl(310 85% 65%));
   }
   
   .hero-pattern {
-    background-image: radial-gradient(circle at 25% 25%, hsl(280 100% 60% / 0.2) 0%, transparent 50%),
-                      radial-gradient(circle at 75% 75%, hsl(320 100% 65% / 0.2) 0%, transparent 50%);
+    background-image: radial-gradient(circle at 25% 25%, hsl(320 100% 58% / 0.2) 0%, transparent 50%),
+                      radial-gradient(circle at 75% 75%, hsl(310 85% 65% / 0.2) 0%, transparent 50%);
   }
   
   .floating-animation {
@@ -107,6 +107,6 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px hsl(280 100% 60% / 0.3); }
-  50% { box-shadow: 0 0 40px hsl(280 100% 60% / 0.6); }
+  0%, 100% { box-shadow: 0 0 20px hsl(320 100% 58% / 0.3); }
+  50% { box-shadow: 0 0 40px hsl(320 100% 58% / 0.6); }
 }
