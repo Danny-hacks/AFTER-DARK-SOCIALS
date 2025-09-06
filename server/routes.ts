@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
 import { insertTicketSchema } from "@shared/schema";
 import session from "express-session";
+import MemoryStore from "memorystore";
 
 // Simple admin credentials - in production, use proper authentication
 const ADMIN_USERNAME = "aftr_admin";
@@ -24,15 +25,24 @@ function requireAuth(req: Request, res: Response, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configure session store
+  const MemoryStoreConstructor = MemoryStore(session);
+  const sessionStore = new MemoryStoreConstructor({
+    checkPeriod: 86400000 // prune expired entries every 24h
+  });
+
   // Configure session middleware
   app.use(session({
-    secret: 'aftr-admin-session-secret', // In production, use environment variable
+    secret: 'aftr-admin-session-secret-key-2024', // In production, use environment variable
+    store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Reset expiry on activity
     cookie: { 
       secure: false, // Set to true in production with HTTPS
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax'
     },
     name: 'aftr.session.id' // Custom session name
   }));
