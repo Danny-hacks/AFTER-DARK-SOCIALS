@@ -70,7 +70,7 @@ export default function EventDetails() {
         {/* Artist Lineup */}
         <div className="mb-16">
           <h3 className="text-3xl font-bold text-center gradient-text mb-12" data-testid="lineup-title">
-            DJ Lineup
+            DJ LINEUP
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {artists.map((artist, index) => {

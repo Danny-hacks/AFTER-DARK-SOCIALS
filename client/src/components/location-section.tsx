@@ -12,7 +12,7 @@ export default function LocationSection() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold gradient-text mb-6" data-testid="location-title">
-            Event Location & Info
+            EVENT LOCATION & INFO
           </h2>
           <p className="text-xl text-muted-foreground" data-testid="location-description">
             Everything you need to know for an amazing experience
