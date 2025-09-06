@@ -46,7 +46,7 @@ export default function AdminPanel() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await apiRequest('/api/admin/check', 'GET') as { isAuthenticated: boolean };
+        const response = await apiRequest('GET', '/api/admin/check') as { isAuthenticated: boolean };
         setIsAuthenticated(response.isAuthenticated);
       } catch (error) {
         setIsAuthenticated(false);
@@ -83,7 +83,7 @@ export default function AdminPanel() {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormData) => {
-      return apiRequest('/api/admin/login', 'POST', data);
+      return apiRequest('POST', '/api/admin/login', data);
     },
     onSuccess: () => {
       setIsAuthenticated(true);
@@ -104,7 +104,7 @@ export default function AdminPanel() {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/admin/logout', 'POST');
+      return apiRequest('POST', '/api/admin/logout');
     },
     onSuccess: () => {
       setIsAuthenticated(false);
@@ -118,7 +118,7 @@ export default function AdminPanel() {
   // Create ticket mutation
   const createTicketMutation = useMutation({
     mutationFn: async (data: TicketFormData) => {
-      return apiRequest('/api/admin/tickets', 'POST', data);
+      return apiRequest('POST', '/api/admin/tickets', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/tickets'] });
@@ -154,7 +154,7 @@ export default function AdminPanel() {
   // Mark ticket as used mutation
   const markUsedMutation = useMutation({
     mutationFn: async (ticketId: string) => {
-      return apiRequest(`/api/admin/tickets/${ticketId}/use`, 'PATCH');
+      return apiRequest('PATCH', `/api/admin/tickets/${ticketId}/use`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/tickets'] });
