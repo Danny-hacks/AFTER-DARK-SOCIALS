@@ -49,8 +49,8 @@ export default function AdminPanel() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await apiRequest('GET', '/api/admin/check') as { isAuthenticated: boolean };
-        setIsAuthenticated(response.isAuthenticated);
+        const response = await apiRequest('GET', '/api/admin/check');
+        setIsAuthenticated((response as any)?.isAuthenticated || false);
       } catch (error) {
         setIsAuthenticated(false);
       } finally {
@@ -99,6 +99,30 @@ export default function AdminPanel() {
       toast({
         title: "Login Failed",
         description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const markAsUsedMutation = useMutation({
+    mutationFn: async (ticketId: string) => {
+      return apiRequest('PATCH', `/api/admin/tickets/${ticketId}/use`);
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Ticket Processed",
+        description: `Entry confirmed for ${data.ticket.customerName}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] });
+      // Update the scanned ticket state
+      if (scannedTicket) {
+        setScannedTicket({ ...scannedTicket, isUsed: true });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process ticket entry",
         variant: "destructive",
       });
     },
@@ -365,6 +389,17 @@ export default function AdminPanel() {
                 </div>
               </div>
               <div className="flex gap-2">
+                {!scannedTicket.isUsed && (
+                  <Button
+                    onClick={() => markAsUsedMutation.mutate(scannedTicket.id)}
+                    disabled={markAsUsedMutation.isPending}
+                    size="sm"
+                    data-testid="button-mark-as-used"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    {markAsUsedMutation.isPending ? "Processing..." : "Allow Entry"}
+                  </Button>
+                )}
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm" data-testid="button-view-scanned-ticket">

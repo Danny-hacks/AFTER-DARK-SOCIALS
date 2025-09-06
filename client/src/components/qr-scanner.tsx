@@ -21,6 +21,8 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
   const { toast } = useToast();
 
   useEffect(() => {
+    let mounted = true;
+    
     if (!videoRef.current) return;
 
     const initializeScanner = async () => {
@@ -39,11 +41,17 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
         const scanner = new QrScanner(
           videoRef.current!,
           async (result) => {
+            if (!mounted) return; // Prevent processing if component unmounted
+            
             console.log("QR Code detected:", result.data);
             setLastScanResult(result.data);
             
             // Parse the QR code data (format: AFTR-TICKET-{id}-{qrCode})
             if (result.data.startsWith("AFTR-TICKET-")) {
+              // Stop scanning temporarily to prevent multiple scans
+              scanner.stop();
+              setScanning(false);
+              
               try {
                 const parts = result.data.split("-");
                 if (parts.length >= 4) {
@@ -52,14 +60,14 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
                   
                   console.log("Scanning ticket:", { ticketId, qrCode, fullData: result.data });
                   
-                  // Try to fetch ticket details - first by ID, then by QR code
-                  let response = await fetch(`/api/admin/tickets/${ticketId}`, {
+                  // Try to fetch ticket details by QR code first (more reliable)
+                  let response = await fetch(`/api/admin/tickets/qr/${qrCode}`, {
                     credentials: 'include'
                   });
                   
-                  // If not found by ID, try by QR code
-                  if (!response.ok && qrCode) {
-                    response = await fetch(`/api/admin/tickets/qr/${qrCode}`, {
+                  // If not found by QR code, try by ID as fallback
+                  if (!response.ok && ticketId) {
+                    response = await fetch(`/api/admin/tickets/${ticketId}`, {
                       credentials: 'include'
                     });
                   }
@@ -67,11 +75,23 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
                   if (response.ok) {
                     const data = await response.json();
                     setScanStatus("success");
-                    onTicketFound(data.ticket);
-                    toast({
-                      title: "Ticket Found!",
-                      description: `Valid ticket for ${data.ticket.customerName}`,
-                    });
+                    
+                    // Check if ticket is already used
+                    if (data.ticket.isUsed) {
+                      toast({
+                        title: "Ticket Already Used",
+                        description: `This ticket for ${data.ticket.customerName} has already been scanned`,
+                        variant: "destructive",
+                      });
+                      setScanStatus("error");
+                      onTicketFound(null);
+                    } else {
+                      onTicketFound(data.ticket);
+                      toast({
+                        title: "Valid Ticket Found!",
+                        description: `Welcome ${data.ticket.customerName} - ${data.ticket.ticketType}`,
+                      });
+                    }
                   } else {
                     setScanStatus("error");
                     onTicketFound(null);
@@ -87,8 +107,8 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
                   setScanStatus("error");
                   onTicketFound(null);
                   toast({
-                    title: "Invalid QR Code",
-                    description: "This is not a valid AFTR ticket",
+                    title: "Invalid QR Code Format",
+                    description: "This QR code is not a valid AFTR ticket",
                     variant: "destructive",
                   });
                 }
@@ -98,7 +118,7 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
                 onTicketFound(null);
                 toast({
                   title: "Scan Error",
-                  description: "Failed to process QR code",
+                  description: "Failed to process QR code. Please try again.",
                   variant: "destructive",
                 });
               }
@@ -111,35 +131,52 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
                 variant: "destructive",
               });
             }
+            
+            // Reset scan status after a delay
+            setTimeout(() => {
+              if (mounted) {
+                setScanStatus("idle");
+              }
+            }, 3000);
           },
           {
             onDecodeError: (error) => {
               // Ignore decode errors as they happen constantly while scanning
-              console.debug("QR decode error:", error);
+              console.debug("QR decode error:", typeof error === 'string' ? error : error.message);
             },
             highlightScanRegion: true,
             highlightCodeOutline: true,
             preferredCamera: "environment", // Use back camera on mobile
-            maxScansPerSecond: 5, // Limit scan frequency
+            maxScansPerSecond: 3, // Reduce scan frequency for better performance
+            returnDetailedScanResult: true,
           }
         );
 
-        setQrScanner(scanner);
+        if (mounted) {
+          setQrScanner(scanner);
+        }
       } catch (error) {
         console.error("Error initializing scanner:", error);
-        toast({
-          title: "Scanner Error",
-          description: "Failed to initialize camera scanner",
-          variant: "destructive",
-        });
+        if (mounted) {
+          toast({
+            title: "Scanner Initialization Failed",
+            description: "Could not access camera. Please check permissions and try again.",
+            variant: "destructive",
+          });
+        }
       }
     };
 
     initializeScanner();
 
     return () => {
+      mounted = false;
       if (qrScanner) {
-        qrScanner.destroy();
+        try {
+          qrScanner.destroy();
+        } catch (error) {
+          console.error("Error destroying scanner:", error);
+        }
       }
     };
   }, [onTicketFound, toast]);
@@ -148,37 +185,59 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
     if (!qrScanner) {
       toast({
         title: "Scanner Not Ready",
-        description: "Camera scanner is still initializing. Please wait.",
+        description: "Camera scanner is still initializing. Please wait a moment.",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      // Request camera permissions first
-      await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      // Clear any previous scan results
+      setLastScanResult("");
+      setScanStatus("idle");
+      
+      // Request camera permissions first with better options
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: { ideal: "environment" },
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        } 
+      });
+      
+      // Clean up the permission test stream
+      stream.getTracks().forEach(track => track.stop());
       
       await qrScanner.start();
       setScanning(true);
-      setScanStatus("idle");
+      
       toast({
-        title: "Scanner Started",
-        description: "Point the camera at a QR code to scan",
+        title: "Scanner Active",
+        description: "Hold the camera steady over a QR code",
       });
+      
     } catch (error: any) {
       console.error("Error starting scanner:", error);
       
       let errorMessage = "Unable to access camera. Please check permissions.";
+      let title = "Camera Error";
+      
       if (error.name === "NotAllowedError") {
-        errorMessage = "Camera access denied. Please allow camera permissions and try again.";
+        title = "Camera Permission Denied";
+        errorMessage = "Please allow camera access in your browser settings and refresh the page.";
       } else if (error.name === "NotFoundError") {
-        errorMessage = "No camera found on this device.";
+        title = "No Camera Available";
+        errorMessage = "No camera detected on this device.";
       } else if (error.name === "NotReadableError") {
-        errorMessage = "Camera is already in use by another application.";
+        title = "Camera In Use";
+        errorMessage = "Camera is being used by another application. Please close other apps and try again.";
+      } else if (error.name === "OverconstrainedError") {
+        title = "Camera Compatibility Issue";
+        errorMessage = "Your camera doesn't support the required settings. Try a different device.";
       }
       
       toast({
-        title: "Camera Error",
+        title,
         description: errorMessage,
         variant: "destructive",
       });
