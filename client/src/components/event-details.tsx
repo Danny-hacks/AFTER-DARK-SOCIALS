@@ -62,7 +62,7 @@ export default function EventDetails() {
           
           {/* Countdown Timer */}
           <div className="bg-background border-2 border-primary rounded-2xl p-8 max-w-4xl mx-auto" data-testid="countdown-container">
-            <h3 className="text-2xl font-bold gradient-text mb-6">Countdown to AFTR</h3>
+            <h3 className="text-2xl font-bold gradient-text mb-6">COUNTDOWN TO AFTR</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="bg-card rounded-xl p-4 border border-border" data-testid="countdown-days">
                 <div className="text-4xl font-black gradient-text">{timeLeft.days}</div>
