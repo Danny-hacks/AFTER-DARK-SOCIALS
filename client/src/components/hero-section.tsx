@@ -10,7 +10,7 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative min-h-screen flex flex-col justify-end hero-pattern pt-16">
+    <section className="relative min-h-screen flex flex-col justify-end hero-pattern">
       {/* Concert crowd background image */}
       <div className="absolute inset-0 bg-black/30"></div>
       <img 
