@@ -80,7 +80,7 @@ export default function EventDetails() {
                   className="bg-muted rounded-xl p-6 text-center hover:scale-105 transition-transform"
                   data-testid={`artist-card-${index}`}
                 >
-                  <div className="w-20 h-20 rounded-full mx-auto mb-4 overflow-hidden border-2 border-primary">
+                  <div className="w-32 h-32 rounded-full mx-auto mb-4 overflow-hidden border-2 border-primary">
                     <img 
                       src={artist.image} 
                       alt={artist.name}
