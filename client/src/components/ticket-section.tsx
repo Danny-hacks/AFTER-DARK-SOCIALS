@@ -73,7 +73,7 @@ export default function TicketSection() {
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
-              <h4 className="text-lg font-semibold text-foreground mb-4" data-testid="payment-account-title">Payment Account Details</h4>
+              <h4 className="text-lg font-bold text-foreground mb-4" data-testid="payment-account-title">Payment Account Details</h4>
               <div className="bg-card rounded-xl p-6 border border-border">
                 <div className="space-y-4">
                   <div data-testid="bank-transfer-section">
@@ -95,7 +95,7 @@ export default function TicketSection() {
             </div>
             
             <div>
-              <h4 className="text-lg font-semibold text-foreground mb-4" data-testid="process-steps-title">Simple 3-Step Process</h4>
+              <h4 className="text-lg font-bold text-foreground mb-4" data-testid="process-steps-title">Simple 3-Step Process</h4>
               <div className="space-y-4">
                 <div className="flex items-start space-x-4" data-testid="step-1">
                   <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>

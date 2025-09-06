@@ -28,7 +28,7 @@ export default function LocationSection() {
             
             <div className="space-y-6">
               <div className="bg-muted rounded-xl p-6" data-testid="venue-info-card">
-                <h4 className="font-semibold text-foreground mb-2" data-testid="venue-name">Shotz</h4>
+                <h4 className="font-bold text-foreground mb-2" data-testid="venue-name">Shotz</h4>
                 <p className="text-muted-foreground mb-4" data-testid="venue-address">
                   Flic en Flac<br />
                   Mauritius
@@ -50,7 +50,7 @@ export default function LocationSection() {
               </div>
               
               <div className="bg-muted rounded-xl p-6" data-testid="transportation-card">
-                <h4 className="font-semibold text-foreground mb-4" data-testid="transportation-title">Getting There</h4>
+                <h4 className="font-bold text-foreground mb-4" data-testid="transportation-title">Getting There</h4>
                 <ul className="space-y-2 text-muted-foreground">
                   <li className="flex items-center space-x-3" data-testid="transport-taxi">
                     <Car className="text-accent" />
@@ -82,7 +82,7 @@ export default function LocationSection() {
             />
             
             <div className="bg-muted rounded-xl p-6" data-testid="important-info-card">
-              <h4 className="font-semibold text-foreground mb-4" data-testid="important-info-title">Important Information</h4>
+              <h4 className="font-bold text-foreground mb-4" data-testid="important-info-title">Important Information</h4>
               <ul className="space-y-3 text-muted-foreground">
                 <li className="flex items-start space-x-3" data-testid="info-id-required">
                   <IdCard className="text-accent mt-1" />

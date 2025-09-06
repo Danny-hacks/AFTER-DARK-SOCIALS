@@ -36,7 +36,7 @@ export default function Footer() {
           </div>
           
           <div data-testid="footer-quick-links">
-            <h4 className="font-semibold text-foreground mb-4">Quick Links</h4>
+            <h4 className="font-bold text-foreground mb-4">Quick Links</h4>
             <ul className="space-y-2 text-muted-foreground">
               <li>
                 <button 
@@ -78,7 +78,7 @@ export default function Footer() {
           </div>
           
           <div data-testid="footer-legal-links">
-            <h4 className="font-semibold text-foreground mb-4">Legal</h4>
+            <h4 className="font-bold text-foreground mb-4">Legal</h4>
             <ul className="space-y-2 text-muted-foreground">
               <li>
                 <a href="#" className="hover:text-foreground transition-colors" data-testid="footer-terms">

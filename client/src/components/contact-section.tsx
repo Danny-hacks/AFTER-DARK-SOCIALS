@@ -111,7 +111,7 @@ export default function ContactSection() {
             </div>
             
             <div className="mt-8 pt-6 border-t border-border">
-              <h4 className="font-semibold text-foreground mb-4" data-testid="social-media-title">Follow Us</h4>
+              <h4 className="font-bold text-foreground mb-4" data-testid="social-media-title">Follow Us</h4>
               <div className="flex space-x-4">
                 <a 
                   href="https://www.instagram.com/afterdarksocials.mu?igsh=M3FxdDR1bzd6MjJy&utm_source=qr" 
