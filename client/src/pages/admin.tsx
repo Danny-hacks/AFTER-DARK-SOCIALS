@@ -11,8 +11,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Ticket, LogIn, LogOut, Plus, Download, Users, CheckCircle, XCircle } from "lucide-react";
+import { Ticket, LogIn, LogOut, Plus, Download, Users, CheckCircle, XCircle, Eye } from "lucide-react";
 import type { Ticket as TicketType } from "@shared/schema";
+import { TicketGenerator } from "@/components/ticket-generator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 // Login form schema
 const loginSchema = z.object({
@@ -419,6 +421,24 @@ export default function AdminPanel() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              data-testid={`button-view-ticket-${ticket.id}`}
+                            >
+                              <Eye className="w-3 h-3 mr-1" />
+                              View
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>Digital Ticket - {ticket.referenceCode}</DialogTitle>
+                            </DialogHeader>
+                            <TicketGenerator ticket={ticket} />
+                          </DialogContent>
+                        </Dialog>
                         {ticket.isUsed ? (
                           <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Used</span>
                         ) : (
