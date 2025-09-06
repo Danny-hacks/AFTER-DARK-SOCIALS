@@ -22,22 +22,39 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
         const canvas = await html2canvas(ticketRef.current, {
           scale: 2,
           backgroundColor: '#1a1a1a',
-          width: 800,
-          height: 600,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
         });
         
         const imgData = canvas.toDataURL('image/png');
+        
+        // Use A4 landscape for better compatibility and quality
         const pdf = new jsPDF({
           orientation: 'landscape',
           unit: 'mm',
-          format: [200, 150] // Custom size to fit ticket
+          format: 'a4'
         });
         
-        // Calculate dimensions to fit the ticket properly
+        // Calculate dimensions to maintain aspect ratio
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
+        const canvasAspectRatio = canvas.width / canvas.height;
         
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        let imgWidth = pdfWidth - 20; // 10mm margin on each side
+        let imgHeight = imgWidth / canvasAspectRatio;
+        
+        // If height exceeds page, adjust width
+        if (imgHeight > pdfHeight - 20) {
+          imgHeight = pdfHeight - 20;
+          imgWidth = imgHeight * canvasAspectRatio;
+        }
+        
+        // Center the image
+        const xOffset = (pdfWidth - imgWidth) / 2;
+        const yOffset = (pdfHeight - imgHeight) / 2;
+        
+        pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgWidth, imgHeight);
         pdf.save(`AFTR-Ticket-${ticket.referenceCode}.pdf`);
         
         toast({
@@ -63,20 +80,39 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       const canvas = await html2canvas(ticketRef.current, {
         scale: 2,
         backgroundColor: '#1a1a1a',
-        width: 800,
-        height: 600,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
       });
       
       const imgData = canvas.toDataURL('image/png');
+      
+      // Use A4 landscape for better compatibility and quality
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
-        format: [200, 150]
+        format: 'a4'
       });
       
+      // Calculate dimensions to maintain aspect ratio
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      const canvasAspectRatio = canvas.width / canvas.height;
+      
+      let imgWidth = pdfWidth - 20; // 10mm margin on each side
+      let imgHeight = imgWidth / canvasAspectRatio;
+      
+      // If height exceeds page, adjust width
+      if (imgHeight > pdfHeight - 20) {
+        imgHeight = pdfHeight - 20;
+        imgWidth = imgHeight * canvasAspectRatio;
+      }
+      
+      // Center the image
+      const xOffset = (pdfWidth - imgWidth) / 2;
+      const yOffset = (pdfHeight - imgHeight) / 2;
+      
+      pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgWidth, imgHeight);
       
       const pdfBlob = pdf.output('blob');
       const pdfUrl = URL.createObjectURL(pdfBlob);
@@ -131,20 +167,39 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       const canvas = await html2canvas(ticketRef.current, {
         scale: 2,
         backgroundColor: '#1a1a1a',
-        width: 800,
-        height: 600,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
       });
       
       const imgData = canvas.toDataURL('image/png');
+      
+      // Use A4 landscape for better compatibility and quality
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
-        format: [200, 150]
+        format: 'a4'
       });
       
+      // Calculate dimensions to maintain aspect ratio
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      const canvasAspectRatio = canvas.width / canvas.height;
+      
+      let imgWidth = pdfWidth - 20; // 10mm margin on each side
+      let imgHeight = imgWidth / canvasAspectRatio;
+      
+      // If height exceeds page, adjust width
+      if (imgHeight > pdfHeight - 20) {
+        imgHeight = pdfHeight - 20;
+        imgWidth = imgHeight * canvasAspectRatio;
+      }
+      
+      // Center the image
+      const xOffset = (pdfWidth - imgWidth) / 2;
+      const yOffset = (pdfHeight - imgHeight) / 2;
+      
+      pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgWidth, imgHeight);
       
       const pdfBlob = pdf.output('blob');
       const pdfUrl = URL.createObjectURL(pdfBlob);
