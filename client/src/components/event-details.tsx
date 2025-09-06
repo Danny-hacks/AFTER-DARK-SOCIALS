@@ -1,0 +1,95 @@
+import { CheckCircle, Music, Guitar, Mic, Drum } from "lucide-react";
+
+const artists = [
+  { name: "Dj Alvin", genre: "Electronic", icon: Music },
+  { name: "Dj Luvlesh", genre: "Electronic", icon: Guitar },
+  { name: "Stevo The Dj", genre: "Electronic", icon: Mic },
+  { name: "Dj Sway", genre: "Electronic", icon: Drum },
+  { name: "Dj Afrokeyz", genre: "Electronic", icon: Music },
+];
+
+export default function EventDetails() {
+  return (
+    <section id="event" className="py-20 bg-card">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl sm:text-5xl font-bold gradient-text mb-6" data-testid="event-details-title">
+            The Rave Experience
+          </h2>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto" data-testid="event-details-description">
+            Get ready for AFTR — the rave that keeps the city awake! 5 DJs, 6 hours of non-stop energy, 
+            and one unforgettable night this 27th September.
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
+          <div>
+            <img 
+              src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600" 
+              alt="Vibrant festival stage with colorful lighting and sound equipment" 
+              className="w-full h-96 object-cover rounded-2xl shadow-2xl"
+              data-testid="festival-stage-image"
+            />
+          </div>
+          <div className="space-y-6">
+            <h3 className="text-2xl sm:text-3xl font-bold text-foreground" data-testid="entertainment-title">
+              6 Hours of Pure Energy
+            </h3>
+            <p className="text-lg text-muted-foreground leading-relaxed" data-testid="entertainment-description">
+              AFTR brings together the hottest DJs for an explosive celebration of electronic music. 
+              Door opens by 10pm, first act starts at 10:30. Experience non-stop beats that will keep 
+              you dancing until 4am.
+            </p>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3" data-testid="feature-artists">
+                <CheckCircle className="text-accent text-xl" />
+                <span className="text-lg">5 Top Electronic DJs</span>
+              </div>
+              <div className="flex items-center space-x-3" data-testid="feature-stages">
+                <CheckCircle className="text-accent text-xl" />
+                <span className="text-lg">Premium Sound System</span>
+              </div>
+              <div className="flex items-center space-x-3" data-testid="feature-food">
+                <CheckCircle className="text-accent text-xl" />
+                <span className="text-lg">Bar & Refreshments Available</span>
+              </div>
+              <div className="flex items-center space-x-3" data-testid="feature-vip">
+                <CheckCircle className="text-accent text-xl" />
+                <span className="text-lg">6 Hours Non-Stop Energy</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Artist Lineup */}
+        <div className="mb-16">
+          <h3 className="text-3xl font-bold text-center gradient-text mb-12" data-testid="lineup-title">
+            DJ Lineup
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {artists.map((artist, index) => {
+              const IconComponent = artist.icon;
+              return (
+                <div 
+                  key={artist.name}
+                  className="bg-muted rounded-xl p-6 text-center hover:scale-105 transition-transform"
+                  data-testid={`artist-card-${index}`}
+                >
+                  <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <IconComponent className="text-2xl text-white" />
+                  </div>
+                  <h4 className="font-bold text-lg text-foreground" data-testid={`artist-name-${index}`}>
+                    {artist.name}
+                  </h4>
+                  <p className="text-muted-foreground" data-testid={`artist-genre-${index}`}>
+                    {artist.genre}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

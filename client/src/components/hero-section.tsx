@@ -1,0 +1,64 @@
+import { Calendar, Clock, MapPin, Ticket } from "lucide-react";
+
+export default function HeroSection() {
+  const scrollToTickets = () => {
+    const element = document.getElementById('tickets');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <section className="relative min-h-screen flex items-center justify-center hero-pattern pt-16">
+      {/* Concert crowd background image */}
+      <div className="absolute inset-0 bg-black/50"></div>
+      <img 
+        src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1974&h=1080" 
+        alt="Energetic concert crowd with hands raised and stage lights" 
+        className="absolute inset-0 w-full h-full object-cover"
+        data-testid="hero-background-image"
+      />
+      
+      <div className="relative z-10 text-center max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="floating-animation">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black mb-6 leading-tight" data-testid="hero-title">
+            <span className="gradient-text">AFTR</span><br />
+            <span className="text-white">The Rave</span>
+          </h1>
+          <p className="text-xl sm:text-2xl text-gray-200 mb-8 font-medium" data-testid="hero-tagline">
+            Get ready for AFTR — the rave that keeps the city awake!
+          </p>
+        </div>
+        
+        <div className="bg-black/60 backdrop-blur-md rounded-2xl p-6 sm:p-8 mb-8 border border-white/20" data-testid="event-details-card">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+            <div className="flex flex-col items-center" data-testid="event-date">
+              <Calendar className="text-2xl gradient-text mb-2" />
+              <div className="text-sm text-gray-300 uppercase tracking-wider">Date</div>
+              <div className="text-lg font-semibold text-white">27th September 2025</div>
+            </div>
+            <div className="flex flex-col items-center" data-testid="event-time">
+              <Clock className="text-2xl gradient-text mb-2" />
+              <div className="text-sm text-gray-300 uppercase tracking-wider">Time</div>
+              <div className="text-lg font-semibold text-white">10:00 PM - 4:00 AM</div>
+            </div>
+            <div className="flex flex-col items-center" data-testid="event-venue">
+              <MapPin className="text-2xl gradient-text mb-2" />
+              <div className="text-sm text-gray-300 uppercase tracking-wider">Venue</div>
+              <div className="text-lg font-semibold text-white">Shotz, Flic en Flac</div>
+            </div>
+          </div>
+        </div>
+        
+        <button 
+          onClick={scrollToTickets}
+          className="inline-flex items-center px-8 py-4 gradient-bg text-white font-bold text-lg rounded-full hover:scale-105 transition-transform pulse-glow"
+          data-testid="get-tickets-button"
+        >
+          <Ticket className="mr-3" />
+          Get Your Tickets Now
+        </button>
+      </div>
+    </section>
+  );
+}
