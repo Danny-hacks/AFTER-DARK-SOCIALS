@@ -77,10 +77,7 @@
 
 @layer utilities {
   .gradient-text {
-    background: linear-gradient(135deg, #c72d28, #c72d28);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: white;
   }
   
   .gradient-bg {
