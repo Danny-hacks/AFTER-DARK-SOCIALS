@@ -33,7 +33,7 @@ export default function TicketSection() {
             </div>
             <div className="text-center mb-6">
               <Ticket className="text-4xl gradient-text mb-4 mx-auto" />
-              <h3 className="text-2xl font-bold text-foreground" data-testid="phase1-title">AFTR Rave Entry</h3>
+              <h3 className="text-3xl font-black gradient-text tracking-wider uppercase" data-testid="phase1-title">AFTR Rave Entry</h3>
               <p className="text-muted-foreground">Phase 1 Pricing</p>
             </div>
             <div className="text-center mb-6">
