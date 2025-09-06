@@ -25,8 +25,8 @@ export default function EventDetails() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
           <div>
             <img 
-              src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600" 
-              alt="Vibrant festival stage with colorful lighting and sound equipment" 
+              src="/public-objects/AFTR-1_1757155940525.jpg" 
+              alt="AFTR rave event with neon branding and crowd" 
               className="w-full h-96 object-cover rounded-2xl shadow-2xl"
               data-testid="festival-stage-image"
             />
