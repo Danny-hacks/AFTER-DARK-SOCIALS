@@ -1,4 +1,5 @@
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Calendar, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
 import aftrEventImage from "@assets/AFTR-1_1757155940525.jpg";
 import djAlvinImage from "@assets/DJ ALVIN_1757156832389.jpg";
 import djLuvleshImage from "@assets/DJ LUVLESH_1757156832389.jpg";
@@ -15,6 +16,38 @@ const artists = [
 ];
 
 export default function EventDetails() {
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  });
+
+  useEffect(() => {
+    const eventDate = new Date('2025-09-18T00:00:00');
+    
+    const updateCountdown = () => {
+      const now = new Date();
+      const difference = eventDate.getTime() - now.getTime();
+      
+      if (difference > 0) {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          seconds: Math.floor((difference / 1000) % 60)
+        });
+      } else {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      }
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <section id="event" className="py-20 bg-card">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -22,10 +55,48 @@ export default function EventDetails() {
           <h2 className="text-4xl sm:text-5xl font-bold gradient-text mb-6" data-testid="event-details-title">
             The Rave Experience
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto" data-testid="event-details-description">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8" data-testid="event-details-description">
             Get ready for AFTR — the rave that keeps the city awake! 5 DJs, 6 hours of non-stop energy, 
             and one unforgettable night this 27th September.
           </p>
+          
+          {/* Countdown Timeline */}
+          <div className="bg-muted rounded-2xl p-8 border border-border mb-8" data-testid="countdown-section">
+            <div className="flex items-center justify-center mb-6">
+              <Calendar className="text-primary mr-3" size={24} />
+              <h3 className="text-2xl font-bold gradient-text">COUNTDOWN TO SEPTEMBER 18TH</h3>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="text-center" data-testid="days-counter">
+                <div className="bg-primary text-primary-foreground rounded-xl p-4 mb-2">
+                  <div className="text-3xl font-black">{timeLeft.days}</div>
+                </div>
+                <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Days</div>
+              </div>
+              <div className="text-center" data-testid="hours-counter">
+                <div className="bg-primary text-primary-foreground rounded-xl p-4 mb-2">
+                  <div className="text-3xl font-black">{timeLeft.hours}</div>
+                </div>
+                <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Hours</div>
+              </div>
+              <div className="text-center" data-testid="minutes-counter">
+                <div className="bg-primary text-primary-foreground rounded-xl p-4 mb-2">
+                  <div className="text-3xl font-black">{timeLeft.minutes}</div>
+                </div>
+                <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Minutes</div>
+              </div>
+              <div className="text-center" data-testid="seconds-counter">
+                <div className="bg-primary text-primary-foreground rounded-xl p-4 mb-2">
+                  <div className="text-3xl font-black">{timeLeft.seconds}</div>
+                </div>
+                <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Seconds</div>
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-center text-muted-foreground">
+              <Clock className="mr-2" size={16} />
+              <span className="text-sm">Until the countdown begins!</span>
+            </div>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
