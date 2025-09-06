@@ -11,9 +11,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Ticket, LogIn, LogOut, Plus, Download, Users, CheckCircle, XCircle, Eye } from "lucide-react";
+import { Ticket, LogIn, LogOut, Plus, Download, Users, CheckCircle, XCircle, Eye, QrCode } from "lucide-react";
 import type { Ticket as TicketType } from "@shared/schema";
 import { TicketGenerator } from "@/components/ticket-generator";
+import { QRScanner } from "@/components/qr-scanner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 // Login form schema
@@ -39,6 +40,8 @@ type TicketFormData = z.infer<typeof ticketSchema>;
 export default function AdminPanel() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [scannedTicket, setScannedTicket] = useState<TicketType | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -250,14 +253,24 @@ export default function AdminPanel() {
             <Ticket className="h-8 w-8" />
             AFTR Ticket Manager
           </h1>
-          <Button 
-            onClick={() => logoutMutation.mutate()}
-            variant="outline"
-            data-testid="button-logout"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={() => setShowQRScanner(!showQRScanner)}
+              variant={showQRScanner ? "default" : "outline"}
+              data-testid="button-qr-scanner"
+            >
+              <QrCode className="w-4 h-4 mr-2" />
+              {showQRScanner ? "Close Scanner" : "QR Scanner"}
+            </Button>
+            <Button 
+              onClick={() => logoutMutation.mutate()}
+              variant="outline"
+              data-testid="button-logout"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -296,6 +309,88 @@ export default function AdminPanel() {
             </CardContent>
           </Card>
         </div>
+
+        {/* QR Scanner Section */}
+        {showQRScanner && (
+          <div className="mb-8">
+            <QRScanner
+              onTicketFound={(ticket) => {
+                setScannedTicket(ticket);
+                if (ticket) {
+                  setShowQRScanner(false);
+                }
+              }}
+              onClose={() => {
+                setShowQRScanner(false);
+                setScannedTicket(null);
+              }}
+            />
+          </div>
+        )}
+
+        {/* Scanned Ticket Display */}
+        {scannedTicket && (
+          <Card className="mb-8 border-green-500">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-green-600">
+                <CheckCircle className="h-5 w-5" />
+                Scanned Ticket Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Reference</p>
+                  <p className="font-mono font-bold">{scannedTicket.referenceCode}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Customer</p>
+                  <p className="font-semibold">{scannedTicket.customerName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Price</p>
+                  <p className="font-semibold">{scannedTicket.price}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  {scannedTicket.isUsed ? (
+                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                      Used
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                      Valid
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" data-testid="button-view-scanned-ticket">
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Full Ticket
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Ticket Details - {scannedTicket.referenceCode}</DialogTitle>
+                    </DialogHeader>
+                    <TicketGenerator ticket={scannedTicket} />
+                  </DialogContent>
+                </Dialog>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setScannedTicket(null)}
+                  data-testid="button-clear-scanned-ticket"
+                >
+                  Clear
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Create Ticket Form */}
