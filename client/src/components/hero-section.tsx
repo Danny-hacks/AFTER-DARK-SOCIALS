@@ -1,4 +1,5 @@
 import { Calendar, Clock, MapPin, Ticket } from "lucide-react";
+import aftrHeroImage from "@assets/AFTR_1757155849539.jpg";
 
 export default function HeroSection() {
   const scrollToTickets = () => {
@@ -13,7 +14,7 @@ export default function HeroSection() {
       {/* Concert crowd background image */}
       <div className="absolute inset-0 bg-black/50"></div>
       <img 
-        src="/public-objects/AFTR_1757155849539.jpg" 
+        src={aftrHeroImage} 
         alt="AFTR rave with neon lights and crowd silhouette" 
         className="absolute inset-0 w-full h-full object-cover"
         data-testid="hero-background-image"

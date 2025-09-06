@@ -1,4 +1,5 @@
 import { CheckCircle, Music, Guitar, Mic, Drum } from "lucide-react";
+import aftrEventImage from "@assets/AFTR-1_1757155940525.jpg";
 
 const artists = [
   { name: "Dj Alvin", genre: "Electronic", icon: Music },
@@ -25,7 +26,7 @@ export default function EventDetails() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
           <div>
             <img 
-              src="/public-objects/AFTR-1_1757155940525.jpg" 
+              src={aftrEventImage} 
               alt="AFTR rave event with neon branding and crowd" 
               className="w-full h-96 object-cover rounded-2xl shadow-2xl"
               data-testid="festival-stage-image"
