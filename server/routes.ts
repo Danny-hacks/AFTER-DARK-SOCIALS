@@ -29,7 +29,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     secret: 'aftr-admin-session-secret', // In production, use environment variable
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false } // Set to true in production with HTTPS
+    cookie: { 
+      secure: false, // Set to true in production with HTTPS
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    },
+    name: 'aftr.session.id' // Custom session name
   }));
 
   // Admin authentication routes
