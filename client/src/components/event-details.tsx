@@ -1,12 +1,17 @@
-import { CheckCircle, Music, Guitar, Mic, Drum } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import aftrEventImage from "@assets/AFTR-1_1757155940525.jpg";
+import djAlvinImage from "@assets/DJ ALVIN_1757156832389.jpg";
+import djLuvleshImage from "@assets/DJ LUVLESH_1757156832389.jpg";
+import djStevoImage from "@assets/STEVOTHEDJ_1757156832391.jpg";
+import djSwayImage from "@assets/DJ SWAY_1757156832390.jpg";
+import djAfrokeyzImage from "@assets/DJ AFROKEYZ_1757156832386.jpg";
 
 const artists = [
-  { name: "Dj Alvin", genre: "Electronic", icon: Music },
-  { name: "Dj Luvlesh", genre: "Electronic", icon: Guitar },
-  { name: "Stevo The Dj", genre: "Electronic", icon: Mic },
-  { name: "Dj Sway", genre: "Electronic", icon: Drum },
-  { name: "Dj Afrokeyz", genre: "Electronic", icon: Music },
+  { name: "Dj Alvin", genre: "Electronic", image: djAlvinImage },
+  { name: "Dj Luvlesh", genre: "Electronic", image: djLuvleshImage },
+  { name: "Stevo The Dj", genre: "Electronic", image: djStevoImage },
+  { name: "Dj Sway", genre: "Electronic", image: djSwayImage },
+  { name: "Dj Afrokeyz", genre: "Electronic", image: djAfrokeyzImage },
 ];
 
 export default function EventDetails() {
@@ -69,15 +74,18 @@ export default function EventDetails() {
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {artists.map((artist, index) => {
-              const IconComponent = artist.icon;
               return (
                 <div 
                   key={artist.name}
                   className="bg-muted rounded-xl p-6 text-center hover:scale-105 transition-transform"
                   data-testid={`artist-card-${index}`}
                 >
-                  <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full mx-auto mb-4 flex items-center justify-center">
-                    <IconComponent className="text-2xl text-white" />
+                  <div className="w-20 h-20 rounded-full mx-auto mb-4 overflow-hidden border-2 border-primary">
+                    <img 
+                      src={artist.image} 
+                      alt={artist.name}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <h4 className="font-bold text-lg text-foreground" data-testid={`artist-name-${index}`}>
                     {artist.name}
