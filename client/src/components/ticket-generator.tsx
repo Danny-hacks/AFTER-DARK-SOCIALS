@@ -1,8 +1,10 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { toPng } from "html-to-image";
-import { Download, Share } from "lucide-react";
+import { Download, Share, Mail, MessageCircle } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Ticket } from "@shared/schema";
 
 interface TicketGeneratorProps {
@@ -41,6 +43,63 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
         });
       }
     }
+  };
+
+  const shareViaWhatsApp = async () => {
+    // For WhatsApp, we'll create a message with ticket details and suggest sending the ticket image
+    const message = encodeURIComponent(
+      `🎉 Your AFTR Rave Ticket is Ready! 🎉\n\n` +
+      `📧 Customer: ${ticket.customerName}\n` +
+      `🎫 Reference: ${ticket.referenceCode}\n` +
+      `💰 Price: ${ticket.price}\n` +
+      `📅 Date: 27th September 2025\n` +
+      `📍 Venue: Shotz, Flic en Flac\n` +
+      `🕙 Door opens: 10:00 PM\n\n` +
+      `Your digital ticket image is attached. Keep it safe and show it at the entrance!\n\n` +
+      `See you on the dance floor! 🎵🔥`
+    );
+    
+    // Open WhatsApp with the message
+    window.open(`https://wa.me/${ticket.customerPhone ? ticket.customerPhone : ''}?text=${message}`, '_blank');
+    
+    toast({
+      title: "WhatsApp Opened",
+      description: "Please download the ticket image and send it along with the message",
+    });
+  };
+
+  const shareViaEmail = () => {
+    const subject = encodeURIComponent(`Your AFTR Rave Ticket - ${ticket.referenceCode}`);
+    const body = encodeURIComponent(
+      `Hello ${ticket.customerName},\n\n` +
+      `Your ticket for AFTR rave is ready! 🎉\n\n` +
+      `Event Details:\n` +
+      `• Date: 27th September 2025\n` +
+      `• Venue: Shotz, Flic en Flac\n` +
+      `• Door opens: 10:00 PM\n` +
+      `• First act: 10:30 PM\n` +
+      `• Duration: 6 hours non-stop energy\n\n` +
+      `Ticket Information:\n` +
+      `• Reference Code: ${ticket.referenceCode}\n` +
+      `• Price: ${ticket.price}\n` +
+      `• Type: ${ticket.ticketType}\n\n` +
+      `Please find your digital ticket image attached to this email. Save it to your phone and present it at the entrance.\n\n` +
+      `Important Notes:\n` +
+      `• Keep your ticket safe - this is your entry pass\n` +
+      `• Arrive early to avoid queues\n` +
+      `• Follow our Instagram @afterdarksocials.mu for updates\n\n` +
+      `Get ready for the night of your life!\n\n` +
+      `Best regards,\n` +
+      `After Dark Socials Team`
+    );
+    
+    const emailTo = ticket.customerEmail || '';
+    window.open(`mailto:${emailTo}?subject=${subject}&body=${body}`, '_blank');
+    
+    toast({
+      title: "Email Client Opened",
+      description: "Please download the ticket image and attach it to your email",
+    });
   };
 
   const shareTicket = async () => {
@@ -179,15 +238,54 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
           <Download className="w-4 h-4" />
           Download Ticket
         </Button>
-        <Button 
-          onClick={shareTicket}
-          variant="outline"
-          className="flex items-center gap-2"
-          data-testid="button-share-ticket"
-        >
-          <Share className="w-4 h-4" />
-          Share Ticket
-        </Button>
+        
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="outline"
+              className="flex items-center gap-2"
+              data-testid="button-share-options"
+            >
+              <Share className="w-4 h-4" />
+              Share Ticket
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56">
+            <div className="space-y-2">
+              <p className="text-sm font-medium mb-3">Share via:</p>
+              
+              <Button
+                onClick={shareViaWhatsApp}
+                variant="outline"
+                className="w-full justify-start gap-2"
+                data-testid="button-share-whatsapp"
+              >
+                <SiWhatsapp className="w-4 h-4 text-green-600" />
+                WhatsApp
+              </Button>
+              
+              <Button
+                onClick={shareViaEmail}
+                variant="outline"
+                className="w-full justify-start gap-2"
+                data-testid="button-share-email"
+              >
+                <Mail className="w-4 h-4 text-blue-600" />
+                Email
+              </Button>
+              
+              <Button
+                onClick={shareTicket}
+                variant="outline"
+                className="w-full justify-start gap-2"
+                data-testid="button-share-native"
+              >
+                <Share className="w-4 h-4" />
+                Native Share
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
     </div>
   );
