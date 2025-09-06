@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -9,10 +9,37 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
 });
 
+export const tickets = pgTable("tickets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referenceCode: text("reference_code").notNull().unique(),
+  customerName: text("customer_name").notNull(),
+  customerEmail: text("customer_email"),
+  customerPhone: text("customer_phone"),
+  ticketType: text("ticket_type").notNull().default("Phase 1"),
+  price: text("price").notNull().default("Rs 350"),
+  paymentMethod: text("payment_method"), // "MCB Bank" or "Juice Mobile"
+  qrCode: text("qr_code").notNull(),
+  isUsed: boolean("is_used").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  usedAt: timestamp("used_at"),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
 });
 
+export const insertTicketSchema = createInsertSchema(tickets).pick({
+  referenceCode: true,
+  customerName: true,
+  customerEmail: true,
+  customerPhone: true,
+  ticketType: true,
+  price: true,
+  paymentMethod: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type InsertTicket = z.infer<typeof insertTicketSchema>;
+export type Ticket = typeof tickets.$inferSelect;
