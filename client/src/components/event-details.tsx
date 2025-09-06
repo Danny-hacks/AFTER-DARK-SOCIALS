@@ -1,4 +1,5 @@
 import { CheckCircle } from "lucide-react";
+import { useState, useEffect } from "react";
 import aftrEventImage from "@assets/AFTR-1_1757155940525.jpg";
 import djAlvinImage from "@assets/DJ ALVIN_1757156832389.jpg";
 import djLuvleshImage from "@assets/DJ LUVLESH_1757156832389.jpg";
@@ -15,6 +16,38 @@ const artists = [
 ];
 
 export default function EventDetails() {
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  });
+
+  useEffect(() => {
+    const eventDate = new Date('2025-09-27T22:00:00').getTime(); // September 27, 2025 at 10 PM
+
+    const updateCountdown = () => {
+      const now = new Date().getTime();
+      const distance = eventDate - now;
+
+      if (distance > 0) {
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        setTimeLeft({ days, hours, minutes, seconds });
+      } else {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      }
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <section id="event" className="py-20 bg-card">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -22,10 +55,33 @@ export default function EventDetails() {
           <h2 className="text-4xl sm:text-5xl font-bold gradient-text mb-6" data-testid="event-details-title">
             The Rave Experience
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto" data-testid="event-details-description">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8" data-testid="event-details-description">
             Get ready for AFTR — the rave that keeps the city awake! 5 DJs, 6 hours of non-stop energy, 
             and one unforgettable night this 27th September.
           </p>
+          
+          {/* Countdown Timer */}
+          <div className="bg-background border-2 border-primary rounded-2xl p-8 max-w-4xl mx-auto" data-testid="countdown-container">
+            <h3 className="text-2xl font-bold gradient-text mb-6">Countdown to AFTR</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-card rounded-xl p-4 border border-border" data-testid="countdown-days">
+                <div className="text-4xl font-black gradient-text">{timeLeft.days}</div>
+                <div className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">Days</div>
+              </div>
+              <div className="bg-card rounded-xl p-4 border border-border" data-testid="countdown-hours">
+                <div className="text-4xl font-black gradient-text">{timeLeft.hours}</div>
+                <div className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">Hours</div>
+              </div>
+              <div className="bg-card rounded-xl p-4 border border-border" data-testid="countdown-minutes">
+                <div className="text-4xl font-black gradient-text">{timeLeft.minutes}</div>
+                <div className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">Minutes</div>
+              </div>
+              <div className="bg-card rounded-xl p-4 border border-border" data-testid="countdown-seconds">
+                <div className="text-4xl font-black gradient-text">{timeLeft.seconds}</div>
+                <div className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">Seconds</div>
+              </div>
+            </div>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
