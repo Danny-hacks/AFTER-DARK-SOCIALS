@@ -10,7 +10,7 @@
   --card-foreground: hsl(220, 9%, 95%);
   --popover: hsl(220, 13%, 11%);
   --popover-foreground: hsl(220, 9%, 95%);
-  --primary: #640f12;
+  --primary: #c72d28;
   --primary-foreground: hsl(0, 0%, 100%);
   --secondary: hsl(1.89, 66.53%, 46.86%);
   --secondary-foreground: hsl(0, 0%, 100%);
@@ -30,12 +30,12 @@
   --chart-5: hsl(341.4894, 75.2000%, 50.9804%);
   --sidebar: hsl(220, 13%, 11%);
   --sidebar-foreground: hsl(220, 9%, 95%);
-  --sidebar-primary: #640f12;
+  --sidebar-primary: #c72d28;
   --sidebar-primary-foreground: hsl(0, 0%, 100%);
   --sidebar-accent: hsl(220, 13%, 18%);
-  --sidebar-accent-foreground: #640f12;
+  --sidebar-accent-foreground: #c72d28;
   --sidebar-border: hsl(220, 13%, 18%);
-  --sidebar-ring: #640f12;
+  --sidebar-ring: #c72d28;
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
@@ -49,9 +49,9 @@
   --card-foreground: hsl(220, 9%, 95%);
   --popover: hsl(220, 13%, 11%);
   --popover-foreground: hsl(220, 9%, 95%);
-  --primary: #640f12;
+  --primary: #c72d28;
   --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: #640f12;
+  --secondary: #c72d28;
   --secondary-foreground: hsl(0, 0%, 100%);
   --muted: hsl(220, 13%, 18%);
   --muted-foreground: hsl(220, 9%, 70%);
@@ -61,7 +61,7 @@
   --destructive-foreground: hsl(0, 0%, 100%);
   --border: hsl(220, 13%, 18%);
   --input: hsl(220, 13%, 18%);
-  --ring: #640f12;
+  --ring: #c72d28;
 }
 
 @layer base {
@@ -77,19 +77,19 @@
 
 @layer utilities {
   .gradient-text {
-    background: linear-gradient(135deg, #640f12, #640f12);
+    background: linear-gradient(135deg, #c72d28, #c72d28);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   
   .gradient-bg {
-    background: linear-gradient(135deg, #640f12, #640f12);
+    background: linear-gradient(135deg, #c72d28, #c72d28);
   }
   
   .hero-pattern {
-    background-image: radial-gradient(circle at 25% 25%, #640f1233 0%, transparent 50%),
-                      radial-gradient(circle at 75% 75%, #640f1233 0%, transparent 50%);
+    background-image: radial-gradient(circle at 25% 25%, #c72d2833 0%, transparent 50%),
+                      radial-gradient(circle at 75% 75%, #c72d2833 0%, transparent 50%);
   }
   
   .floating-animation {
@@ -107,6 +107,6 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px #640f124d; }
-  50% { box-shadow: 0 0 40px #640f1299; }
+  0%, 100% { box-shadow: 0 0 20px #c72d284d; }
+  50% { box-shadow: 0 0 40px #c72d2899; }
 }
