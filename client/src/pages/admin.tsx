@@ -46,7 +46,7 @@ export default function AdminPanel() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await apiRequest('/api/admin/check') as { isAuthenticated: boolean };
+        const response = await apiRequest('/api/admin/check', 'GET') as { isAuthenticated: boolean };
         setIsAuthenticated(response.isAuthenticated);
       } catch (error) {
         setIsAuthenticated(false);
