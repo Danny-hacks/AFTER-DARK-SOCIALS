@@ -21,16 +21,6 @@ export default function HeroSection() {
       />
       
       <div className="relative z-10 text-center max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="floating-animation">
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black mb-6 leading-tight" data-testid="hero-title">
-            <span className="gradient-text">AFTR</span><br />
-            <span className="text-white">The Rave</span>
-          </h1>
-          <p className="text-xl sm:text-2xl text-gray-200 mb-8 font-medium" data-testid="hero-tagline">
-            Get ready for AFTR — the rave that keeps the city awake!
-          </p>
-        </div>
-        
         <div className="bg-black/60 backdrop-blur-md rounded-2xl p-6 sm:p-8 mb-8 border border-white/20" data-testid="event-details-card">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
             <div className="flex flex-col items-center" data-testid="event-date">
