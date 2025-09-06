@@ -9,7 +9,7 @@ import djAfrokeyzImage from "@assets/DJ AFROKEYZ_1757156832386.jpg";
 const artists = [
   { name: "DJ ALVIN", genre: "Electronic", image: djAlvinImage },
   { name: "DJ LUVLESH", genre: "Electronic", image: djLuvleshImage },
-  { name: "STEVO THE DJ", genre: "Electronic", image: djStevoImage },
+  { name: "STEVOTHEDJ", genre: "Electronic", image: djStevoImage },
   { name: "DJ SWAY", genre: "Electronic", image: djSwayImage },
   { name: "DJ AFROKEYZ", genre: "Electronic", image: djAfrokeyzImage },
 ];
