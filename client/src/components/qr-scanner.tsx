@@ -46,13 +46,23 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
             if (result.data.startsWith("AFTR-TICKET-")) {
               try {
                 const parts = result.data.split("-");
-                if (parts.length >= 3) {
+                if (parts.length >= 4) {
                   const ticketId = parts[2];
+                  const qrCode = parts[3];
                   
-                  // Fetch ticket details from the backend
-                  const response = await fetch(`/api/admin/tickets/${ticketId}`, {
+                  console.log("Scanning ticket:", { ticketId, qrCode, fullData: result.data });
+                  
+                  // Try to fetch ticket details - first by ID, then by QR code
+                  let response = await fetch(`/api/admin/tickets/${ticketId}`, {
                     credentials: 'include'
                   });
+                  
+                  // If not found by ID, try by QR code
+                  if (!response.ok && qrCode) {
+                    response = await fetch(`/api/admin/tickets/qr/${qrCode}`, {
+                      credentials: 'include'
+                    });
+                  }
                   
                   if (response.ok) {
                     const data = await response.json();
@@ -65,11 +75,13 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
                   } else {
                     setScanStatus("error");
                     onTicketFound(null);
+                    const errorData = await response.json().catch(() => ({}));
                     toast({
                       title: "Ticket Not Found",
-                      description: "Invalid or expired ticket",
+                      description: errorData.error || "Invalid or expired ticket",
                       variant: "destructive",
                     });
+                    console.log("Ticket lookup failed:", { ticketId, qrCode, status: response.status });
                   }
                 } else {
                   setScanStatus("error");

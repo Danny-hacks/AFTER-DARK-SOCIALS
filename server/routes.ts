@@ -99,6 +99,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search ticket by QR code (alternative lookup for scanner)
+  app.get("/api/admin/tickets/qr/:qrCode", requireAuth, async (req, res) => {
+    try {
+      const tickets = await storage.getAllTickets();
+      const ticket = tickets.find(t => t.qrCode === req.params.qrCode);
+      
+      if (!ticket) {
+        return res.status(404).json({ error: "Ticket not found" });
+      }
+      
+      res.json({ success: true, ticket });
+    } catch (error) {
+      console.error("Error fetching ticket by QR:", error);
+      res.status(500).json({ error: "Failed to fetch ticket" });
+    }
+  });
+
   app.patch("/api/admin/tickets/:id/use", requireAuth, async (req, res) => {
     try {
       const ticket = await storage.markTicketAsUsed(req.params.id);
