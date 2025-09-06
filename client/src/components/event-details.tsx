@@ -49,7 +49,7 @@ export default function EventDetails() {
             <div className="space-y-4">
               <div className="flex items-center space-x-3" data-testid="feature-artists">
                 <CheckCircle className="text-accent text-xl" />
-                <span className="text-lg">5 Top Electronic DJs</span>
+                <span className="text-lg">5 Top DJs</span>
               </div>
               <div className="flex items-center space-x-3" data-testid="feature-stages">
                 <CheckCircle className="text-accent text-xl" />
