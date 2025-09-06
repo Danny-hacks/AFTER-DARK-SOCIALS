@@ -46,60 +46,189 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
   };
 
   const shareViaWhatsApp = async () => {
-    // For WhatsApp, we'll create a message with ticket details and suggest sending the ticket image
-    const message = encodeURIComponent(
-      `🎉 Your AFTR Rave Ticket is Ready! 🎉\n\n` +
-      `📧 Customer: ${ticket.customerName}\n` +
-      `🎫 Reference: ${ticket.referenceCode}\n` +
-      `💰 Price: ${ticket.price}\n` +
-      `📅 Date: 27th September 2025\n` +
-      `📍 Venue: Shotz, Flic en Flac\n` +
-      `🕙 Door opens: 10:00 PM\n\n` +
-      `Your digital ticket image is attached. Keep it safe and show it at the entrance!\n\n` +
-      `See you on the dance floor! 🎵🔥`
-    );
+    if (!ticketRef.current) return;
     
-    // Open WhatsApp with the message
-    window.open(`https://wa.me/${ticket.customerPhone ? ticket.customerPhone : ''}?text=${message}`, '_blank');
-    
-    toast({
-      title: "WhatsApp Opened",
-      description: "Please download the ticket image and send it along with the message",
-    });
+    try {
+      // Generate ticket image
+      const dataUrl = await toPng(ticketRef.current, {
+        quality: 0.95,
+        width: 800,
+        height: 600,
+        backgroundColor: '#1a1a1a',
+      });
+      
+      // Convert to blob
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `AFTR-Ticket-${ticket.referenceCode}.png`, { type: 'image/png' });
+      
+      const message = `🎉 Your AFTR Rave Ticket is Ready! 🎉\n\n` +
+        `📧 Customer: ${ticket.customerName}\n` +
+        `🎫 Reference: ${ticket.referenceCode}\n` +
+        `💰 Price: ${ticket.price}\n` +
+        `📅 Date: 27th September 2025\n` +
+        `📍 Venue: Shotz, Flic en Flac\n` +
+        `🕙 Door opens: 10:00 PM\n\n` +
+        `Your digital ticket image is attached. Keep it safe and show it at the entrance!\n\n` +
+        `See you on the dance floor! 🎵🔥`;
+      
+      // Try to use Web Share API with file if supported
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `AFTR Rave Ticket - ${ticket.customerName}`,
+          text: message,
+          files: [file]
+        });
+        
+        toast({
+          title: "Success",
+          description: "Ticket shared with image successfully",
+        });
+      } else {
+        // Fallback: Copy image to clipboard and open WhatsApp
+        try {
+          if (navigator.clipboard && 'write' in navigator.clipboard) {
+            await navigator.clipboard.write([
+              new ClipboardItem({
+                'image/png': blob
+              })
+            ]);
+            
+            const encodedMessage = encodeURIComponent(message);
+            window.open(`https://wa.me/${ticket.customerPhone ? ticket.customerPhone : ''}?text=${encodedMessage}`, '_blank');
+            
+            toast({
+              title: "WhatsApp Opened",
+              description: "Ticket image copied to clipboard! Paste it in WhatsApp along with the message.",
+            });
+          } else {
+            throw new Error("Clipboard not supported");
+          }
+        } catch (clipboardError) {
+          // Final fallback: download and open WhatsApp
+          const link = document.createElement('a');
+          link.download = `AFTR-Ticket-${ticket.referenceCode}.png`;
+          link.href = dataUrl;
+          link.click();
+          
+          const encodedMessage = encodeURIComponent(message);
+          window.open(`https://wa.me/${ticket.customerPhone ? ticket.customerPhone : ''}?text=${encodedMessage}`, '_blank');
+          
+          toast({
+            title: "WhatsApp Opened",
+            description: "Ticket image downloaded! Upload it to WhatsApp along with the message.",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error sharing via WhatsApp:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate ticket for WhatsApp sharing",
+        variant: "destructive",
+      });
+    }
   };
 
-  const shareViaEmail = () => {
-    const subject = encodeURIComponent(`Your AFTR Rave Ticket - ${ticket.referenceCode}`);
-    const body = encodeURIComponent(
-      `Hello ${ticket.customerName},\n\n` +
-      `Your ticket for AFTR rave is ready! 🎉\n\n` +
-      `Event Details:\n` +
-      `• Date: 27th September 2025\n` +
-      `• Venue: Shotz, Flic en Flac\n` +
-      `• Door opens: 10:00 PM\n` +
-      `• First act: 10:30 PM\n` +
-      `• Duration: 6 hours non-stop energy\n\n` +
-      `Ticket Information:\n` +
-      `• Reference Code: ${ticket.referenceCode}\n` +
-      `• Price: ${ticket.price}\n` +
-      `• Type: ${ticket.ticketType}\n\n` +
-      `Please find your digital ticket image attached to this email. Save it to your phone and present it at the entrance.\n\n` +
-      `Important Notes:\n` +
-      `• Keep your ticket safe - this is your entry pass\n` +
-      `• Arrive early to avoid queues\n` +
-      `• Follow our Instagram @afterdarksocials.mu for updates\n\n` +
-      `Get ready for the night of your life!\n\n` +
-      `Best regards,\n` +
-      `After Dark Socials Team`
-    );
+  const shareViaEmail = async () => {
+    if (!ticketRef.current) return;
     
-    const emailTo = ticket.customerEmail || '';
-    window.open(`mailto:${emailTo}?subject=${subject}&body=${body}`, '_blank');
-    
-    toast({
-      title: "Email Client Opened",
-      description: "Please download the ticket image and attach it to your email",
-    });
+    try {
+      // Generate ticket image
+      const dataUrl = await toPng(ticketRef.current, {
+        quality: 0.95,
+        width: 800,
+        height: 600,
+        backgroundColor: '#1a1a1a',
+      });
+      
+      // Convert to blob
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `AFTR-Ticket-${ticket.referenceCode}.png`, { type: 'image/png' });
+      
+      const subject = `Your AFTR Rave Ticket - ${ticket.referenceCode}`;
+      const body = `Hello ${ticket.customerName},\n\n` +
+        `Your ticket for AFTR rave is ready! 🎉\n\n` +
+        `Event Details:\n` +
+        `• Date: 27th September 2025\n` +
+        `• Venue: Shotz, Flic en Flac\n` +
+        `• Door opens: 10:00 PM\n` +
+        `• First act: 10:30 PM\n` +
+        `• Duration: 6 hours non-stop energy\n\n` +
+        `Ticket Information:\n` +
+        `• Reference Code: ${ticket.referenceCode}\n` +
+        `• Price: ${ticket.price}\n` +
+        `• Type: ${ticket.ticketType}\n\n` +
+        `Please find your digital ticket image attached to this email. Save it to your phone and present it at the entrance.\n\n` +
+        `Important Notes:\n` +
+        `• Keep your ticket safe - this is your entry pass\n` +
+        `• Arrive early to avoid queues\n` +
+        `• Follow our Instagram @afterdarksocials.mu for updates\n\n` +
+        `Get ready for the night of your life!\n\n` +
+        `Best regards,\n` +
+        `After Dark Socials Team`;
+      
+      // Try to use Web Share API with file if supported
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: subject,
+          text: body,
+          files: [file]
+        });
+        
+        toast({
+          title: "Success",
+          description: "Ticket email shared with image successfully",
+        });
+      } else {
+        // Fallback: Copy image to clipboard and open email
+        try {
+          if (navigator.clipboard && 'write' in navigator.clipboard) {
+            await navigator.clipboard.write([
+              new ClipboardItem({
+                'image/png': blob
+              })
+            ]);
+            
+            const emailTo = ticket.customerEmail || '';
+            const encodedSubject = encodeURIComponent(subject);
+            const encodedBody = encodeURIComponent(body);
+            window.open(`mailto:${emailTo}?subject=${encodedSubject}&body=${encodedBody}`, '_blank');
+            
+            toast({
+              title: "Email Client Opened",
+              description: "Ticket image copied to clipboard! Paste it in your email.",
+            });
+          } else {
+            throw new Error("Clipboard not supported");
+          }
+        } catch (clipboardError) {
+          // Final fallback: download and open email
+          const link = document.createElement('a');
+          link.download = `AFTR-Ticket-${ticket.referenceCode}.png`;
+          link.href = dataUrl;
+          link.click();
+          
+          const emailTo = ticket.customerEmail || '';
+          const encodedSubject = encodeURIComponent(subject);
+          const encodedBody = encodeURIComponent(body);
+          window.open(`mailto:${emailTo}?subject=${encodedSubject}&body=${encodedBody}`, '_blank');
+          
+          toast({
+            title: "Email Client Opened",
+            description: "Ticket image downloaded! Attach it to your email.",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error sharing via email:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate ticket for email sharing",
+        variant: "destructive",
+      });
+    }
   };
 
   const shareTicket = async () => {
