@@ -58,8 +58,13 @@ export default function TicketSection() {
                 <span>Bar & refreshments available</span>
               </li>
             </ul>
-            <div className="text-center text-sm text-muted-foreground">
-              Phase 2 pricing: TBA
+            <div className="text-center space-y-2">
+              <div className="text-sm text-destructive font-semibold bg-destructive/10 px-4 py-2 rounded-lg">
+                ⏰ Phase 1 ends September 18th
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Phase 2 pricing: TBA
+              </div>
             </div>
           </div>
         </div>
