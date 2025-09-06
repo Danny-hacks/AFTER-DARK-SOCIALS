@@ -21,8 +21,13 @@ export default function TicketSection() {
   };
 
   return (
-    <section id="tickets" className="py-20 bg-background">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="tickets" className="py-20 bg-gradient-to-br from-card via-background to-card relative overflow-hidden">
+      {/* Background accent */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-primary rounded-full blur-3xl"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
+      </div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-16">
           <h2 className="text-4xl sm:text-5xl font-bold gradient-text mb-6" data-testid="tickets-title">
             Get Your Digital Tickets
