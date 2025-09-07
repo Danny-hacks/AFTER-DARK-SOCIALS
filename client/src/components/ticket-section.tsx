@@ -63,11 +63,11 @@ export default function TicketSection() {
               </li>
               <li className="flex items-center space-x-3" data-testid="phase1-feature-2">
                 <Check className="text-accent" />
-                <span>5 top djs</span>
+                <span>5 Top DJs</span>
               </li>
               <li className="flex items-center space-x-3" data-testid="phase1-feature-3">
                 <Check className="text-accent" />
-                <span>premium musical experience</span>
+                <span>Premium Musical Experience</span>
               </li>
               <li className="flex items-center space-x-3" data-testid="phase1-feature-4">
                 <Check className="text-accent" />
@@ -112,11 +112,11 @@ export default function TicketSection() {
               </li>
               <li className="flex items-center space-x-3" data-testid="phase2-feature-2">
                 <Check className="text-accent" />
-                <span>5 top djs</span>
+                <span>5 Top DJs</span>
               </li>
               <li className="flex items-center space-x-3" data-testid="phase2-feature-3">
                 <Check className="text-accent" />
-                <span>premium musical experience</span>
+                <span>Premium Musical Experience</span>
               </li>
               <li className="flex items-center space-x-3" data-testid="phase2-feature-4">
                 <Check className="text-accent" />
