@@ -1,4 +1,5 @@
 import { MapPin, Navigation, Car, Bus, Bike, TrainFront, Shield, Ban, IdCard, CloudRain, Smartphone } from "lucide-react";
+import shotzImage from "@assets/Screenshot 2025-09-07 at 02.22.32_1757208222734.png";
 
 export default function LocationSection() {
   const openDirections = () => {
@@ -79,7 +80,7 @@ export default function LocationSection() {
           
           <div>
             <img 
-              src="/attached_assets/Screenshot 2025-09-07 at 02.22.32_1757208222734.png" 
+              src={shotzImage} 
               alt="Shotz nightclub exterior with neon lighting in Flic en Flac" 
               className="w-full h-96 object-cover rounded-2xl shadow-lg mb-8"
               data-testid="venue-aerial-image"
