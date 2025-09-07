@@ -79,8 +79,8 @@ export default function LocationSection() {
           
           <div>
             <img 
-              src="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600" 
-              alt="Aerial view of outdoor concert venue with stages and crowd areas" 
+              src="/attached_assets/Screenshot 2025-09-07 at 02.22.32_1757208222734.png" 
+              alt="Shotz nightclub exterior with neon lighting in Flic en Flac" 
               className="w-full h-96 object-cover rounded-2xl shadow-lg mb-8"
               data-testid="venue-aerial-image"
             />
