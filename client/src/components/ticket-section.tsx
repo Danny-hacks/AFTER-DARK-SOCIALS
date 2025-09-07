@@ -159,11 +159,11 @@ export default function TicketSection() {
             <ul className="space-y-3 mb-8 relative z-10">
               <li className="flex items-center space-x-3" data-testid="golden-feature-1">
                 <Star className="text-yellow-500 w-5 h-5" />
-                <span>All Phase 1 & 2 benefits</span>
+                <span>All Phase 1 & 2 Benefits</span>
               </li>
               <li className="flex items-center space-x-3" data-testid="golden-feature-2">
                 <Star className="text-yellow-500 w-5 h-5" />
-                <span>VIP entrance & priority access</span>
+                <span>VIP Entrance & Priority Access</span>
               </li>
               <li className="flex items-center space-x-3" data-testid="golden-feature-3">
                 <Star className="text-yellow-500 w-5 h-5" />
