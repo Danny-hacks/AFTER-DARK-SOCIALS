@@ -20,20 +20,7 @@ export default function HeroSection() {
         data-testid="hero-background-image"
       />
       
-      <div className="relative z-10 text-center max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 pt-8">
-        {/* Main Title */}
-        <div className="mb-8 sm:mb-12" data-testid="hero-title">
-          <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black gradient-text mb-4 tracking-wider">
-            AFTR
-          </h1>
-          <p className="text-xl sm:text-2xl md:text-3xl text-white font-bold mb-2">
-            THE RAVE
-          </p>
-          <p className="text-base sm:text-lg text-gray-300">
-            The night that keeps the city awake
-          </p>
-        </div>
-        
+      <div className="relative z-10 text-center max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
         <div className="bg-black/60 backdrop-blur-md rounded-2xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 border border-white/20" data-testid="event-details-card">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-center">
             <div className="flex flex-col items-center" data-testid="event-date">
