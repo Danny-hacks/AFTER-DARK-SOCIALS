@@ -1,4 +1,4 @@
-import { Crown, Ticket, CreditCard, Check } from "lucide-react";
+import { Crown, Ticket, CreditCard, Check, Star } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 
 export default function TicketSection() {
@@ -20,6 +20,11 @@ export default function TicketSection() {
     window.open(`mailto:afterdarksocials@gmail.com?subject=${subject}&body=${body}`, '_blank');
   };
 
+  const openGoldenTicketWhatsApp = () => {
+    const message = encodeURIComponent("Hi! I'm interested in the Golden All-Access ticket for AFTR rave on 27th September 2025. Can you please provide more information on how to claim it?");
+    window.open(`https://wa.me/23058205220?text=${message}`, '_blank');
+  };
+
   return (
     <section id="tickets" className="py-20 bg-gradient-to-br from-card via-background to-card relative overflow-hidden">
       {/* Background accent */}
@@ -37,7 +42,7 @@ export default function TicketSection() {
           </p>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto mb-12">
           {/* Phase 1 Ticket */}
           <div className={`bg-card border-2 rounded-2xl p-8 transition-all relative overflow-hidden ${
             !isPhase2 ? 'border-primary hover:scale-105' : 'border-border opacity-60'
@@ -133,6 +138,55 @@ export default function TicketSection() {
                   📅 Available from September 18th
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Golden All-Access Ticket */}
+          <div className="bg-gradient-to-br from-yellow-500/20 via-amber-500/30 to-yellow-600/20 border-2 border-yellow-500/50 rounded-2xl p-8 transition-all relative overflow-hidden hover:scale-105 hover:border-yellow-400/80" data-testid="golden-card">
+            <div className="absolute top-0 right-0 px-3 py-1 text-sm font-bold bg-gradient-to-r from-yellow-500 to-amber-500 text-black">
+              ✨ EXCLUSIVE
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 via-transparent to-amber-500/10 pointer-events-none"></div>
+            <div className="text-center mb-6 relative z-10">
+              <Star className="text-4xl text-yellow-500 mb-4 mx-auto" />
+              <h3 className="text-3xl font-black bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent tracking-wider uppercase" data-testid="golden-title">Golden All-Access</h3>
+              <p className="text-muted-foreground">VIP Experience</p>
+            </div>
+            <div className="text-center mb-6 relative z-10">
+              <div className="text-3xl font-black bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent" data-testid="golden-price">Exclusive</div>
+              <div className="text-sm text-muted-foreground">contact for details</div>
+            </div>
+            <ul className="space-y-3 mb-8 relative z-10">
+              <li className="flex items-center space-x-3" data-testid="golden-feature-1">
+                <Star className="text-yellow-500 w-5 h-5" />
+                <span>All Phase 1 & 2 benefits</span>
+              </li>
+              <li className="flex items-center space-x-3" data-testid="golden-feature-2">
+                <Star className="text-yellow-500 w-5 h-5" />
+                <span>VIP entrance & priority access</span>
+              </li>
+              <li className="flex items-center space-x-3" data-testid="golden-feature-3">
+                <Star className="text-yellow-500 w-5 h-5" />
+                <span>Exclusive backstage access</span>
+              </li>
+              <li className="flex items-center space-x-3" data-testid="golden-feature-4">
+                <Star className="text-yellow-500 w-5 h-5" />
+                <span>Meet & greet with DJs</span>
+              </li>
+              <li className="flex items-center space-x-3" data-testid="golden-feature-5">
+                <Star className="text-yellow-500 w-5 h-5" />
+                <span>Premium bar access</span>
+              </li>
+            </ul>
+            <div className="text-center relative z-10">
+              <button
+                onClick={openGoldenTicketWhatsApp}
+                className="bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-black font-bold py-3 px-6 rounded-lg transition-all hover:scale-105 w-full"
+                data-testid="button-golden-contact"
+              >
+                <SiWhatsapp className="inline-block w-5 h-5 mr-2" />
+                How to Claim
+              </button>
             </div>
           </div>
         </div>
