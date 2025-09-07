@@ -20,33 +20,46 @@ export default function HeroSection() {
         data-testid="hero-background-image"
       />
       
-      <div className="relative z-10 text-center max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        <div className="bg-black/60 backdrop-blur-md rounded-2xl p-6 sm:p-8 mb-8 border border-white/20" data-testid="event-details-card">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+      <div className="relative z-10 text-center max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 pt-8">
+        {/* Main Title */}
+        <div className="mb-8 sm:mb-12" data-testid="hero-title">
+          <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black gradient-text mb-4 tracking-wider">
+            AFTR
+          </h1>
+          <p className="text-xl sm:text-2xl md:text-3xl text-white font-bold mb-2">
+            THE RAVE
+          </p>
+          <p className="text-base sm:text-lg text-gray-300">
+            The night that keeps the city awake
+          </p>
+        </div>
+        
+        <div className="bg-black/60 backdrop-blur-md rounded-2xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 border border-white/20" data-testid="event-details-card">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-center">
             <div className="flex flex-col items-center" data-testid="event-date">
-              <Calendar className="text-2xl gradient-text mb-2" />
-              <div className="text-sm text-gray-300 uppercase tracking-wider">Date</div>
-              <div className="text-lg font-semibold text-white">27th September 2025</div>
+              <Calendar className="text-xl sm:text-2xl gradient-text mb-1 sm:mb-2" />
+              <div className="text-xs sm:text-sm text-gray-300 uppercase tracking-wider">Date</div>
+              <div className="text-sm sm:text-lg font-semibold text-white">27th September 2025</div>
             </div>
             <div className="flex flex-col items-center" data-testid="event-time">
-              <Clock className="text-2xl gradient-text mb-2" />
-              <div className="text-sm text-gray-300 uppercase tracking-wider">Time</div>
-              <div className="text-lg font-semibold text-white">10:00 PM - 4:00 AM</div>
+              <Clock className="text-xl sm:text-2xl gradient-text mb-1 sm:mb-2" />
+              <div className="text-xs sm:text-sm text-gray-300 uppercase tracking-wider">Time</div>
+              <div className="text-sm sm:text-lg font-semibold text-white">10:00 PM - 4:00 AM</div>
             </div>
             <div className="flex flex-col items-center" data-testid="event-venue">
-              <MapPin className="text-2xl gradient-text mb-2" />
-              <div className="text-sm text-gray-300 uppercase tracking-wider">Venue</div>
-              <div className="text-lg font-semibold text-white">Shotz, Flic en Flac</div>
+              <MapPin className="text-xl sm:text-2xl gradient-text mb-1 sm:mb-2" />
+              <div className="text-xs sm:text-sm text-gray-300 uppercase tracking-wider">Venue</div>
+              <div className="text-sm sm:text-lg font-semibold text-white">Shotz, Flic en Flac</div>
             </div>
           </div>
         </div>
         
         <button 
           onClick={scrollToTickets}
-          className="inline-flex items-center px-8 py-4 gradient-bg text-white font-bold text-lg rounded-full hover:scale-105 transition-transform pulse-glow"
+          className="inline-flex items-center px-6 py-3 sm:px-8 sm:py-4 gradient-bg text-white font-bold text-base sm:text-lg rounded-full hover:scale-105 transition-transform pulse-glow"
           data-testid="get-tickets-button"
         >
-          <Ticket className="mr-3" />
+          <Ticket className="mr-2 sm:mr-3 w-5 h-5 sm:w-6 sm:h-6" />
           Get Your Tickets Now
         </button>
       </div>
