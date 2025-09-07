@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
 import { insertTicketSchema } from "@shared/schema";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
 
 // Simple admin credentials - in production, use proper authentication
 const ADMIN_USERNAME = "aftr_admin";
@@ -25,10 +25,13 @@ function requireAuth(req: Request, res: Response, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Configure session store
-  const MemoryStoreConstructor = MemoryStore(session);
-  const sessionStore = new MemoryStoreConstructor({
-    checkPeriod: 86400000 // prune expired entries every 24h
+  // Configure PostgreSQL session store for persistence
+  const pgStore = connectPg(session);
+  const sessionStore = new pgStore({
+    conString: process.env.DATABASE_URL,
+    createTableIfMissing: true, // Creates the session table automatically
+    ttl: 24 * 60 * 60 * 1000, // 24 hours
+    tableName: "sessions"
   });
 
   // Configure session middleware
