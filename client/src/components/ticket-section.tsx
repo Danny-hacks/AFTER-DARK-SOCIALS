@@ -50,12 +50,12 @@ export default function TicketSection() {
             <div className={`absolute top-0 right-0 px-3 py-1 text-sm font-bold ${
               !isPhase2 ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'
             }`} data-testid="phase1-badge">
-              PHASE 1 {isPhase2 ? '- EXPIRED' : '- ACTIVE'}
+              EARLY BIRD {isPhase2 ? '- EXPIRED' : '- ACTIVE'}
             </div>
             <div className="text-center mb-6">
               <Ticket className="text-4xl gradient-text mb-4 mx-auto" />
               <h3 className="text-3xl font-black gradient-text tracking-wider uppercase" data-testid="phase1-title">AFTR Rave Entry</h3>
-              <p className="text-muted-foreground">Phase 1 Pricing</p>
+              <p className="text-muted-foreground">Early Bird Pricing</p>
             </div>
             <div className="text-center mb-6">
               <div className="text-4xl font-black gradient-text" data-testid="phase1-price">Rs 350</div>
@@ -82,11 +82,11 @@ export default function TicketSection() {
             <div className="text-center space-y-2">
               {!isPhase2 ? (
                 <div className="text-sm text-destructive font-semibold bg-destructive/10 px-4 py-2 rounded-lg">
-                  ⏰ Phase 1 ends September 18th
+                  ⏰ Early Bird ends September 18th
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground font-semibold bg-muted/10 px-4 py-2 rounded-lg">
-                  ❌ Phase 1 has expired
+                  ❌ Early Bird has expired
                 </div>
               )}
             </div>
