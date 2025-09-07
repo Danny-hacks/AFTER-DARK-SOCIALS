@@ -16,7 +16,8 @@ export default function HeroSection() {
       <img 
         src={aftrHeroImage} 
         alt="AFTR rave with neon lights and crowd silhouette" 
-        className="absolute inset-4 sm:inset-6 lg:inset-8 w-auto h-auto object-contain rounded-lg"
+        className="absolute inset-0 w-full h-full object-cover object-center"
+        style={{ objectPosition: 'center center' }}
         data-testid="hero-background-image"
       />
       
