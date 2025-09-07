@@ -50,8 +50,10 @@ export default function AdminPanel() {
     const checkAuth = async () => {
       try {
         const response = await apiRequest('GET', '/api/admin/check');
-        setIsAuthenticated((response as any)?.isAuthenticated || false);
+        const data = await response.json();
+        setIsAuthenticated(data?.isAuthenticated || false);
       } catch (error) {
+        console.error('Auth check failed:', error);
         setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
