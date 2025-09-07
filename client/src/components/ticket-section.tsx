@@ -169,10 +169,6 @@ export default function TicketSection() {
                 <Star className="text-yellow-500 w-5 h-5" />
                 <span>Stage Access</span>
               </li>
-              <li className="flex items-center space-x-3" data-testid="golden-feature-4">
-                <Star className="text-yellow-500 w-5 h-5" />
-                <span>Meet & Greet with DJs</span>
-              </li>
               <li className="flex items-center space-x-3" data-testid="golden-feature-5">
                 <Star className="text-yellow-500 w-5 h-5" />
                 <span>VIP Sitting Area</span>
