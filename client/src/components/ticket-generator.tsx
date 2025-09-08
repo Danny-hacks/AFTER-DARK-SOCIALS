@@ -257,17 +257,28 @@ Follow us: @afterdarksocials.mu
       // Clean up the blob URL
       setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
       
-      // Then open email client
+      // Then open Outlook specifically
       setTimeout(() => {
         const emailTo = ticket.customerEmail || '';
         const encodedSubject = encodeURIComponent(subject);
         const encodedBody = encodeURIComponent(body);
-        window.open(`mailto:${emailTo}?subject=${encodedSubject}&body=${encodedBody}`, '_blank');
+        
+        // Try Outlook desktop first, then fallback to Outlook web
+        const outlookDesktopUrl = `ms-outlook:?to=${emailTo}&subject=${encodedSubject}&body=${encodedBody}`;
+        const outlookWebUrl = `https://outlook.live.com/mail/0/deeplink/compose?to=${emailTo}&subject=${encodedSubject}&body=${encodedBody}`;
+        
+        // Attempt to open Outlook desktop
+        try {
+          window.open(outlookDesktopUrl, '_blank');
+        } catch (error) {
+          // Fallback to Outlook web if desktop fails
+          window.open(outlookWebUrl, '_blank');
+        }
       }, 500);
       
       toast({
         title: "Email Ready!",
-        description: "Ticket PDF downloaded! Email client opening - just attach the PDF and send.",
+        description: "Ticket PDF downloaded! Outlook opening - just attach the PDF and send.",
       });
     } catch (error) {
       console.error('Error sharing via email:', error);
