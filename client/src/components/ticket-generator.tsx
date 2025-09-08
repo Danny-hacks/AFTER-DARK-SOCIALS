@@ -263,11 +263,11 @@ Follow us: @afterdarksocials.mu
         const encodedSubject = encodeURIComponent(subject);
         const encodedBody = encodeURIComponent(body);
         
-        // Use correct Outlook web URL format
-        const outlookWebUrl = `https://outlook.live.com/owa/?path=/mail/action/compose&to=${emailTo}&subject=${encodedSubject}&body=${encodedBody}`;
+        // Open native Outlook app on macOS
+        const outlookAppUrl = `ms-outlook://compose?to=${emailTo}&subject=${encodedSubject}&body=${encodedBody}`;
         
-        // Open Outlook web directly (more reliable than desktop protocol)
-        window.open(outlookWebUrl, '_blank');
+        // Open Outlook desktop app
+        window.open(outlookAppUrl, '_blank');
       }, 500);
       
       toast({

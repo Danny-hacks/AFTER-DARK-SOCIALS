@@ -26,11 +26,11 @@ export default function ContactSection() {
     const subject = encodeURIComponent("AFTR Rave 2025 - Inquiry");
     const body = encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`);
     
-    // Open Outlook web with correct URL format
-    const outlookWebUrl = `https://outlook.live.com/owa/?path=/mail/action/compose&to=afterdarksocials@gmail.com&subject=${subject}&body=${body}`;
+    // Open native Outlook app on macOS
+    const outlookAppUrl = `ms-outlook://compose?to=afterdarksocials@gmail.com&subject=${subject}&body=${body}`;
     
-    // Open Outlook web directly
-    window.open(outlookWebUrl, '_blank');
+    // Open Outlook desktop app
+    window.open(outlookAppUrl, '_blank');
     
     // Show success toast
     toast({
