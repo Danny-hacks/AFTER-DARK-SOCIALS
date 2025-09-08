@@ -125,7 +125,7 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
         `📅 Date: 27th September 2025\n` +
         `📍 Venue: Shotz, Flic en Flac\n` +
         `🕙 Door opens: 10:00 PM\n\n` +
-        `Your digital ticket PDF will be downloaded automatically. Please upload it to WhatsApp along with this message!\n\n` +
+        `Your digital ticket PDF will be downloaded automatically.\n\n` +
         `See you on the dance floor! 🎵🔥`;
       
       // Always download the PDF first
