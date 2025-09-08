@@ -263,17 +263,11 @@ Follow us: @afterdarksocials.mu
         const encodedSubject = encodeURIComponent(subject);
         const encodedBody = encodeURIComponent(body);
         
-        // Try Outlook desktop first, then fallback to Outlook web
-        const outlookDesktopUrl = `ms-outlook:?to=${emailTo}&subject=${encodedSubject}&body=${encodedBody}`;
-        const outlookWebUrl = `https://outlook.live.com/mail/0/deeplink/compose?to=${emailTo}&subject=${encodedSubject}&body=${encodedBody}`;
+        // Use correct Outlook web URL format
+        const outlookWebUrl = `https://outlook.live.com/owa/?path=/mail/action/compose&to=${emailTo}&subject=${encodedSubject}&body=${encodedBody}`;
         
-        // Attempt to open Outlook desktop
-        try {
-          window.open(outlookDesktopUrl, '_blank');
-        } catch (error) {
-          // Fallback to Outlook web if desktop fails
-          window.open(outlookWebUrl, '_blank');
-        }
+        // Open Outlook web directly (more reliable than desktop protocol)
+        window.open(outlookWebUrl, '_blank');
       }, 500);
       
       toast({

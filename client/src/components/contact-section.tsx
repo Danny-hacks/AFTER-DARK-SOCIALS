@@ -26,17 +26,11 @@ export default function ContactSection() {
     const subject = encodeURIComponent("AFTR Rave 2025 - Inquiry");
     const body = encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`);
     
-    // Open Outlook specifically
-    const outlookDesktopUrl = `ms-outlook:?to=afterdarksocials@gmail.com&subject=${subject}&body=${body}`;
-    const outlookWebUrl = `https://outlook.live.com/mail/0/deeplink/compose?to=afterdarksocials@gmail.com&subject=${subject}&body=${body}`;
+    // Open Outlook web with correct URL format
+    const outlookWebUrl = `https://outlook.live.com/owa/?path=/mail/action/compose&to=afterdarksocials@gmail.com&subject=${subject}&body=${body}`;
     
-    // Attempt to open Outlook desktop
-    try {
-      window.open(outlookDesktopUrl, '_blank');
-    } catch (error) {
-      // Fallback to Outlook web if desktop fails
-      window.open(outlookWebUrl, '_blank');
-    }
+    // Open Outlook web directly
+    window.open(outlookWebUrl, '_blank');
     
     // Show success toast
     toast({
