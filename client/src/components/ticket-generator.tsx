@@ -263,16 +263,16 @@ Follow us: @afterdarksocials.mu
         const encodedSubject = encodeURIComponent(subject);
         const encodedBody = encodeURIComponent(body);
         
-        // Open native Outlook app on macOS
-        const outlookAppUrl = `ms-outlook://compose?to=${emailTo}&subject=${encodedSubject}&body=${encodedBody}`;
+        // Open default email client (which should be Outlook on your MacBook)
+        const mailtoUrl = `mailto:${emailTo}?subject=${encodedSubject}&body=${encodedBody}`;
         
-        // Open Outlook desktop app
-        window.open(outlookAppUrl, '_blank');
+        // Open email client
+        window.open(mailtoUrl, '_blank');
       }, 500);
       
       toast({
         title: "Email Ready!",
-        description: "Ticket PDF downloaded! Outlook opening - just attach the PDF and send.",
+        description: "Ticket PDF downloaded! Email client opening - just attach the PDF and send.",
       });
     } catch (error) {
       console.error('Error sharing via email:', error);

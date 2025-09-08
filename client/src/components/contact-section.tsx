@@ -26,16 +26,16 @@ export default function ContactSection() {
     const subject = encodeURIComponent("AFTR Rave 2025 - Inquiry");
     const body = encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`);
     
-    // Open native Outlook app on macOS
-    const outlookAppUrl = `ms-outlook://compose?to=afterdarksocials@gmail.com&subject=${subject}&body=${body}`;
+    // Open default email client (which should be Outlook on your MacBook)
+    const mailtoUrl = `mailto:afterdarksocials@gmail.com?subject=${subject}&body=${body}`;
     
-    // Open Outlook desktop app
-    window.open(outlookAppUrl, '_blank');
+    // Open email client
+    window.open(mailtoUrl, '_blank');
     
     // Show success toast
     toast({
       title: "Message Prepared",
-      description: "Outlook should open with the pre-filled message.",
+      description: "Your email client should open with the pre-filled message.",
     });
     
     // Reset form
