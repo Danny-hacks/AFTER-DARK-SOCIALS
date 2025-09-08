@@ -14,9 +14,8 @@ export default function Footer() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-2" data-testid="footer-brand">
-            <div className="flex items-center space-x-2 mb-4">
-              <Music className="text-2xl gradient-text" />
-              <span className="text-xl font-bold gradient-text" data-testid="footer-brand-name">AFTR</span>
+            <div className="mb-4">
+              <span className="text-4xl font-black gradient-text tracking-wider uppercase" data-testid="footer-brand-name">AFTR</span>
             </div>
             <p className="text-muted-foreground mb-4" data-testid="footer-description">
               The rave that keeps the city awake! Electronic music, non-stop energy, 
