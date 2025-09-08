@@ -233,7 +233,7 @@ Price:          ${ticket.price}
 ✓ Security checks at entrance
 ✓ Event continues rain or shine
 ✓ Digital tickets must be shown on mobile device
-✓ Follow @afterdarksocials.mu for live updates (instagram://user?username=afterdarksocials.mu)
+✓ Follow us on: https://www.instagram.com/afterdarksocials.mu/
 
 🔥 READY TO RAVE?
 
@@ -241,7 +241,7 @@ An unforgettable night of music and energy with unmatched vibes and non-stop dan
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 After Dark Socials Team
-Follow us: @afterdarksocials.mu (instagram://user?username=afterdarksocials.mu)
+Follow us on: https://www.instagram.com/afterdarksocials.mu/
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 **IMPORTANT:** Please find your ticket PDF attached to this email. This PDF is your entry pass to the event!`;
