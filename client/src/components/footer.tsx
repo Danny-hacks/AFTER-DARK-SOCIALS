@@ -18,8 +18,8 @@ export default function Footer() {
               <span className="text-4xl font-black gradient-text tracking-wider uppercase" data-testid="footer-brand-name">AFTR</span>
             </div>
             <p className="text-muted-foreground mb-4" data-testid="footer-description">
-              The rave that keeps the city awake! Electronic music, non-stop energy, 
-              and unforgettable nights.
+              An unforgettable night of music and energy with unmatched vibes 
+              and non-stop dancing until dawn.
             </p>
             <div className="flex space-x-4" data-testid="footer-social-links">
               <a 
