@@ -89,10 +89,6 @@ export default function LocationSection() {
             <div className="bg-muted rounded-xl p-6" data-testid="important-info-card">
               <h4 className="font-bold text-foreground mb-4" data-testid="important-info-title">Important Information</h4>
               <ul className="space-y-3 text-muted-foreground">
-                <li className="flex items-start space-x-3" data-testid="info-id-required">
-                  <IdCard className="text-accent mt-1" />
-                  <span>Valid ID required for entry (18+ event)</span>
-                </li>
                 <li className="flex items-start space-x-3" data-testid="info-no-outside">
                   <Ban className="text-accent mt-1" />
                   <span>No outside drinks or food allowed</span>
