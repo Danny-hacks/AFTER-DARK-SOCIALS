@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { Download, Share, Mail, MessageCircle } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
@@ -205,85 +206,45 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       const pdfUrl = URL.createObjectURL(pdfBlob);
       
       const subject = `🎵 Your AFTR Rave Ticket is Ready - ${ticket.referenceCode}`;
-      const body = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 0; background: #0f0f0f; }
-        .container { max-width: 600px; margin: 0 auto; background: #1a1a1a; }
-        .header { background: linear-gradient(135deg, #c72d28 0%, #e53e3e 100%); padding: 40px 30px; text-align: center; }
-        .logo { font-size: 42px; font-weight: 800; letter-spacing: 3px; color: white; margin-bottom: 8px; }
-        .tagline { font-size: 16px; font-weight: 600; color: white; opacity: 0.9; }
-        .content { padding: 30px; color: white; }
-        .greeting { font-size: 22px; font-weight: 600; margin-bottom: 15px; }
-        .subtitle { font-size: 16px; color: #cccccc; margin-bottom: 25px; }
-        .section { margin-bottom: 25px; }
-        .section-title { font-size: 18px; font-weight: 700; color: #c72d28; margin-bottom: 12px; }
-        .info-grid { background: rgba(199, 45, 40, 0.1); border-left: 4px solid #c72d28; padding: 18px; border-radius: 6px; }
-        .info-item { margin-bottom: 8px; }
-        .info-label { color: #cccccc; display: inline-block; width: 120px; }
-        .info-value { color: white; font-weight: 600; }
-        .ticket-box { background: linear-gradient(135deg, #c72d28 0%, #e53e3e 100%); padding: 20px; border-radius: 10px; text-align: center; margin: 25px 0; }
-        .reference-code { font-size: 20px; font-weight: 800; letter-spacing: 2px; color: white; margin: 8px 0; }
-        .notes { background: rgba(255, 255, 255, 0.05); padding: 18px; border-radius: 6px; }
-        .notes div { margin-bottom: 6px; padding-left: 15px; position: relative; }
-        .notes div::before { content: '✓'; position: absolute; left: 0; color: #c72d28; font-weight: bold; }
-        .footer { background: #111; padding: 25px; text-align: center; border-top: 1px solid #333; }
-        .footer-title { font-size: 18px; font-weight: 700; color: #c72d28; margin-bottom: 8px; }
-        .footer-text { color: #cccccc; font-size: 14px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">AFTR</div>
-            <div class="tagline">THE RAVE EXPERIENCE</div>
-        </div>
-        
-        <div class="content">
-            <div class="greeting">Hello ${ticket.customerName}! 👋</div>
-            <div class="subtitle">Your ticket for AFTR rave is ready! Get excited for the night of your life! 🎉</div>
-            
-            <div class="section">
-                <div class="section-title">🎵 Event Details</div>
-                <div class="info-grid">
-                    <div class="info-item"><span class="info-label">📅 Date:</span><span class="info-value">27th September 2025</span></div>
-                    <div class="info-item"><span class="info-label">📍 Venue:</span><span class="info-value">Shotz, Flic en Flac</span></div>
-                    <div class="info-item"><span class="info-label">🕙 Doors Open:</span><span class="info-value">10:00 PM</span></div>
-                    <div class="info-item"><span class="info-label">⚡ Duration:</span><span class="info-value">6 Hours Non-Stop Energy</span></div>
-                </div>
-            </div>
+      const body = `🔥 AFTR - THE RAVE EXPERIENCE 🔥
 
-            <div class="ticket-box">
-                <div style="font-size: 14px; margin-bottom: 8px; opacity: 0.9;">Your Reference Code</div>
-                <div class="reference-code">${ticket.referenceCode}</div>
-                <div style="font-size: 13px; margin-top: 8px; opacity: 0.8;">${ticket.ticketType} • ${ticket.price}</div>
-            </div>
-            
-            <div class="section">
-                <div class="section-title">📋 Important Notes</div>
-                <div class="notes">
-                    <div>Keep your ticket PDF safe - this is your entry pass</div>
-                    <div>Arrive early to avoid queues at the entrance</div>
-                    <div>Valid ID required for entry (18+ event)</div>
-                    <div>No outside drinks or food allowed</div>
-                    <div>Follow @afterdarksocials.mu for live updates</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="footer">
-            <div class="footer-title">READY TO RAVE? 🔥</div>
-            <div class="footer-text">
-                The night that keeps the city awake awaits you!<br>
-                <strong>After Dark Socials Team</strong><br>
-                Follow us: @afterdarksocials.mu
-            </div>
-        </div>
-    </div>
-</body>
-</html>`;
+Hello ${ticket.customerName}! 👋
+
+Your ticket for AFTR rave is ready! Get excited for the night of your life! 🎉
+
+🎵 EVENT DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📅 Date:        27th September 2025
+📍 Venue:       Shotz, Flic en Flac
+🕙 Doors Open:  10:00 PM
+⚡ Duration:    6 Hours Non-Stop Energy
+
+🎫 YOUR TICKET REFERENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Reference Code: ${ticket.referenceCode}
+Ticket Type:    ${ticket.ticketType}
+Price:          ${ticket.price}
+
+📋 IMPORTANT NOTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ Keep your ticket PDF safe - this is your entry pass
+✓ Arrive early to avoid queues at the entrance
+✓ No outside drinks or food allowed
+✓ Security checks at entrance
+✓ Event continues rain or shine
+✓ Digital tickets must be shown on mobile device
+✓ Follow @afterdarksocials.mu for live updates
+
+🔥 READY TO RAVE?
+
+An unforgettable night of music and energy with unmatched vibes and non-stop dancing until dawn awaits you!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+After Dark Socials Team
+Follow us: @afterdarksocials.mu
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**IMPORTANT:** Please find your ticket PDF attached to this email. This PDF is your entry pass to the event!`;
       
       // Always download the PDF first
       const link = document.createElement('a');
