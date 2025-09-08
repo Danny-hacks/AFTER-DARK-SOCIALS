@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Ticket, LogIn, LogOut, Plus, Download, Users, CheckCircle, XCircle, Eye, QrCode } from "lucide-react";
+import { Ticket, LogIn, LogOut, Plus, Download, Users, CheckCircle, XCircle, Eye, QrCode, Search, Filter } from "lucide-react";
 import type { Ticket as TicketType } from "@shared/schema";
 import { TicketGenerator } from "@/components/ticket-generator";
 import { QRScanner } from "@/components/qr-scanner";
@@ -42,6 +42,9 @@ export default function AdminPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [scannedTicket, setScannedTicket] = useState<TicketType | null>(null);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'tickets'>('dashboard');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'used' | 'available'>('all');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -180,6 +183,24 @@ export default function AdminPanel() {
     enabled: isAuthenticated,
   });
 
+  // Process tickets data
+  const allTickets = ticketsData?.tickets || [];
+
+  // Filter tickets based on search and status
+  const filteredTickets = allTickets.filter((ticket: TicketType) => {
+    const matchesSearch = 
+      ticket.referenceCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ticket.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (ticket.customerEmail && ticket.customerEmail.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesStatus = 
+      filterStatus === 'all' ? true :
+      filterStatus === 'used' ? ticket.isUsed :
+      filterStatus === 'available' ? !ticket.isUsed : true;
+    
+    return matchesSearch && matchesStatus;
+  });
+
   // Mark ticket as used mutation
   const markUsedMutation = useMutation({
     mutationFn: async (ticketId: string) => {
@@ -299,14 +320,47 @@ export default function AdminPanel() {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Tab Navigation */}
+        <div className="mb-8">
+          <div className="border-b border-border">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'dashboard'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+                }`}
+                data-testid="tab-dashboard"
+              >
+                Dashboard
+              </button>
+              <button
+                onClick={() => setActiveTab('tickets')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'tickets'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+                }`}
+                data-testid="tab-tickets"
+              >
+                <Ticket className="w-4 h-4 mr-2 inline" />
+                All Tickets ({allTickets.length})
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {activeTab === 'dashboard' && (
+          <>
+            {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Tickets</p>
-                  <p className="text-2xl font-bold">{tickets.length}</p>
+                  <p className="text-2xl font-bold">{allTickets.length}</p>
                 </div>
                 <Users className="h-8 w-8 text-primary" />
               </div>
@@ -317,7 +371,7 @@ export default function AdminPanel() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Used Tickets</p>
-                  <p className="text-2xl font-bold">{tickets.filter(t => t.isUsed).length}</p>
+                  <p className="text-2xl font-bold">{allTickets.filter((t: TicketType) => t.isUsed).length}</p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-500" />
               </div>
@@ -328,7 +382,7 @@ export default function AdminPanel() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Available Tickets</p>
-                  <p className="text-2xl font-bold">{tickets.filter(t => !t.isUsed).length}</p>
+                  <p className="text-2xl font-bold">{allTickets.filter((t: TicketType) => !t.isUsed).length}</p>
                 </div>
                 <XCircle className="h-8 w-8 text-primary" />
               </div>
@@ -540,10 +594,10 @@ export default function AdminPanel() {
               <div className="space-y-4 max-h-96 overflow-y-auto">
                 {ticketsLoading ? (
                   <p className="text-muted-foreground">Loading tickets...</p>
-                ) : tickets.length === 0 ? (
+                ) : allTickets.length === 0 ? (
                   <p className="text-muted-foreground">No tickets created yet.</p>
                 ) : (
-                  tickets.slice(0, 10).map((ticket) => (
+                  allTickets.slice(0, 10).map((ticket: TicketType) => (
                     <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg" data-testid={`ticket-item-${ticket.id}`}>
                       <div>
                         <p className="font-medium">{ticket.referenceCode}</p>
@@ -592,6 +646,128 @@ export default function AdminPanel() {
             </CardContent>
           </Card>
         </div>
+        </>
+        )}
+
+        {activeTab === 'tickets' && (
+          <div className="space-y-6">
+            {/* Search and Filter */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  Ticket Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search by reference code, name, or email..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                        data-testid="input-search-tickets"
+                      />
+                    </div>
+                  </div>
+                  <div className="md:w-48">
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger data-testid="select-filter-status">
+                        <Filter className="h-4 w-4 mr-2" />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="available">Available</SelectItem>
+                        <SelectItem value="used">Used</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Results Count */}
+                <div className="mb-4">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {filteredTickets.length} of {allTickets.length} tickets
+                  </p>
+                </div>
+
+                {/* Tickets Grid */}
+                <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                  {ticketsLoading ? (
+                    <p className="text-muted-foreground">Loading tickets...</p>
+                  ) : filteredTickets.length === 0 ? (
+                    <p className="text-muted-foreground">
+                      {searchQuery || filterStatus !== 'all' 
+                        ? 'No tickets match your search criteria.' 
+                        : 'No tickets created yet.'
+                      }
+                    </p>
+                  ) : (
+                    filteredTickets.map((ticket: TicketType) => (
+                      <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50" data-testid={`ticket-search-item-${ticket.id}`}>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <p className="font-medium">{ticket.referenceCode}</p>
+                              <p className="text-sm text-muted-foreground">{ticket.customerName}</p>
+                              {ticket.customerEmail && (
+                                <p className="text-xs text-muted-foreground">{ticket.customerEmail}</p>
+                              )}
+                              <p className="text-xs text-muted-foreground">
+                                Created: {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString() : 'N/A'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-right mr-4">
+                            <p className="font-semibold">{ticket.price}</p>
+                            <p className="text-xs text-muted-foreground">{ticket.ticketType}</p>
+                          </div>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                data-testid={`button-view-search-ticket-${ticket.id}`}
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                View
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Digital Ticket - {ticket.referenceCode}</DialogTitle>
+                              </DialogHeader>
+                              <TicketGenerator ticket={ticket} />
+                            </DialogContent>
+                          </Dialog>
+                          {ticket.isUsed ? (
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded whitespace-nowrap">Used</span>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => markUsedMutation.mutate(ticket.id)}
+                              disabled={markUsedMutation.isPending}
+                              data-testid={`button-mark-search-used-${ticket.id}`}
+                            >
+                              Mark Used
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );
