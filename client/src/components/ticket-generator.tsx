@@ -143,7 +143,7 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       setTimeout(() => {
         const encodedMessage = encodeURIComponent(message);
         const phoneNumber = ticket.customerPhone ? ticket.customerPhone.replace(/[^\d]/g, '') : '';
-        window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
+        window.open(`https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodedMessage}`, '_blank');
       }, 500);
       
       toast({

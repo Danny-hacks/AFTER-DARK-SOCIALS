@@ -16,7 +16,7 @@ export default function ContactSection() {
 
   const openWhatsApp = () => {
     const message = encodeURIComponent("Hi! I have a question about AFTR rave on 27th September 2025.");
-    window.open(`https://wa.me/23058205220?text=${message}`, '_blank');
+    window.open(`https://web.whatsapp.com/send?phone=23058205220&text=${message}`, '_blank');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
