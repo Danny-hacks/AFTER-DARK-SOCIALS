@@ -98,9 +98,9 @@ export default function EventDetails() {
               6 Hours of Pure Energy
             </h3>
             <p className="text-lg text-muted-foreground leading-relaxed" data-testid="entertainment-description">
-              AFTR brings together the hottest DJs for an explosive celebration of electronic music. 
-              Door opens by 10pm, first act starts at 10:30. Experience non-stop beats that will keep 
-              you dancing until 4am.
+              AFTR unites the hottest DJs for an unforgettable night of music and energy. 
+              Doors open at 10 PM, with the first act kicking off at 10:30. Dance the night away with 
+              non-stop vibes until 4 AM.
             </p>
             <div className="space-y-4">
               <div className="flex items-center space-x-3" data-testid="feature-artists">
