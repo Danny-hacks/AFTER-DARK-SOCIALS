@@ -111,10 +111,6 @@ export default function EventDetails() {
                 <CheckCircle className="text-accent text-xl" />
                 <span className="text-lg">Unmatched Music Vibes</span>
               </div>
-              <div className="flex items-center space-x-3" data-testid="feature-food">
-                <CheckCircle className="text-accent text-xl" />
-                <span className="text-lg">Bar & Refreshments Available</span>
-              </div>
               <div className="flex items-center space-x-3" data-testid="feature-vip">
                 <CheckCircle className="text-accent text-xl" />
                 <span className="text-lg">6 Hours Non-Stop Energy</span>
