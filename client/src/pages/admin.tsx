@@ -27,7 +27,9 @@ const loginSchema = z.object({
 const ticketSchema = z.object({
   referenceCode: z.string().min(1, "Reference code is required").regex(/^AFTR-/, "Reference code must start with 'AFTR-'"),
   customerName: z.string().min(1, "Customer name is required"),
-  customerEmail: z.string().email("Valid email required").optional(),
+  customerEmail: z.string().optional().refine((val) => !val || z.string().email().safeParse(val).success, {
+    message: "Please enter a valid email address"
+  }),
   customerPhone: z.string().optional(),
   ticketType: z.string().default("Phase 1"),
   price: z.string().default("Rs 350"),
@@ -178,13 +180,13 @@ export default function AdminPanel() {
   });
 
   // Fetch tickets
-  const { data: ticketsData, isLoading: ticketsLoading } = useQuery({
+  const { data: ticketsData, isLoading: ticketsLoading } = useQuery<{tickets: TicketType[]}>({
     queryKey: ['/api/admin/tickets'],
     enabled: isAuthenticated,
   });
 
   // Process tickets data
-  const allTickets = ticketsData?.tickets || [];
+  const allTickets: TicketType[] = Array.isArray(ticketsData?.tickets) ? ticketsData.tickets : [];
 
   // Filter tickets based on search and status
   const filteredTickets = allTickets.filter((ticket: TicketType) => {
@@ -674,7 +676,7 @@ export default function AdminPanel() {
                     </div>
                   </div>
                   <div className="md:w-48">
-                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value as 'all' | 'used' | 'available')}>
                       <SelectTrigger data-testid="select-filter-status">
                         <Filter className="h-4 w-4 mr-2" />
                         <SelectValue />
