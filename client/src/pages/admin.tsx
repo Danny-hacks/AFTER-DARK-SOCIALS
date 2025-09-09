@@ -30,7 +30,9 @@ const ticketSchema = z.object({
   customerEmail: z.string().optional().refine((val) => !val || z.string().email().safeParse(val).success, {
     message: "Please enter a valid email address"
   }),
-  customerPhone: z.string().optional(),
+  customerPhone: z.string().optional().refine((val) => !val || /^[\d\s\+\-\(\)]+$/.test(val), {
+    message: "Please enter a valid phone number"
+  }),
   ticketType: z.string().default("Phase 1"),
   price: z.string().default("Rs 350"),
   paymentMethod: z.string().optional(),

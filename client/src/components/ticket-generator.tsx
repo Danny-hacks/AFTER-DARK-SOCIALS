@@ -284,6 +284,23 @@ Follow us on: https://www.instagram.com/afterdarksocials.mu/
     }
   };
 
+  // Smart sharing function that automatically chooses email or WhatsApp based on available contact info
+  const shareTicketSmart = async () => {
+    // Prioritize email if available, otherwise use phone number for WhatsApp
+    if (ticket.customerEmail && ticket.customerEmail.trim()) {
+      await shareViaEmail();
+    } else if (ticket.customerPhone && ticket.customerPhone.trim()) {
+      await shareViaWhatsApp();
+    } else {
+      // Fallback to download if no contact info
+      downloadTicket();
+      toast({
+        title: "Download Ready!",
+        description: "No contact info available - ticket downloaded for manual sharing.",
+      });
+    }
+  };
+
   const shareTicket = async () => {
     if (ticketRef.current) {
       try {
@@ -436,25 +453,47 @@ Follow us on: https://www.instagram.com/afterdarksocials.mu/
             <div className="space-y-2">
               <p className="text-sm font-medium mb-3">Share via:</p>
               
+              {/* Smart Auto Share Button */}
               <Button
-                onClick={shareViaWhatsApp}
-                variant="outline"
-                className="w-full justify-start gap-2"
-                data-testid="button-share-whatsapp"
+                onClick={shareTicketSmart}
+                variant="default"
+                className="w-full justify-start gap-2 bg-primary hover:bg-primary/90"
+                data-testid="button-share-auto"
               >
-                <SiWhatsapp className="w-4 h-4 text-green-600" />
-                WhatsApp
+                {ticket.customerEmail && ticket.customerEmail.trim() ? (
+                  <><Mail className="w-4 h-4" /> Auto: Email</>
+                ) : ticket.customerPhone && ticket.customerPhone.trim() ? (
+                  <><SiWhatsapp className="w-4 h-4" /> Auto: WhatsApp</>
+                ) : (
+                  <><Download className="w-4 h-4" /> Auto: Download</>
+                )}
               </Button>
               
-              <Button
-                onClick={shareViaEmail}
-                variant="outline"
-                className="w-full justify-start gap-2"
-                data-testid="button-share-email"
-              >
-                <Mail className="w-4 h-4 text-blue-600" />
-                Email
-              </Button>
+              <div className="border-t pt-2 mt-2">
+                <p className="text-xs text-muted-foreground mb-2">Or choose manually:</p>
+                
+                <Button
+                  onClick={shareViaWhatsApp}
+                  variant="outline"
+                  className="w-full justify-start gap-2 mb-1"
+                  data-testid="button-share-whatsapp"
+                  disabled={!ticket.customerPhone || !ticket.customerPhone.trim()}
+                >
+                  <SiWhatsapp className="w-4 h-4 text-green-600" />
+                  WhatsApp {!ticket.customerPhone || !ticket.customerPhone.trim() ? '(No phone)' : ''}
+                </Button>
+                
+                <Button
+                  onClick={shareViaEmail}
+                  variant="outline"
+                  className="w-full justify-start gap-2"
+                  data-testid="button-share-email"
+                  disabled={!ticket.customerEmail || !ticket.customerEmail.trim()}
+                >
+                  <Mail className="w-4 h-4 text-blue-600" />
+                  Email {!ticket.customerEmail || !ticket.customerEmail.trim() ? '(No email)' : ''}
+                </Button>
+              </div>
               
               <Button
                 onClick={shareTicket}
