@@ -553,6 +553,50 @@ export default function AdminPanel() {
                   />
                   <FormField
                     control={ticketForm.control}
+                    name="ticketType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ticket Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-ticket-type">
+                              <SelectValue placeholder="Select ticket type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Phase 1">Phase 1 (Early Bird)</SelectItem>
+                            <SelectItem value="Phase 2">Phase 2 (Standard)</SelectItem>
+                            <SelectItem value="Golden All-Access">Golden All-Access</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={ticketForm.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Price</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-price">
+                              <SelectValue placeholder="Select price" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Rs 350">Rs 350 (Early Bird - until Sep 18th)</SelectItem>
+                            <SelectItem value="Rs 500">Rs 500 (Standard - from Sep 18th)</SelectItem>
+                            <SelectItem value="Contact for price">Golden All-Access (Contact 58205220)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={ticketForm.control}
                     name="paymentMethod"
                     render={({ field }) => (
                       <FormItem>
