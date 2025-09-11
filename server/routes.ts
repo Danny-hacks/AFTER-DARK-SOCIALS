@@ -147,6 +147,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/admin/tickets/:id", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteTicket(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Ticket not found" });
+      }
+      res.json({ success: true, message: "Ticket deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting ticket:", error);
+      res.status(500).json({ error: "Failed to delete ticket" });
+    }
+  });
+
   // Serve public assets from object storage
   app.get("/public-objects/:filePath(*)", async (req, res) => {
     const filePath = req.params.filePath;

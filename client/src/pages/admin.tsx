@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Ticket, LogIn, LogOut, Plus, Download, Users, CheckCircle, XCircle, Eye, QrCode, Search, Filter } from "lucide-react";
+import { Ticket, LogIn, LogOut, Plus, Download, Users, CheckCircle, XCircle, Eye, QrCode, Search, Filter, Trash } from "lucide-react";
 import type { Ticket as TicketType } from "@shared/schema";
 import { TicketGenerator } from "@/components/ticket-generator";
 import { QRScanner } from "@/components/qr-scanner";
@@ -220,6 +220,27 @@ export default function AdminPanel() {
     onError: (error) => {
       toast({
         title: "Failed to Mark Ticket",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete ticket mutation
+  const deleteTicketMutation = useMutation({
+    mutationFn: async (ticketId: string) => {
+      return apiRequest('DELETE', `/api/admin/tickets/${ticketId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tickets'] });
+      toast({
+        title: "Success",
+        description: "Ticket deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Delete Ticket",
         description: error.message,
         variant: "destructive",
       });
@@ -686,6 +707,19 @@ export default function AdminPanel() {
                             Mark Used
                           </Button>
                         )}
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to delete ticket ${ticket.referenceCode}? This action cannot be undone.`)) {
+                              deleteTicketMutation.mutate(ticket.id);
+                            }
+                          }}
+                          disabled={deleteTicketMutation.isPending}
+                          data-testid={`button-delete-ticket-${ticket.id}`}
+                        >
+                          <Trash className="w-3 h-3" />
+                        </Button>
                       </div>
                     </div>
                   ))
@@ -807,6 +841,19 @@ export default function AdminPanel() {
                               Mark Used
                             </Button>
                           )}
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                              if (confirm(`Are you sure you want to delete ticket ${ticket.referenceCode}? This action cannot be undone.`)) {
+                                deleteTicketMutation.mutate(ticket.id);
+                              }
+                            }}
+                            disabled={deleteTicketMutation.isPending}
+                            data-testid={`button-delete-search-ticket-${ticket.id}`}
+                          >
+                            <Trash className="w-3 h-3" />
+                          </Button>
                         </div>
                       </div>
                     ))

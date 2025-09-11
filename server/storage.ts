@@ -15,6 +15,7 @@ export interface IStorage {
   createTicket(ticket: InsertTicket): Promise<Ticket>;
   getAllTickets(): Promise<Ticket[]>;
   markTicketAsUsed(id: string): Promise<Ticket | undefined>;
+  deleteTicket(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -68,6 +69,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(tickets.id, id))
       .returning();
     return ticket || undefined;
+  }
+
+  async deleteTicket(id: string): Promise<boolean> {
+    const result = await db
+      .delete(tickets)
+      .where(eq(tickets.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 }
 
