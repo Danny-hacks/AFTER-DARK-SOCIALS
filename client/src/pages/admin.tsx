@@ -587,7 +587,6 @@ export default function AdminPanel() {
                           <SelectContent>
                             <SelectItem value="Phase 1">Phase 1 (Early Bird)</SelectItem>
                             <SelectItem value="Phase 2">Phase 2 (Standard)</SelectItem>
-                            <SelectItem value="Golden All-Access">Golden All-Access</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -609,7 +608,6 @@ export default function AdminPanel() {
                           <SelectContent>
                             <SelectItem value="Rs 350">Rs 350 (Early Bird - until Sep 18th)</SelectItem>
                             <SelectItem value="Rs 500">Rs 500 (Standard - from Sep 18th)</SelectItem>
-                            <SelectItem value="Contact for price">Golden All-Access (Contact 58205220)</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
