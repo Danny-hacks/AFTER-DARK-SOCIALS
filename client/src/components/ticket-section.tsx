@@ -209,6 +209,13 @@ export default function TicketSection() {
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">Use reference: AFTR-[YOUR NAME]</div>
                   </div>
+                  <div data-testid="cash-payment-section">
+                    <label className="text-sm text-muted-foreground">Cash Payment</label>
+                    <div className="text-xl font-mono font-bold text-foreground bg-background px-4 py-2 rounded mt-1" data-testid="cash-payment-number">
+                      58205220
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">Text or call with your location for cash pickup</div>
+                  </div>
                 </div>
               </div>
             </div>
