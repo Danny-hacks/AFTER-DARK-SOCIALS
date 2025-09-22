@@ -606,8 +606,8 @@ export default function AdminPanel() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Rs 350">Rs 350 (Early Bird - until Sep 19th)</SelectItem>
-                            <SelectItem value="Rs 500">Rs 500 (Standard - from Sep 19th)</SelectItem>
+                            <SelectItem value="Rs 350">Rs 350 (Early Bird - until Sep 26th)</SelectItem>
+                            <SelectItem value="Rs 500">Rs 500 (Standard - from Sep 26th)</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

@@ -2,9 +2,9 @@ import { Crown, Ticket, CreditCard, Check } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 
 export default function TicketSection() {
-  // Check if we're in Phase 2 (after September 19, 2025)
+  // Check if we're in Phase 2 (after September 26, 2025)
   const currentDate = new Date();
-  const phase2StartDate = new Date('2025-09-19');
+  const phase2StartDate = new Date('2025-09-26');
   const isPhase2 = currentDate >= phase2StartDate;
   
   const openWhatsApp = () => {
@@ -78,7 +78,7 @@ export default function TicketSection() {
             <div className="text-center space-y-2">
               {!isPhase2 ? (
                 <div className="text-sm text-destructive font-semibold bg-destructive/10 px-4 py-2 rounded-lg">
-                  ⏰ Early Bird ends September 19th
+                  ⏰ Early Bird ends September 26th
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground font-semibold bg-muted/10 px-4 py-2 rounded-lg">
@@ -131,7 +131,7 @@ export default function TicketSection() {
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground font-semibold bg-muted/10 px-4 py-2 rounded-lg">
-                  📅 Available from September 19th
+                  📅 Available from September 26th
                 </div>
               )}
             </div>
