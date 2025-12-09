@@ -390,7 +390,7 @@ export default function AdminPanel() {
                 data-testid="tab-events"
               >
                 <Calendar className="w-4 h-4 mr-2 inline" />
-                Events
+                Events & Videos
               </button>
             </nav>
           </div>
