@@ -11,11 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Ticket, LogIn, LogOut, Plus, Download, Users, CheckCircle, XCircle, Eye, QrCode, Search, Filter, Trash } from "lucide-react";
-import type { Ticket as TicketType } from "@shared/schema";
+import { Ticket, LogIn, LogOut, Plus, Download, Users, CheckCircle, XCircle, Eye, QrCode, Search, Filter, Trash, Calendar, Video, Upload } from "lucide-react";
+import type { Ticket as TicketType, Event as EventType } from "@shared/schema";
 import { TicketGenerator } from "@/components/ticket-generator";
 import { QRScanner } from "@/components/qr-scanner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ObjectUploader } from "@/components/ObjectUploader";
 
 // Login form schema
 const loginSchema = z.object({
@@ -46,7 +47,7 @@ export default function AdminPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [scannedTicket, setScannedTicket] = useState<TicketType | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'tickets'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'tickets' | 'events'>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'used' | 'available'>('all');
   const { toast } = useToast();
@@ -187,8 +188,15 @@ export default function AdminPanel() {
     enabled: isAuthenticated,
   });
 
+  // Fetch events
+  const { data: eventsData, isLoading: eventsLoading } = useQuery<{events: EventType[]}>({
+    queryKey: ['/api/events'],
+    enabled: isAuthenticated,
+  });
+
   // Process tickets data
   const allTickets: TicketType[] = Array.isArray(ticketsData?.tickets) ? ticketsData.tickets : [];
+  const allEvents: EventType[] = Array.isArray(eventsData?.events) ? eventsData.events : [];
 
   // Filter tickets based on search and status
   const filteredTickets = allTickets.filter((ticket: TicketType) => {
@@ -371,6 +379,18 @@ export default function AdminPanel() {
               >
                 <Ticket className="w-4 h-4 mr-2 inline" />
                 All Tickets ({allTickets.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('events')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'events'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+                }`}
+                data-testid="tab-events"
+              >
+                <Calendar className="w-4 h-4 mr-2 inline" />
+                Events
               </button>
             </nav>
           </div>
@@ -861,7 +881,118 @@ export default function AdminPanel() {
             </Card>
           </div>
         )}
+
+        {activeTab === 'events' && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Event Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {eventsLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">Loading events...</div>
+                ) : allEvents.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No events found</div>
+                ) : (
+                  <div className="space-y-4">
+                    {allEvents.map((event) => (
+                      <EventCard key={event.id} event={event} />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function EventCard({ event }: { event: EventType }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [videoPath, setVideoPath] = useState(event.videoUrl || '');
+
+  const updateEventMutation = useMutation({
+    mutationFn: async (data: { videoUrl: string }) => {
+      return apiRequest('PATCH', `/api/admin/events/${event.id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/past'] });
+      toast({
+        title: "Success",
+        description: "Event video updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Update Event",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleVideoUpload = (objectPath: string) => {
+    setVideoPath(objectPath);
+    updateEventMutation.mutate({ videoUrl: objectPath });
+  };
+
+  return (
+    <Card className="border">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold" data-testid={`event-name-${event.id}`}>{event.name}</h3>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                {event.date}
+              </span>
+              {event.time && <span>{event.time}</span>}
+              {event.venue && <span>{event.venue}</span>}
+            </div>
+            {event.isPast && (
+              <span className="inline-block px-2 py-1 text-xs font-medium bg-muted text-muted-foreground rounded">
+                Past Event
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {videoPath ? (
+              <div className="flex items-center gap-2">
+                <Video className="w-4 h-4 text-green-500" />
+                <span className="text-sm text-green-600">Video uploaded</span>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="mt-4 pt-4 border-t">
+          <div className="flex items-center gap-4">
+            <ObjectUploader
+              maxFileSize={500 * 1024 * 1024}
+              allowedFileTypes={["video/*"]}
+              onComplete={handleVideoUpload}
+              buttonClassName="gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              {videoPath ? "Replace Video" : "Upload Event Video"}
+            </ObjectUploader>
+            
+            {videoPath && (
+              <div className="text-sm text-muted-foreground">
+                Current: <code className="bg-muted px-2 py-1 rounded">{videoPath}</code>
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

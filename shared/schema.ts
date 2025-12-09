@@ -39,7 +39,27 @@ export const insertTicketSchema = createInsertSchema(tickets).pick({
   paymentMethod: true,
 });
 
+export const events = pgTable("events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  date: text("date").notNull(),
+  time: text("time"),
+  venue: text("venue"),
+  description: text("description"),
+  videoUrl: text("video_url"),
+  imageUrl: text("image_url"),
+  isPast: boolean("is_past").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertEventSchema = createInsertSchema(events).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertTicket = z.infer<typeof insertTicketSchema>;
 export type Ticket = typeof tickets.$inferSelect;
+export type InsertEvent = z.infer<typeof insertEventSchema>;
+export type Event = typeof events.$inferSelect;

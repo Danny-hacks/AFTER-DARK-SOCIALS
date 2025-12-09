@@ -1,10 +1,13 @@
-import { Calendar, MapPin, Clock, Users, CheckCircle } from "lucide-react";
+import { Calendar, MapPin, Clock, Users, CheckCircle, Play } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import aftrEventImage from "@assets/AFTR-1_1757155940525.jpg";
 import djAlvinImage from "@assets/DJ ALVIN_1757156832389.jpg";
 import djLuvleshImage from "@assets/DJ LUVLESH_1757156832389.jpg";
 import djStevoImage from "@assets/STEVOTHEDJ_1757156832391.jpg";
 import djSwayImage from "@assets/DJ SWAY_1757156832390.jpg";
 import djAfrokeyzImage from "@assets/DJ AFROKEYZ_1757156832386.jpg";
+import type { Event } from "@shared/schema";
+import { useState } from "react";
 
 const artists = [
   { name: "DJ ALVIN", genre: "Hip Hop", image: djAlvinImage },
@@ -14,7 +17,32 @@ const artists = [
   { name: "DJ AFROKEYZ", genre: "Amapiano & 3 Steps", image: djAfrokeyzImage },
 ];
 
+function VideoPlayer({ videoUrl }: { videoUrl: string }) {
+  return (
+    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+      <video 
+        controls 
+        className="w-full h-full"
+        poster={aftrEventImage}
+        data-testid="event-video-player"
+      >
+        <source src={videoUrl} type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  );
+}
+
 export default function PastEvents() {
+  const [showVideo, setShowVideo] = useState(false);
+
+  const { data: eventsData } = useQuery<{ success: boolean; events: Event[] }>({
+    queryKey: ['/api/events/past'],
+  });
+
+  const pastEvents = eventsData?.events || [];
+  const mainEvent = pastEvents.find(e => e.name?.includes('AFTR'));
+
   return (
     <section id="past-events" className="py-20 bg-gradient-to-b from-background via-card to-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -35,12 +63,33 @@ export default function PastEvents() {
                 PAST EVENT
               </span>
             </div>
-            <img 
-              src={aftrEventImage} 
-              alt="AFTR Rave September 2025" 
-              className="w-full h-64 sm:h-80 object-cover"
-              data-testid="past-event-image"
-            />
+            
+            {/* Video or Image */}
+            {mainEvent?.videoUrl && showVideo ? (
+              <div className="p-4">
+                <VideoPlayer videoUrl={mainEvent.videoUrl} />
+              </div>
+            ) : (
+              <div className="relative">
+                <img 
+                  src={aftrEventImage} 
+                  alt="AFTR Rave September 2025" 
+                  className="w-full h-64 sm:h-80 object-cover"
+                  data-testid="past-event-image"
+                />
+                {mainEvent?.videoUrl && (
+                  <button
+                    onClick={() => setShowVideo(true)}
+                    className="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition-colors group"
+                    data-testid="play-video-button"
+                  >
+                    <div className="w-20 h-20 rounded-full gradient-bg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Play className="w-10 h-10 text-white ml-1" fill="white" />
+                    </div>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           
           <div className="p-6 sm:p-8">
@@ -86,6 +135,20 @@ export default function PastEvents() {
                 <span>Premium sound system & lighting</span>
               </div>
             </div>
+
+            {/* Video Section */}
+            {mainEvent?.videoUrl && !showVideo && (
+              <div className="mb-8">
+                <button
+                  onClick={() => setShowVideo(true)}
+                  className="w-full py-4 px-6 gradient-bg text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:scale-[1.02] transition-transform"
+                  data-testid="watch-recap-button"
+                >
+                  <Play className="w-6 h-6" />
+                  Watch Event Recap
+                </button>
+              </div>
+            )}
 
             {/* Artist Lineup */}
             <h4 className="text-xl font-bold gradient-text mb-6" data-testid="lineup-title">

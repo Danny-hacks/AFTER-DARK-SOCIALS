@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Ticket, type InsertTicket, users, tickets } from "@shared/schema";
+import { type User, type InsertUser, type Ticket, type InsertTicket, type Event, type InsertEvent, users, tickets, events } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -16,6 +16,14 @@ export interface IStorage {
   getAllTickets(): Promise<Ticket[]>;
   markTicketAsUsed(id: string): Promise<Ticket | undefined>;
   deleteTicket(id: string): Promise<boolean>;
+
+  // Event operations
+  getEvent(id: string): Promise<Event | undefined>;
+  getAllEvents(): Promise<Event[]>;
+  getPastEvents(): Promise<Event[]>;
+  createEvent(event: InsertEvent): Promise<Event>;
+  updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event | undefined>;
+  deleteEvent(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -75,6 +83,44 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(tickets)
       .where(eq(tickets.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Event operations
+  async getEvent(id: string): Promise<Event | undefined> {
+    const [event] = await db.select().from(events).where(eq(events.id, id));
+    return event || undefined;
+  }
+
+  async getAllEvents(): Promise<Event[]> {
+    return db.select().from(events);
+  }
+
+  async getPastEvents(): Promise<Event[]> {
+    return db.select().from(events).where(eq(events.isPast, true));
+  }
+
+  async createEvent(insertEvent: InsertEvent): Promise<Event> {
+    const [event] = await db
+      .insert(events)
+      .values(insertEvent)
+      .returning();
+    return event;
+  }
+
+  async updateEvent(id: string, eventData: Partial<InsertEvent>): Promise<Event | undefined> {
+    const [event] = await db
+      .update(events)
+      .set(eventData)
+      .where(eq(events.id, id))
+      .returning();
+    return event || undefined;
+  }
+
+  async deleteEvent(id: string): Promise<boolean> {
+    const result = await db
+      .delete(events)
+      .where(eq(events.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 }
