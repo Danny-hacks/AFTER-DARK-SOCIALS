@@ -15,7 +15,7 @@ export default function ContactSection() {
   const { toast } = useToast();
 
   const openWhatsApp = () => {
-    const message = encodeURIComponent("Hi! I have a question about AFTR rave on 27th September 2025.");
+    const message = encodeURIComponent("Hi! I have a question about AFTR events.");
     window.open(`https://web.whatsapp.com/send?phone=23058205220&text=${message}`, '_blank');
   };
 
@@ -23,7 +23,7 @@ export default function ContactSection() {
     e.preventDefault();
     
     // Create email with form data
-    const subject = encodeURIComponent("AFTR Rave 2025 - Inquiry");
+    const subject = encodeURIComponent("AFTR Events - Inquiry");
     const body = encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`);
     
     // Open default email client (which should be Outlook on your MacBook)
@@ -57,7 +57,7 @@ export default function ContactSection() {
             GET IN TOUCH
           </h2>
           <p className="text-xl text-muted-foreground" data-testid="contact-description">
-            Questions? We're here to help make your rave experience amazing!
+            Questions about upcoming events? We're here to help!
           </p>
         </div>
         

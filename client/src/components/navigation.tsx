@@ -23,25 +23,11 @@ export default function Navigation() {
           
           <div className="hidden md:flex items-center space-x-6">
             <button 
-              onClick={() => scrollToSection('event')}
+              onClick={() => scrollToSection('past-events')}
               className="text-muted-foreground hover:text-foreground transition-colors"
-              data-testid="nav-event-info"
+              data-testid="nav-events"
             >
-              Event Info
-            </button>
-            <button 
-              onClick={() => scrollToSection('tickets')}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              data-testid="nav-tickets"
-            >
-              Tickets
-            </button>
-            <button 
-              onClick={() => scrollToSection('location')}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              data-testid="nav-location"
-            >
-              Location
+              Events
             </button>
             <button 
               onClick={() => scrollToSection('contact')}
@@ -66,25 +52,11 @@ export default function Navigation() {
           <div className="md:hidden bg-card border-t border-border">
             <div className="px-2 pt-2 pb-3 space-y-1">
               <button 
-                onClick={() => scrollToSection('event')}
+                onClick={() => scrollToSection('past-events')}
                 className="block w-full text-left px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
-                data-testid="mobile-nav-event-info"
+                data-testid="mobile-nav-events"
               >
-                Event Info
-              </button>
-              <button 
-                onClick={() => scrollToSection('tickets')}
-                className="block w-full text-left px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
-                data-testid="mobile-nav-tickets"
-              >
-                Tickets
-              </button>
-              <button 
-                onClick={() => scrollToSection('location')}
-                className="block w-full text-left px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
-                data-testid="mobile-nav-location"
-              >
-                Location
+                Events
               </button>
               <button 
                 onClick={() => scrollToSection('contact')}

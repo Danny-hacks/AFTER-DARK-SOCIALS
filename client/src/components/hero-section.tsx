@@ -1,18 +1,18 @@
-import { Calendar, Clock, MapPin, Ticket } from "lucide-react";
+import { Calendar, MapPin, Music } from "lucide-react";
 import aftrHeroImage from "@assets/AFTR_1757155849539.jpg";
 
 export default function HeroSection() {
-  const scrollToTickets = () => {
-    const element = document.getElementById('tickets');
+  const scrollToEvents = () => {
+    const element = document.getElementById('past-events');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
   return (
-    <section className="relative min-h-screen flex flex-col justify-end hero-pattern">
+    <section className="relative min-h-screen flex flex-col justify-center hero-pattern">
       {/* Concert crowd background image */}
-      <div className="absolute inset-0 bg-black/30"></div>
+      <div className="absolute inset-0 bg-black/50"></div>
       <img 
         src={aftrHeroImage} 
         alt="AFTR rave with neon lights and crowd silhouette" 
@@ -21,34 +21,37 @@ export default function HeroSection() {
         data-testid="hero-background-image"
       />
       
-      <div className="relative z-10 text-center max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        <div className="bg-black/60 backdrop-blur-md rounded-2xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 border border-white/20" data-testid="event-details-card">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-center">
-            <div className="flex flex-col items-center" data-testid="event-date">
-              <Calendar className="text-xl sm:text-2xl gradient-text mb-1 sm:mb-2" />
-              <div className="text-xs sm:text-sm text-gray-300 uppercase tracking-wider">Date</div>
-              <div className="text-sm sm:text-lg font-semibold text-white">27th September 2025</div>
+      <div className="relative z-10 text-center max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 className="text-6xl sm:text-8xl font-black gradient-text mb-4 tracking-wider" data-testid="brand-title">
+          AFTR
+        </h1>
+        <p className="text-xl sm:text-2xl text-white/90 mb-8 font-light" data-testid="brand-tagline">
+          The Rave That Keeps The City Awake
+        </p>
+        
+        <div className="bg-black/60 backdrop-blur-md rounded-2xl p-6 sm:p-8 mb-8 border border-white/20 max-w-2xl mx-auto" data-testid="brand-info-card">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+            <div className="flex flex-col items-center" data-testid="brand-music">
+              <Music className="text-2xl sm:text-3xl gradient-text mb-2" />
+              <div className="text-sm sm:text-base font-semibold text-white">Underground Vibes</div>
             </div>
-            <div className="flex flex-col items-center" data-testid="event-time">
-              <Clock className="text-xl sm:text-2xl gradient-text mb-1 sm:mb-2" />
-              <div className="text-xs sm:text-sm text-gray-300 uppercase tracking-wider">Time</div>
-              <div className="text-sm sm:text-lg font-semibold text-white">10:00 PM - 4:00 AM</div>
+            <div className="flex flex-col items-center" data-testid="brand-location">
+              <MapPin className="text-2xl sm:text-3xl gradient-text mb-2" />
+              <div className="text-sm sm:text-base font-semibold text-white">Mauritius</div>
             </div>
-            <div className="flex flex-col items-center" data-testid="event-venue">
-              <MapPin className="text-xl sm:text-2xl gradient-text mb-1 sm:mb-2" />
-              <div className="text-xs sm:text-sm text-gray-300 uppercase tracking-wider">Venue</div>
-              <div className="text-sm sm:text-lg font-semibold text-white">Shotz, Flic en Flac</div>
+            <div className="flex flex-col items-center" data-testid="brand-events">
+              <Calendar className="text-2xl sm:text-3xl gradient-text mb-2" />
+              <div className="text-sm sm:text-base font-semibold text-white">Epic Events</div>
             </div>
           </div>
         </div>
         
         <button 
-          onClick={scrollToTickets}
-          className="inline-flex items-center px-6 py-3 sm:px-8 sm:py-4 gradient-bg text-white font-bold text-base sm:text-lg rounded-full hover:scale-105 transition-transform pulse-glow"
-          data-testid="get-tickets-button"
+          onClick={scrollToEvents}
+          className="inline-flex items-center px-8 py-4 gradient-bg text-white font-bold text-lg rounded-full hover:scale-105 transition-transform pulse-glow"
+          data-testid="view-events-button"
         >
-          <Ticket className="mr-2 sm:mr-3 w-5 h-5 sm:w-6 sm:h-6" />
-          Get Your Tickets Now
+          View Our Events
         </button>
       </div>
     </section>
