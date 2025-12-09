@@ -6,22 +6,37 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Ticket, LogIn, LogOut, Plus, Download, Users, CheckCircle, XCircle, Eye, QrCode, Search, Filter, Trash, Calendar, Video, Upload } from "lucide-react";
+import { 
+  Ticket, LogIn, LogOut, Plus, Users, CheckCircle, Eye, QrCode, 
+  Search, Trash, Calendar, Video, Upload, Music, MapPin, Clock,
+  LayoutDashboard, PartyPopper, Edit, X
+} from "lucide-react";
 import type { Ticket as TicketType, Event as EventType } from "@shared/schema";
 import { TicketGenerator } from "@/components/ticket-generator";
 import { QRScanner } from "@/components/qr-scanner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { ObjectUploader } from "@/components/ObjectUploader";
 
 // Login form schema
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
+});
+
+// Event creation schema
+const eventSchema = z.object({
+  name: z.string().min(1, "Event name is required"),
+  date: z.string().min(1, "Date is required"),
+  time: z.string().optional(),
+  venue: z.string().optional(),
+  description: z.string().optional(),
+  isPast: z.boolean().default(false),
 });
 
 // Ticket creation schema
@@ -40,6 +55,7 @@ const ticketSchema = z.object({
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
+type EventFormData = z.infer<typeof eventSchema>;
 type TicketFormData = z.infer<typeof ticketSchema>;
 
 export default function AdminPanel() {
@@ -47,9 +63,11 @@ export default function AdminPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [scannedTicket, setScannedTicket] = useState<TicketType | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'tickets' | 'events'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'events' | 'tickets'>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'used' | 'available'>('all');
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<EventType | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -79,6 +97,19 @@ export default function AdminPanel() {
     },
   });
 
+  // Event creation form
+  const eventForm = useForm<EventFormData>({
+    resolver: zodResolver(eventSchema),
+    defaultValues: {
+      name: "",
+      date: "",
+      time: "",
+      venue: "",
+      description: "",
+      isPast: false,
+    },
+  });
+
   // Ticket creation form
   const ticketForm = useForm<TicketFormData>({
     resolver: zodResolver(ticketSchema),
@@ -101,38 +132,14 @@ export default function AdminPanel() {
     onSuccess: () => {
       setIsAuthenticated(true);
       toast({
-        title: "Success",
-        description: "Logged in successfully",
+        title: "Welcome back!",
+        description: "You're now logged in to AFTR Brand Manager",
       });
     },
     onError: (error) => {
       toast({
         title: "Login Failed",
         description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const markAsUsedMutation = useMutation({
-    mutationFn: async (ticketId: string) => {
-      return apiRequest('PATCH', `/api/admin/tickets/${ticketId}/use`);
-    },
-    onSuccess: (data: any) => {
-      toast({
-        title: "Ticket Processed",
-        description: `Entry confirmed for ${data.ticket.customerName}`,
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] });
-      // Update the scanned ticket state
-      if (scannedTicket) {
-        setScannedTicket({ ...scannedTicket, isUsed: true });
-      }
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to process ticket entry",
         variant: "destructive",
       });
     },
@@ -146,13 +153,97 @@ export default function AdminPanel() {
     onSuccess: () => {
       setIsAuthenticated(false);
       toast({
-        title: "Success",
-        description: "Logged out successfully",
+        title: "Logged out",
+        description: "See you next time!",
       });
     },
   });
 
-  // Create ticket mutation
+  // Fetch events
+  const { data: eventsData, isLoading: eventsLoading } = useQuery<{events: EventType[]}>({
+    queryKey: ['/api/events'],
+    enabled: isAuthenticated,
+  });
+
+  // Fetch tickets
+  const { data: ticketsData, isLoading: ticketsLoading } = useQuery<{tickets: TicketType[]}>({
+    queryKey: ['/api/admin/tickets'],
+    enabled: isAuthenticated,
+  });
+
+  // Process data
+  const allEvents: EventType[] = Array.isArray(eventsData?.events) ? eventsData.events : [];
+  const allTickets: TicketType[] = Array.isArray(ticketsData?.tickets) ? ticketsData.tickets : [];
+  const pastEvents = allEvents.filter(e => e.isPast);
+  const upcomingEvents = allEvents.filter(e => !e.isPast);
+
+  // Create event mutation
+  const createEventMutation = useMutation({
+    mutationFn: async (data: EventFormData) => {
+      return apiRequest('POST', '/api/admin/events', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      eventForm.reset();
+      setShowCreateEvent(false);
+      toast({
+        title: "Event Created",
+        description: "Your new event has been added",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Create Event",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update event mutation
+  const updateEventMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<EventFormData & { videoUrl: string }> }) => {
+      return apiRequest('PATCH', `/api/admin/events/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      setEditingEvent(null);
+      toast({
+        title: "Event Updated",
+        description: "Changes have been saved",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Update Event",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete event mutation
+  const deleteEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      return apiRequest('DELETE', `/api/admin/events/${eventId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      toast({
+        title: "Event Deleted",
+        description: "The event has been removed",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Delete Event",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Ticket mutations
   const createTicketMutation = useMutation({
     mutationFn: async (data: TicketFormData) => {
       return apiRequest('POST', '/api/admin/tickets', data);
@@ -169,8 +260,8 @@ export default function AdminPanel() {
         paymentMethod: "",
       });
       toast({
-        title: "Success",
-        description: "Ticket created successfully",
+        title: "Ticket Created",
+        description: "New ticket has been added",
       });
     },
     onError: (error) => {
@@ -182,23 +273,32 @@ export default function AdminPanel() {
     },
   });
 
-  // Fetch tickets
-  const { data: ticketsData, isLoading: ticketsLoading } = useQuery<{tickets: TicketType[]}>({
-    queryKey: ['/api/admin/tickets'],
-    enabled: isAuthenticated,
+  const markUsedMutation = useMutation({
+    mutationFn: async (ticketId: string) => {
+      return apiRequest('PATCH', `/api/admin/tickets/${ticketId}/use`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tickets'] });
+      toast({
+        title: "Ticket Marked Used",
+        description: "Entry has been confirmed",
+      });
+    },
   });
 
-  // Fetch events
-  const { data: eventsData, isLoading: eventsLoading } = useQuery<{events: EventType[]}>({
-    queryKey: ['/api/events'],
-    enabled: isAuthenticated,
+  const deleteTicketMutation = useMutation({
+    mutationFn: async (ticketId: string) => {
+      return apiRequest('DELETE', `/api/admin/tickets/${ticketId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tickets'] });
+      toast({
+        title: "Ticket Deleted",
+      });
+    },
   });
 
-  // Process tickets data
-  const allTickets: TicketType[] = Array.isArray(ticketsData?.tickets) ? ticketsData.tickets : [];
-  const allEvents: EventType[] = Array.isArray(eventsData?.events) ? eventsData.events : [];
-
-  // Filter tickets based on search and status
+  // Filter tickets
   const filteredTickets = allTickets.filter((ticket: TicketType) => {
     const matchesSearch = 
       ticket.referenceCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -213,54 +313,29 @@ export default function AdminPanel() {
     return matchesSearch && matchesStatus;
   });
 
-  // Mark ticket as used mutation
-  const markUsedMutation = useMutation({
-    mutationFn: async (ticketId: string) => {
-      return apiRequest('PATCH', `/api/admin/tickets/${ticketId}/use`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/tickets'] });
+  // QR Scanner handler
+  const handleQRScan = async (referenceCode: string) => {
+    try {
+      const response = await apiRequest('GET', `/api/admin/tickets/lookup/${referenceCode}`);
+      const data = await response.json();
+      if (data.ticket) {
+        setScannedTicket(data.ticket);
+      }
+    } catch (error) {
       toast({
-        title: "Success",
-        description: "Ticket marked as used",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to Mark Ticket",
-        description: error.message,
+        title: "Ticket Not Found",
+        description: "Could not find a ticket with that code",
         variant: "destructive",
       });
-    },
-  });
-
-  // Delete ticket mutation
-  const deleteTicketMutation = useMutation({
-    mutationFn: async (ticketId: string) => {
-      return apiRequest('DELETE', `/api/admin/tickets/${ticketId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/tickets'] });
-      toast({
-        title: "Success",
-        description: "Ticket deleted successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to Delete Ticket",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+    }
+  };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Ticket className="h-8 w-8 animate-spin gradient-text mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
+          <Music className="h-12 w-12 animate-pulse text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading AFTR Brand Manager...</p>
         </div>
       </div>
     );
@@ -268,13 +343,14 @@ export default function AdminPanel() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="flex items-center justify-center gap-2 gradient-text">
-              <Ticket className="h-6 w-6" />
-              AFTR Admin Panel
-            </CardTitle>
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-primary/20">
+          <CardHeader className="text-center space-y-2">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-2">
+              <Music className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl font-bold">AFTR Brand Manager</CardTitle>
+            <CardDescription>Manage your events, media, and tickets</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...loginForm}>
@@ -312,7 +388,7 @@ export default function AdminPanel() {
                   data-testid="button-login"
                 >
                   <LogIn className="w-4 h-4 mr-2" />
-                  {loginMutation.isPending ? "Logging in..." : "Login"}
+                  {loginMutation.isPending ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
             </Form>
@@ -322,584 +398,642 @@ export default function AdminPanel() {
     );
   }
 
-  const tickets: TicketType[] = (ticketsData as { tickets?: TicketType[] })?.tickets || [];
-
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold gradient-text flex items-center gap-2">
-            <Ticket className="h-8 w-8" />
-            AFTR Ticket Manager
-          </h1>
-          <div className="flex items-center gap-2">
-            <Button 
-              onClick={() => setShowQRScanner(!showQRScanner)}
-              variant={showQRScanner ? "default" : "outline"}
-              data-testid="button-qr-scanner"
-            >
-              <QrCode className="w-4 h-4 mr-2" />
-              {showQRScanner ? "Close Scanner" : "QR Scanner"}
-            </Button>
-            <Button 
-              onClick={() => logoutMutation.mutate()}
-              variant="outline"
-              data-testid="button-logout"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
+    <div className="min-h-screen bg-background">
+      {/* Sidebar */}
+      <div className="fixed left-0 top-0 h-full w-64 bg-card border-r border-border p-4 flex flex-col">
+        <div className="flex items-center gap-3 mb-8 px-2">
+          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+            <Music className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="font-bold text-lg">AFTR</h1>
+            <p className="text-xs text-muted-foreground">Brand Manager</p>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="mb-8">
-          <div className="border-b border-border">
-            <nav className="-mb-px flex space-x-8">
-              <button
-                onClick={() => setActiveTab('dashboard')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'dashboard'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
-                }`}
-                data-testid="tab-dashboard"
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={() => setActiveTab('tickets')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'tickets'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
-                }`}
-                data-testid="tab-tickets"
-              >
-                <Ticket className="w-4 h-4 mr-2 inline" />
-                All Tickets ({allTickets.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('events')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'events'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
-                }`}
-                data-testid="tab-events"
-              >
-                <Calendar className="w-4 h-4 mr-2 inline" />
-                Events & Videos
-              </button>
-            </nav>
-          </div>
-        </div>
+        <nav className="space-y-1 flex-1">
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'dashboard'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+            data-testid="nav-dashboard"
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab('events')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'events'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+            data-testid="nav-events"
+          >
+            <PartyPopper className="w-4 h-4" />
+            Events
+            <span className="ml-auto text-xs bg-muted px-2 py-0.5 rounded">{allEvents.length}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('tickets')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'tickets'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+            data-testid="nav-tickets"
+          >
+            <Ticket className="w-4 h-4" />
+            Tickets
+            <span className="ml-auto text-xs bg-muted px-2 py-0.5 rounded">{allTickets.length}</span>
+          </button>
+        </nav>
 
+        <div className="pt-4 border-t border-border">
+          <Button 
+            onClick={() => logoutMutation.mutate()}
+            variant="ghost"
+            className="w-full justify-start text-muted-foreground"
+            data-testid="button-logout"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="ml-64 p-8">
+        {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
-          <>
-            {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Tickets</p>
-                  <p className="text-2xl font-bold">{allTickets.length}</p>
-                </div>
-                <Users className="h-8 w-8 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Used Tickets</p>
-                  <p className="text-2xl font-bold">{allTickets.filter((t: TicketType) => t.isUsed).length}</p>
-                </div>
-                <CheckCircle className="h-8 w-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Available Tickets</p>
-                  <p className="text-2xl font-bold">{allTickets.filter((t: TicketType) => !t.isUsed).length}</p>
-                </div>
-                <XCircle className="h-8 w-8 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-3xl font-bold mb-2">Dashboard</h2>
+              <p className="text-muted-foreground">Overview of your AFTR brand</p>
+            </div>
 
-        {/* QR Scanner Section */}
-        {showQRScanner && (
-          <div className="mb-8">
-            <QRScanner
-              onTicketFound={(ticket) => {
-                setScannedTicket(ticket);
-                if (ticket) {
-                  setShowQRScanner(false);
-                }
-              }}
-              onClose={() => {
-                setShowQRScanner(false);
-                setScannedTicket(null);
-              }}
-            />
-          </div>
-        )}
-
-        {/* Scanned Ticket Display */}
-        {scannedTicket && (
-          <Card className="mb-8 border-green-500">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-green-600">
-                <CheckCircle className="h-5 w-5" />
-                Scanned Ticket Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Reference</p>
-                  <p className="font-mono font-bold">{scannedTicket.referenceCode}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Customer</p>
-                  <p className="font-semibold">{scannedTicket.customerName}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Price</p>
-                  <p className="font-semibold">{scannedTicket.price}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  {scannedTicket.isUsed ? (
-                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                      Used
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                      Valid
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                {!scannedTicket.isUsed && (
-                  <Button
-                    onClick={() => markAsUsedMutation.mutate(scannedTicket.id)}
-                    disabled={markAsUsedMutation.isPending}
-                    size="sm"
-                    data-testid="button-mark-as-used"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    {markAsUsedMutation.isPending ? "Processing..." : "Allow Entry"}
-                  </Button>
-                )}
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" data-testid="button-view-scanned-ticket">
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Full Ticket
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Ticket Details - {scannedTicket.referenceCode}</DialogTitle>
-                    </DialogHeader>
-                    <TicketGenerator ticket={scannedTicket} />
-                  </DialogContent>
-                </Dialog>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setScannedTicket(null)}
-                  data-testid="button-clear-scanned-ticket"
-                >
-                  Clear
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Create Ticket Form */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                Create New Ticket
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Form {...ticketForm}>
-                <form onSubmit={ticketForm.handleSubmit((data) => createTicketMutation.mutate(data))} className="space-y-4">
-                  <FormField
-                    control={ticketForm.control}
-                    name="referenceCode"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Reference Code</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="AFTR-JOHN" data-testid="input-reference-code" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={ticketForm.control}
-                    name="customerName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Customer Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="John Doe" data-testid="input-customer-name" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={ticketForm.control}
-                    name="customerEmail"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email (Optional)</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="email" placeholder="john@example.com" data-testid="input-customer-email" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={ticketForm.control}
-                    name="customerPhone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone (Optional)</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="58205220" data-testid="input-customer-phone" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={ticketForm.control}
-                    name="ticketType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Ticket Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-ticket-type">
-                              <SelectValue placeholder="Select ticket type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Phase 1">Phase 1 (Early Bird)</SelectItem>
-                            <SelectItem value="Phase 2">Phase 2 (Standard)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={ticketForm.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Price</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-price">
-                              <SelectValue placeholder="Select price" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Rs 350">Rs 350 (Early Bird - until Sep 26th)</SelectItem>
-                            <SelectItem value="Rs 500">Rs 500 (Standard - from Sep 26th)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={ticketForm.control}
-                    name="paymentMethod"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Payment Method</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-payment-method">
-                              <SelectValue placeholder="Select payment method" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="MCB Bank">MCB Bank</SelectItem>
-                            <SelectItem value="Juice Mobile">Juice Mobile</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={createTicketMutation.isPending}
-                    data-testid="button-create-ticket"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    {createTicketMutation.isPending ? "Creating..." : "Create Ticket"}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          {/* Tickets List */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Ticket className="h-5 w-5" />
-                Recent Tickets
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {ticketsLoading ? (
-                  <p className="text-muted-foreground">Loading tickets...</p>
-                ) : allTickets.length === 0 ? (
-                  <p className="text-muted-foreground">No tickets created yet.</p>
-                ) : (
-                  allTickets.slice(0, 10).map((ticket: TicketType) => (
-                    <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg" data-testid={`ticket-item-${ticket.id}`}>
-                      <div>
-                        <p className="font-medium">{ticket.referenceCode}</p>
-                        <p className="text-sm text-muted-foreground">{ticket.customerName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString() : 'N/A'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              data-testid={`button-view-ticket-${ticket.id}`}
-                            >
-                              <Eye className="w-3 h-3 mr-1" />
-                              View
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle>Digital Ticket - {ticket.referenceCode}</DialogTitle>
-                            </DialogHeader>
-                            <TicketGenerator ticket={ticket} />
-                          </DialogContent>
-                        </Dialog>
-                        {ticket.isUsed ? (
-                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Used</span>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => markUsedMutation.mutate(ticket.id)}
-                            disabled={markUsedMutation.isPending}
-                            data-testid={`button-mark-used-${ticket.id}`}
-                          >
-                            Mark Used
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => {
-                            if (confirm(`Are you sure you want to delete ticket ${ticket.referenceCode}? This action cannot be undone.`)) {
-                              deleteTicketMutation.mutate(ticket.id);
-                            }
-                          }}
-                          disabled={deleteTicketMutation.isPending}
-                          data-testid={`button-delete-ticket-${ticket.id}`}
-                        >
-                          <Trash className="w-3 h-3" />
-                        </Button>
-                      </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Events</p>
+                      <p className="text-3xl font-bold">{allEvents.length}</p>
                     </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        </>
-        )}
+                    <PartyPopper className="h-8 w-8 text-primary opacity-80" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Past Events</p>
+                      <p className="text-3xl font-bold">{pastEvents.length}</p>
+                    </div>
+                    <Calendar className="h-8 w-8 text-muted-foreground opacity-80" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Tickets</p>
+                      <p className="text-3xl font-bold">{allTickets.length}</p>
+                    </div>
+                    <Ticket className="h-8 w-8 text-primary opacity-80" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Videos Uploaded</p>
+                      <p className="text-3xl font-bold">{allEvents.filter(e => e.videoUrl).length}</p>
+                    </div>
+                    <Video className="h-8 w-8 text-green-500 opacity-80" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-        {activeTab === 'tickets' && (
-          <div className="space-y-6">
-            {/* Search and Filter */}
+            {/* Quick Actions */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Search className="h-5 w-5" />
-                  Ticket Management
-                </CardTitle>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="flex gap-4">
+                <Button onClick={() => { setActiveTab('events'); setShowCreateEvent(true); }} data-testid="quick-add-event">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Event
+                </Button>
+                <Button variant="outline" onClick={() => setActiveTab('tickets')} data-testid="quick-view-tickets">
+                  <Ticket className="w-4 h-4 mr-2" />
+                  View Tickets
+                </Button>
+                <Button variant="outline" onClick={() => setShowQRScanner(true)} data-testid="quick-scan-qr">
+                  <QrCode className="w-4 h-4 mr-2" />
+                  Scan QR Code
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Recent Events */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Events</CardTitle>
+                <CardDescription>Your latest events and their status</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col md:flex-row gap-4 mb-6">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search by reference code, name, or email..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                        data-testid="input-search-tickets"
-                      />
-                    </div>
+                {eventsLoading ? (
+                  <p className="text-muted-foreground text-center py-8">Loading events...</p>
+                ) : allEvents.length === 0 ? (
+                  <div className="text-center py-8">
+                    <PartyPopper className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                    <p className="text-muted-foreground">No events yet. Create your first event!</p>
+                    <Button className="mt-4" onClick={() => { setActiveTab('events'); setShowCreateEvent(true); }}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Event
+                    </Button>
                   </div>
-                  <div className="md:w-48">
-                    <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value as 'all' | 'used' | 'available')}>
-                      <SelectTrigger data-testid="select-filter-status">
-                        <Filter className="h-4 w-4 mr-2" />
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="available">Available</SelectItem>
-                        <SelectItem value="used">Used</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Results Count */}
-                <div className="mb-4">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {filteredTickets.length} of {allTickets.length} tickets
-                  </p>
-                </div>
-
-                {/* Tickets Grid */}
-                <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                  {ticketsLoading ? (
-                    <p className="text-muted-foreground">Loading tickets...</p>
-                  ) : filteredTickets.length === 0 ? (
-                    <p className="text-muted-foreground">
-                      {searchQuery || filterStatus !== 'all' 
-                        ? 'No tickets match your search criteria.' 
-                        : 'No tickets created yet.'
-                      }
-                    </p>
-                  ) : (
-                    filteredTickets.map((ticket: TicketType) => (
-                      <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50" data-testid={`ticket-search-item-${ticket.id}`}>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
-                            <div>
-                              <p className="font-medium">{ticket.referenceCode}</p>
-                              <p className="text-sm text-muted-foreground">{ticket.customerName}</p>
-                              {ticket.customerEmail && (
-                                <p className="text-xs text-muted-foreground">{ticket.customerEmail}</p>
-                              )}
-                              <p className="text-xs text-muted-foreground">
-                                Created: {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString() : 'N/A'}
-                              </p>
-                            </div>
+                ) : (
+                  <div className="space-y-4">
+                    {allEvents.slice(0, 5).map((event) => (
+                      <div key={event.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${event.isPast ? 'bg-muted' : 'bg-primary/10'}`}>
+                            <Calendar className={`w-5 h-5 ${event.isPast ? 'text-muted-foreground' : 'text-primary'}`} />
+                          </div>
+                          <div>
+                            <p className="font-medium">{event.name}</p>
+                            <p className="text-sm text-muted-foreground">{event.date} {event.time && `at ${event.time}`}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="text-right mr-4">
-                            <p className="font-semibold">{ticket.price}</p>
-                            <p className="text-xs text-muted-foreground">{ticket.ticketType}</p>
-                          </div>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                data-testid={`button-view-search-ticket-${ticket.id}`}
-                              >
-                                <Eye className="w-3 h-3 mr-1" />
-                                View
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                              <DialogHeader>
-                                <DialogTitle>Digital Ticket - {ticket.referenceCode}</DialogTitle>
-                              </DialogHeader>
-                              <TicketGenerator ticket={ticket} />
-                            </DialogContent>
-                          </Dialog>
-                          {ticket.isUsed ? (
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded whitespace-nowrap">Used</span>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => markUsedMutation.mutate(ticket.id)}
-                              disabled={markUsedMutation.isPending}
-                              data-testid={`button-mark-search-used-${ticket.id}`}
-                            >
-                              Mark Used
-                            </Button>
+                          {event.videoUrl && (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded flex items-center gap-1">
+                              <Video className="w-3 h-3" /> Video
+                            </span>
                           )}
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => {
-                              if (confirm(`Are you sure you want to delete ticket ${ticket.referenceCode}? This action cannot be undone.`)) {
-                                deleteTicketMutation.mutate(ticket.id);
-                              }
-                            }}
-                            disabled={deleteTicketMutation.isPending}
-                            data-testid={`button-delete-search-ticket-${ticket.id}`}
-                          >
-                            <Trash className="w-3 h-3" />
-                          </Button>
+                          <span className={`text-xs px-2 py-1 rounded ${event.isPast ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
+                            {event.isPast ? 'Past' : 'Upcoming'}
+                          </span>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
         )}
 
+        {/* Events Tab */}
         {activeTab === 'events' && (
-          <div className="space-y-6">
+          <div className="space-y-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">Events</h2>
+                <p className="text-muted-foreground">Manage your AFTR events and upload videos</p>
+              </div>
+              <Button onClick={() => setShowCreateEvent(true)} data-testid="button-create-event">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Event
+              </Button>
+            </div>
+
+            {/* Create Event Dialog */}
+            <Dialog open={showCreateEvent} onOpenChange={setShowCreateEvent}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Create New Event</DialogTitle>
+                </DialogHeader>
+                <Form {...eventForm}>
+                  <form onSubmit={eventForm.handleSubmit((data) => createEventMutation.mutate(data))} className="space-y-4">
+                    <FormField
+                      control={eventForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Event Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., Summer Rave 2025" data-testid="input-event-name" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={eventForm.control}
+                        name="date"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Date</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="e.g., September 27, 2025" data-testid="input-event-date" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={eventForm.control}
+                        name="time"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Time</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="e.g., 8:00 PM" data-testid="input-event-time" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <FormField
+                      control={eventForm.control}
+                      name="venue"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Venue</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., Secret Location, City" data-testid="input-event-venue" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={eventForm.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl>
+                            <Textarea {...field} placeholder="Describe your event..." rows={3} data-testid="input-event-description" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={eventForm.control}
+                      name="isPast"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                          <div>
+                            <FormLabel>Mark as Past Event</FormLabel>
+                            <p className="text-sm text-muted-foreground">Enable if this event has already happened</p>
+                          </div>
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-is-past" />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex gap-3 pt-4">
+                      <Button type="button" variant="outline" className="flex-1" onClick={() => setShowCreateEvent(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" className="flex-1" disabled={createEventMutation.isPending} data-testid="button-submit-event">
+                        {createEventMutation.isPending ? "Creating..." : "Create Event"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+
+            {/* Events List */}
+            {eventsLoading ? (
+              <div className="text-center py-12">
+                <Music className="h-8 w-8 animate-pulse text-primary mx-auto mb-4" />
+                <p className="text-muted-foreground">Loading events...</p>
+              </div>
+            ) : allEvents.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <PartyPopper className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+                  <h3 className="text-lg font-medium mb-2">No Events Yet</h3>
+                  <p className="text-muted-foreground mb-4">Start building your event history by creating your first event.</p>
+                  <Button onClick={() => setShowCreateEvent(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Your First Event
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-6">
+                {allEvents.map((event) => (
+                  <EventCard 
+                    key={event.id} 
+                    event={event} 
+                    onEdit={() => setEditingEvent(event)}
+                    onDelete={() => {
+                      if (confirm(`Delete "${event.name}"? This cannot be undone.`)) {
+                        deleteEventMutation.mutate(event.id);
+                      }
+                    }}
+                    onVideoUpload={(videoUrl) => {
+                      updateEventMutation.mutate({ id: event.id, data: { videoUrl } });
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tickets Tab */}
+        {activeTab === 'tickets' && (
+          <div className="space-y-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">Tickets</h2>
+                <p className="text-muted-foreground">Manage ticket sales and check-ins</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowQRScanner(!showQRScanner)} data-testid="button-qr-scanner">
+                  <QrCode className="w-4 h-4 mr-2" />
+                  {showQRScanner ? "Close Scanner" : "QR Scanner"}
+                </Button>
+              </div>
+            </div>
+
+            {/* QR Scanner */}
+            {showQRScanner && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <QrCode className="h-5 w-5" />
+                    QR Code Scanner
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <QRScanner 
+                    onTicketFound={(ticket) => setScannedTicket(ticket)} 
+                    onClose={() => setShowQRScanner(false)} 
+                  />
+                  {scannedTicket && (
+                    <div className="mt-4 p-4 border rounded-lg">
+                      <h4 className="font-medium mb-2">Scanned Ticket</h4>
+                      <p><strong>Reference:</strong> {scannedTicket.referenceCode}</p>
+                      <p><strong>Name:</strong> {scannedTicket.customerName}</p>
+                      <p><strong>Status:</strong> {scannedTicket.isUsed ? 'Already Used' : 'Valid'}</p>
+                      {!scannedTicket.isUsed && (
+                        <Button 
+                          className="mt-2" 
+                          onClick={() => markUsedMutation.mutate(scannedTicket.id)}
+                          disabled={markUsedMutation.isPending}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Confirm Entry
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Tickets</p>
+                      <p className="text-2xl font-bold">{allTickets.length}</p>
+                    </div>
+                    <Users className="h-8 w-8 text-primary" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Used</p>
+                      <p className="text-2xl font-bold">{allTickets.filter(t => t.isUsed).length}</p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-green-500" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Available</p>
+                      <p className="text-2xl font-bold">{allTickets.filter(t => !t.isUsed).length}</p>
+                    </div>
+                    <Ticket className="h-8 w-8 text-primary" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Create Ticket Form */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Event Management
+                  <Plus className="h-5 w-5" />
+                  Create New Ticket
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {eventsLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">Loading events...</div>
-                ) : allEvents.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">No events found</div>
+                <Form {...ticketForm}>
+                  <form onSubmit={ticketForm.handleSubmit((data) => createTicketMutation.mutate(data))} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <FormField
+                      control={ticketForm.control}
+                      name="referenceCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Reference Code</FormLabel>
+                          <FormControl>
+                            <Input {...field} data-testid="input-ref-code" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={ticketForm.control}
+                      name="customerName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Customer Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} data-testid="input-customer-name" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={ticketForm.control}
+                      name="customerEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email (Optional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="email" data-testid="input-customer-email" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={ticketForm.control}
+                      name="customerPhone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone (Optional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} data-testid="input-customer-phone" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={ticketForm.control}
+                      name="ticketType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Ticket Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-ticket-type">
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Phase 1">Phase 1</SelectItem>
+                              <SelectItem value="Phase 2">Phase 2</SelectItem>
+                              <SelectItem value="VIP">VIP</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={ticketForm.control}
+                      name="price"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Price</FormLabel>
+                          <FormControl>
+                            <Input {...field} data-testid="input-price" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="md:col-span-2 lg:col-span-3 flex justify-end">
+                      <Button type="submit" disabled={createTicketMutation.isPending} data-testid="button-create-ticket">
+                        <Plus className="w-4 h-4 mr-2" />
+                        {createTicketMutation.isPending ? "Creating..." : "Create Ticket"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+
+            {/* Search and Filter */}
+            <Card>
+              <CardHeader>
+                <CardTitle>All Tickets</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-4 mb-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name, email, or reference..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-search-tickets"
+                    />
+                  </div>
+                  <Select value={filterStatus} onValueChange={(v: 'all' | 'used' | 'available') => setFilterStatus(v)}>
+                    <SelectTrigger className="w-40" data-testid="select-filter-status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Tickets</SelectItem>
+                      <SelectItem value="used">Used</SelectItem>
+                      <SelectItem value="available">Available</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {ticketsLoading ? (
+                  <p className="text-center py-8 text-muted-foreground">Loading tickets...</p>
+                ) : filteredTickets.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No tickets found</p>
                 ) : (
-                  <div className="space-y-4">
-                    {allEvents.map((event) => (
-                      <EventCard key={event.id} event={event} />
+                  <div className="space-y-2">
+                    {filteredTickets.map((ticket) => (
+                      <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-3 h-3 rounded-full ${ticket.isUsed ? 'bg-green-500' : 'bg-primary'}`} />
+                          <div>
+                            <p className="font-medium">{ticket.customerName}</p>
+                            <p className="text-sm text-muted-foreground">{ticket.referenceCode}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{ticket.price}</span>
+                          <span className="text-xs text-muted-foreground">{ticket.ticketType}</span>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button size="sm" variant="ghost" data-testid={`button-view-ticket-${ticket.id}`}>
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Ticket - {ticket.referenceCode}</DialogTitle>
+                              </DialogHeader>
+                              <TicketGenerator ticket={ticket} />
+                            </DialogContent>
+                          </Dialog>
+                          {!ticket.isUsed && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => markUsedMutation.mutate(ticket.id)}
+                              disabled={markUsedMutation.isPending}
+                              data-testid={`button-mark-used-${ticket.id}`}
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={() => {
+                              if (confirm('Delete this ticket?')) {
+                                deleteTicketMutation.mutate(ticket.id);
+                              }
+                            }}
+                            data-testid={`button-delete-ticket-${ticket.id}`}
+                          >
+                            <Trash className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -912,85 +1046,101 @@ export default function AdminPanel() {
   );
 }
 
-function EventCard({ event }: { event: EventType }) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [videoPath, setVideoPath] = useState(event.videoUrl || '');
-
-  const updateEventMutation = useMutation({
-    mutationFn: async (data: { videoUrl: string }) => {
-      return apiRequest('PATCH', `/api/admin/events/${event.id}`, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/events/past'] });
-      toast({
-        title: "Success",
-        description: "Event video updated successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to Update Event",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+// Event Card Component
+function EventCard({ 
+  event, 
+  onEdit, 
+  onDelete, 
+  onVideoUpload 
+}: { 
+  event: EventType; 
+  onEdit: () => void;
+  onDelete: () => void;
+  onVideoUpload: (videoUrl: string) => void;
+}) {
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleVideoUpload = (objectPath: string) => {
-    setVideoPath(objectPath);
-    updateEventMutation.mutate({ videoUrl: objectPath });
+    onVideoUpload(objectPath);
   };
 
   return (
-    <Card className="border">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <h3 className="text-xl font-bold" data-testid={`event-name-${event.id}`}>{event.name}</h3>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                {event.date}
+    <Card className="overflow-hidden">
+      <CardContent className="p-0">
+        <div className="flex">
+          {/* Event Info */}
+          <div className="flex-1 p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-bold mb-1" data-testid={`event-title-${event.id}`}>{event.name}</h3>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    {event.date}
+                  </span>
+                  {event.time && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      {event.time}
+                    </span>
+                  )}
+                  {event.venue && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      {event.venue}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <span className={`text-xs px-2 py-1 rounded ${event.isPast ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
+                {event.isPast ? 'Past Event' : 'Upcoming'}
               </span>
-              {event.time && <span>{event.time}</span>}
-              {event.venue && <span>{event.venue}</span>}
             </div>
-            {event.isPast && (
-              <span className="inline-block px-2 py-1 text-xs font-medium bg-muted text-muted-foreground rounded">
-                Past Event
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {videoPath ? (
-              <div className="flex items-center gap-2">
-                <Video className="w-4 h-4 text-green-500" />
-                <span className="text-sm text-green-600">Video uploaded</span>
-              </div>
-            ) : null}
-          </div>
-        </div>
 
-        <div className="mt-4 pt-4 border-t">
-          <div className="flex items-center gap-4">
-            <ObjectUploader
-              maxFileSize={500 * 1024 * 1024}
-              allowedFileTypes={["video/*"]}
-              onComplete={handleVideoUpload}
-              buttonClassName="gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              {videoPath ? "Replace Video" : "Upload Event Video"}
-            </ObjectUploader>
-            
-            {videoPath && (
-              <div className="text-sm text-muted-foreground">
-                Current: <code className="bg-muted px-2 py-1 rounded">{videoPath}</code>
-              </div>
+            {event.description && (
+              <p className="text-muted-foreground mb-4">{event.description}</p>
             )}
+
+            <div className="flex items-center gap-3">
+              <ObjectUploader
+                maxFileSize={500 * 1024 * 1024}
+                allowedFileTypes={["video/*"]}
+                onComplete={handleVideoUpload}
+                buttonClassName="gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                {event.videoUrl ? "Replace Video" : "Upload Video"}
+              </ObjectUploader>
+
+              {event.videoUrl && (
+                <span className="text-sm text-green-600 flex items-center gap-1">
+                  <Video className="w-4 h-4" />
+                  Video uploaded
+                </span>
+              )}
+
+              <div className="ml-auto flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={onEdit} data-testid={`button-edit-event-${event.id}`}>
+                  <Edit className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={onDelete} data-testid={`button-delete-event-${event.id}`}>
+                  <Trash className="w-4 h-4 text-destructive" />
+                </Button>
+              </div>
+            </div>
           </div>
+
+          {/* Video Preview */}
+          {event.videoUrl && (
+            <div className="w-64 bg-muted flex items-center justify-center border-l">
+              <video 
+                src={event.videoUrl} 
+                className="w-full h-full object-cover"
+                controls
+                preload="metadata"
+              />
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
