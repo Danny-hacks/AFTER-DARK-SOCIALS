@@ -1,59 +1,85 @@
-import { Calendar, MapPin, Music } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import aftrHeroImage from "@assets/AFTR_1757155849539.jpg";
+import { useEffect, useState } from "react";
 
 export default function HeroSection() {
-  const scrollToEvents = () => {
-    const element = document.getElementById('past-events');
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
+
+  const scrollToAbout = () => {
+    const element = document.getElementById('about');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
   return (
-    <section className="relative min-h-screen flex flex-col justify-center hero-pattern">
-      {/* Concert crowd background image */}
-      <div className="absolute inset-0 bg-black/50"></div>
-      <img 
-        src={aftrHeroImage} 
-        alt="AFTR rave with neon lights and crowd silhouette" 
-        className="absolute inset-0 w-full h-full object-cover object-center"
-        style={{ objectPosition: 'center center' }}
-        data-testid="hero-background-image"
-      />
+    <section className="relative h-screen flex items-center justify-center overflow-hidden">
+      {/* Background image with parallax-like effect */}
+      <div className="absolute inset-0">
+        <img 
+          src={aftrHeroImage} 
+          alt="AFTR rave with neon lights and crowd silhouette" 
+          className="w-full h-full object-cover scale-110"
+          data-testid="hero-background-image"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black"></div>
+      </div>
+
+      {/* Animated glow effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-[100px] animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+      </div>
       
-      <div className="relative z-10 text-center max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-6xl sm:text-8xl font-black gradient-text mb-4 tracking-wider" data-testid="brand-title">
-          AFTR
-        </h1>
-        <p className="text-xl sm:text-2xl text-white/90 mb-8 font-light" data-testid="brand-tagline">
-          The Rave That Keeps The City Awake
-        </p>
-        
-        <div className="bg-black/60 backdrop-blur-md rounded-2xl p-6 sm:p-8 mb-8 border border-white/20 max-w-2xl mx-auto" data-testid="brand-info-card">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
-            <div className="flex flex-col items-center" data-testid="brand-music">
-              <Music className="text-2xl sm:text-3xl gradient-text mb-2" />
-              <div className="text-sm sm:text-base font-semibold text-white">Underground Vibes</div>
-            </div>
-            <div className="flex flex-col items-center" data-testid="brand-location">
-              <MapPin className="text-2xl sm:text-3xl gradient-text mb-2" />
-              <div className="text-sm sm:text-base font-semibold text-white">Mauritius</div>
-            </div>
-            <div className="flex flex-col items-center" data-testid="brand-events">
-              <Calendar className="text-2xl sm:text-3xl gradient-text mb-2" />
-              <div className="text-sm sm:text-base font-semibold text-white">Epic Events</div>
-            </div>
-          </div>
+      {/* Main content */}
+      <div className={`relative z-10 text-center px-4 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        {/* Logo/Brand */}
+        <div className="mb-6">
+          <span className="text-sm sm:text-base tracking-[0.3em] text-white/60 uppercase font-light">
+            Welcome to
+          </span>
         </div>
         
-        <button 
-          onClick={scrollToEvents}
-          className="inline-flex items-center px-8 py-4 gradient-bg text-white font-bold text-lg rounded-full hover:scale-105 transition-transform pulse-glow"
-          data-testid="view-events-button"
+        <h1 
+          className="text-8xl sm:text-9xl md:text-[12rem] font-black tracking-tight mb-4"
+          style={{
+            background: 'linear-gradient(135deg, #fff 0%, #a855f7 50%, #ec4899 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            textShadow: '0 0 80px rgba(168, 85, 247, 0.5)',
+          }}
+          data-testid="brand-title"
         >
-          View Our Events
-        </button>
+          AFTR
+        </h1>
+        
+        <p 
+          className="text-xl sm:text-2xl md:text-3xl text-white/80 font-light tracking-wide mb-12"
+          data-testid="brand-tagline"
+        >
+          The Rave That Keeps The City Awake
+        </p>
+
+        {/* Location badge */}
+        <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 mb-16">
+          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+          <span className="text-white/90 text-sm sm:text-base">Mauritius</span>
+        </div>
       </div>
+
+      {/* Scroll indicator */}
+      <button 
+        onClick={scrollToAbout}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white/60 hover:text-white transition-colors cursor-pointer group"
+        data-testid="scroll-indicator"
+      >
+        <span className="text-xs tracking-widest uppercase">Discover</span>
+        <ChevronDown className="w-6 h-6 animate-bounce" />
+      </button>
     </section>
   );
 }
