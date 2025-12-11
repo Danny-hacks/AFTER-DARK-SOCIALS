@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react";
-import aftrHeroImage from "@assets/AFTR_1757155849539.jpg";
+import heroImage from "@assets/stock_images/dark_nightclub_rave__d23cebfd.jpg";
 import { useEffect, useState } from "react";
 
 export default function HeroSection() {
@@ -21,8 +21,8 @@ export default function HeroSection() {
       {/* Background image with parallax-like effect */}
       <div className="absolute inset-0">
         <img 
-          src={aftrHeroImage} 
-          alt="AFTR rave with neon lights and crowd silhouette" 
+          src={heroImage} 
+          alt="Nightclub rave with crowd silhouettes and colorful lights" 
           className="w-full h-full object-cover scale-110"
           data-testid="hero-background-image"
         />
