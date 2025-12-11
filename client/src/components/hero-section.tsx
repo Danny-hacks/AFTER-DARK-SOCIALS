@@ -31,15 +31,15 @@ export default function HeroSection() {
 
       {/* Animated glow effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-[100px] animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#c72d28]/20 rounded-full blur-[100px] animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#c72d28]/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
       
       {/* Main content */}
       <div className={`relative z-10 text-center px-4 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
         {/* Logo/Brand */}
         <div className="mb-4">
-          <span className="text-sm sm:text-base tracking-[0.3em] text-purple-400 uppercase font-medium">
+          <span className="text-sm sm:text-base tracking-[0.3em] text-[#c72d28] uppercase font-medium">
             After Dark Social
           </span>
         </div>
@@ -47,10 +47,10 @@ export default function HeroSection() {
         <h1 
           className="text-8xl sm:text-9xl md:text-[12rem] font-black tracking-tight mb-4"
           style={{
-            background: 'linear-gradient(135deg, #fff 0%, #a855f7 50%, #ec4899 100%)',
+            background: 'linear-gradient(135deg, #fff 0%, #c72d28 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            textShadow: '0 0 80px rgba(168, 85, 247, 0.5)',
+            textShadow: '0 0 80px rgba(199, 45, 40, 0.5)',
           }}
           data-testid="brand-title"
         >
