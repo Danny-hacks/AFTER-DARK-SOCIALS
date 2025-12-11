@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { insertTicketSchema, insertEventSchema } from "@shared/schema";
+import { insertTicketSchema, insertEventSchema, insertHeroSlideSchema } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 
@@ -272,6 +272,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting event:", error);
       res.status(500).json({ error: "Failed to delete event" });
+    }
+  });
+
+  // Hero slide routes (public)
+  app.get("/api/hero-slides", async (req, res) => {
+    try {
+      const slides = await storage.getActiveHeroSlides();
+      res.json({ success: true, slides });
+    } catch (error) {
+      console.error("Error fetching hero slides:", error);
+      res.status(500).json({ error: "Failed to fetch hero slides" });
+    }
+  });
+
+  // Hero slide management routes (protected)
+  app.get("/api/admin/hero-slides", requireAuth, async (req, res) => {
+    try {
+      const slides = await storage.getAllHeroSlides();
+      res.json({ success: true, slides });
+    } catch (error) {
+      console.error("Error fetching hero slides:", error);
+      res.status(500).json({ error: "Failed to fetch hero slides" });
+    }
+  });
+
+  app.post("/api/admin/hero-slides", requireAuth, async (req, res) => {
+    try {
+      const slideData = insertHeroSlideSchema.parse(req.body);
+      const slide = await storage.createHeroSlide(slideData);
+      res.json({ success: true, slide });
+    } catch (error) {
+      console.error("Error creating hero slide:", error);
+      res.status(500).json({ error: "Failed to create hero slide" });
+    }
+  });
+
+  app.patch("/api/admin/hero-slides/:id", requireAuth, async (req, res) => {
+    try {
+      const slide = await storage.updateHeroSlide(req.params.id, req.body);
+      if (!slide) {
+        return res.status(404).json({ error: "Hero slide not found" });
+      }
+      res.json({ success: true, slide });
+    } catch (error) {
+      console.error("Error updating hero slide:", error);
+      res.status(500).json({ error: "Failed to update hero slide" });
+    }
+  });
+
+  app.delete("/api/admin/hero-slides/:id", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteHeroSlide(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Hero slide not found" });
+      }
+      res.json({ success: true, message: "Hero slide deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting hero slide:", error);
+      res.status(500).json({ error: "Failed to delete hero slide" });
     }
   });
 

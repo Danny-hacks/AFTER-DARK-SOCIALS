@@ -15,9 +15,9 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Ticket, LogIn, LogOut, Plus, Users, CheckCircle, Eye, QrCode, 
   Search, Trash, Calendar, Video, Upload, Music, MapPin, Clock,
-  LayoutDashboard, PartyPopper, Edit, X
+  LayoutDashboard, PartyPopper, Edit, X, Image, Play
 } from "lucide-react";
-import type { Ticket as TicketType, Event as EventType } from "@shared/schema";
+import type { Ticket as TicketType, Event as EventType, HeroSlide as HeroSlideType } from "@shared/schema";
 import { TicketGenerator } from "@/components/ticket-generator";
 import { QRScanner } from "@/components/qr-scanner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
@@ -63,7 +63,7 @@ export default function AdminPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [scannedTicket, setScannedTicket] = useState<TicketType | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'events' | 'tickets'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'events' | 'tickets' | 'hero'>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'used' | 'available'>('all');
   const [showCreateEvent, setShowCreateEvent] = useState(false);
@@ -171,9 +171,16 @@ export default function AdminPanel() {
     enabled: isAuthenticated,
   });
 
+  // Fetch hero slides
+  const { data: heroSlidesData, isLoading: heroSlidesLoading } = useQuery<{slides: HeroSlideType[]}>({
+    queryKey: ['/api/admin/hero-slides'],
+    enabled: isAuthenticated,
+  });
+
   // Process data
   const allEvents: EventType[] = Array.isArray(eventsData?.events) ? eventsData.events : [];
   const allTickets: TicketType[] = Array.isArray(ticketsData?.tickets) ? ticketsData.tickets : [];
+  const allHeroSlides: HeroSlideType[] = Array.isArray(heroSlidesData?.slides) ? heroSlidesData.slides : [];
   const pastEvents = allEvents.filter(e => e.isPast);
   const upcomingEvents = allEvents.filter(e => !e.isPast);
 
@@ -294,6 +301,54 @@ export default function AdminPanel() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/tickets'] });
       toast({
         title: "Ticket Deleted",
+      });
+    },
+  });
+
+  // Hero slide mutations
+  const createHeroSlideMutation = useMutation({
+    mutationFn: async (data: { type: string; url: string; title?: string; order?: string }) => {
+      return apiRequest('POST', '/api/admin/hero-slides', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/hero-slides'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/hero-slides'] });
+      toast({
+        title: "Hero Slide Added",
+        description: "Your new slide has been added to the hero section",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Add Slide",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteHeroSlideMutation = useMutation({
+    mutationFn: async (slideId: string) => {
+      return apiRequest('DELETE', `/api/admin/hero-slides/${slideId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/hero-slides'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/hero-slides'] });
+      toast({
+        title: "Slide Deleted",
+      });
+    },
+  });
+
+  const updateHeroSlideMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<HeroSlideType> }) => {
+      return apiRequest('PATCH', `/api/admin/hero-slides/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/hero-slides'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/hero-slides'] });
+      toast({
+        title: "Slide Updated",
       });
     },
   });
@@ -450,6 +505,19 @@ export default function AdminPanel() {
             <Ticket className="w-4 h-4" />
             Tickets
             <span className="ml-auto text-xs bg-muted px-2 py-0.5 rounded">{allTickets.length}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('hero')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'hero'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+            data-testid="nav-hero"
+          >
+            <Image className="w-4 h-4" />
+            Hero Slider
+            <span className="ml-auto text-xs bg-muted px-2 py-0.5 rounded">{allHeroSlides.length}</span>
           </button>
         </nav>
 
@@ -1035,6 +1103,146 @@ export default function AdminPanel() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Hero Slider Tab */}
+        {activeTab === 'hero' && (
+          <div className="space-y-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">Hero Slider</h2>
+                <p className="text-muted-foreground">Manage images and videos that appear in the hero section</p>
+              </div>
+            </div>
+
+            {/* Upload New Slide */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Add New Slide</CardTitle>
+                <CardDescription>Upload an image or video to display in the hero section carousel</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-4">
+                  <ObjectUploader
+                    maxFileSize={100 * 1024 * 1024}
+                    allowedFileTypes={["image/*"]}
+                    onComplete={(objectPath) => {
+                      createHeroSlideMutation.mutate({
+                        type: 'image',
+                        url: objectPath,
+                        order: String(allHeroSlides.length),
+                      });
+                    }}
+                    buttonClassName="gap-2"
+                  >
+                    <Image className="w-4 h-4" />
+                    Upload Image
+                  </ObjectUploader>
+                  <ObjectUploader
+                    maxFileSize={500 * 1024 * 1024}
+                    allowedFileTypes={["video/*"]}
+                    onComplete={(objectPath) => {
+                      createHeroSlideMutation.mutate({
+                        type: 'video',
+                        url: objectPath,
+                        order: String(allHeroSlides.length),
+                      });
+                    }}
+                    buttonClassName="gap-2"
+                  >
+                    <Play className="w-4 h-4" />
+                    Upload Video
+                  </ObjectUploader>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Slides List */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Current Slides</CardTitle>
+                <CardDescription>Slides are displayed in order on the homepage hero section</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {heroSlidesLoading ? (
+                  <p className="text-muted-foreground text-center py-8">Loading slides...</p>
+                ) : allHeroSlides.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Image className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                    <p className="text-muted-foreground">No slides yet. Upload your first image or video!</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {allHeroSlides
+                      .sort((a, b) => parseInt(a.order || '0') - parseInt(b.order || '0'))
+                      .map((slide, index) => (
+                        <div 
+                          key={slide.id} 
+                          className="relative border rounded-lg overflow-hidden group"
+                          data-testid={`hero-slide-${slide.id}`}
+                        >
+                          {slide.type === 'video' ? (
+                            <video 
+                              src={slide.url} 
+                              className="w-full h-48 object-cover"
+                              muted
+                              playsInline
+                              onMouseEnter={(e) => e.currentTarget.play()}
+                              onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                            />
+                          ) : (
+                            <img 
+                              src={slide.url} 
+                              alt={slide.title || 'Hero slide'} 
+                              className="w-full h-48 object-cover"
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => updateHeroSlideMutation.mutate({ 
+                                id: slide.id, 
+                                data: { isActive: !slide.isActive } 
+                              })}
+                              data-testid={`toggle-slide-${slide.id}`}
+                            >
+                              {slide.isActive ? 'Hide' : 'Show'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => {
+                                if (confirm('Delete this slide?')) {
+                                  deleteHeroSlideMutation.mutate(slide.id);
+                                }
+                              }}
+                              data-testid={`delete-slide-${slide.id}`}
+                            >
+                              <Trash className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          <div className="absolute top-2 left-2 flex gap-1">
+                            <span className={`text-xs px-2 py-1 rounded ${slide.type === 'video' ? 'bg-blue-500 text-white' : 'bg-green-500 text-white'}`}>
+                              {slide.type === 'video' ? <Play className="w-3 h-3 inline mr-1" /> : <Image className="w-3 h-3 inline mr-1" />}
+                              {slide.type}
+                            </span>
+                            {!slide.isActive && (
+                              <span className="text-xs px-2 py-1 rounded bg-yellow-500 text-white">Hidden</span>
+                            )}
+                          </div>
+                          <div className="absolute bottom-2 right-2">
+                            <span className="text-xs px-2 py-1 rounded bg-black/70 text-white">
+                              #{index + 1}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 )}
               </CardContent>

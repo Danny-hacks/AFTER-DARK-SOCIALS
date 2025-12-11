@@ -57,9 +57,26 @@ export const insertEventSchema = createInsertSchema(events).omit({
   createdAt: true,
 });
 
+export const heroSlides = pgTable("hero_slides", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: text("type").notNull(), // "image" or "video"
+  url: text("url").notNull(),
+  title: text("title"),
+  order: text("order").notNull().default("0"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertHeroSlideSchema = createInsertSchema(heroSlides).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertTicket = z.infer<typeof insertTicketSchema>;
 export type Ticket = typeof tickets.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Event = typeof events.$inferSelect;
+export type InsertHeroSlide = z.infer<typeof insertHeroSlideSchema>;
+export type HeroSlide = typeof heroSlides.$inferSelect;

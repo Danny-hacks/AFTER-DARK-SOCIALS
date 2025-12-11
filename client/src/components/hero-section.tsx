@@ -1,13 +1,33 @@
-import { ChevronDown } from "lucide-react";
-import heroImage from "@assets/stock_images/dark_nightclub_rave__d23cebfd.jpg";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import type { HeroSlide } from "@shared/schema";
+import heroImage from "@assets/stock_images/dark_nightclub_rave__d23cebfd.jpg";
 
 export default function HeroSection() {
   const [isVisible, setIsVisible] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const { data } = useQuery<{ success: boolean; slides: HeroSlide[] }>({
+    queryKey: ['/api/hero-slides'],
+  });
+
+  const slides = data?.slides || [];
+  const hasSlides = slides.length > 0;
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
+
+  useEffect(() => {
+    if (slides.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [slides.length]);
 
   const scrollToAbout = () => {
     const element = document.getElementById('about');
@@ -16,16 +36,60 @@ export default function HeroSection() {
     }
   };
 
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
+  };
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  };
+
+  const currentSlideData = hasSlides ? slides[currentSlide] : null;
+
   return (
     <section className="relative h-screen flex items-center justify-center overflow-hidden">
-      {/* Background image with parallax-like effect */}
+      {/* Background slides */}
       <div className="absolute inset-0">
-        <img 
-          src={heroImage} 
-          alt="Nightclub rave with crowd silhouettes and colorful lights" 
-          className="w-full h-full object-cover scale-110"
-          data-testid="hero-background-image"
-        />
+        {hasSlides ? (
+          slides.map((slide, index) => (
+            <div
+              key={slide.id}
+              className={`absolute inset-0 transition-opacity duration-1000 ${
+                index === currentSlide ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              {slide.type === 'video' ? (
+                <video
+                  src={slide.url}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  data-testid={`hero-video-${index}`}
+                />
+              ) : (
+                <img
+                  src={slide.url.startsWith('/') ? slide.url : slide.url}
+                  alt={slide.title || 'Hero background'}
+                  className="w-full h-full object-cover scale-105"
+                  data-testid={`hero-image-${index}`}
+                />
+              )}
+            </div>
+          ))
+        ) : (
+          <img
+            src={heroImage}
+            alt="Nightclub rave with crowd silhouettes and colorful lights"
+            className="w-full h-full object-cover scale-105"
+            data-testid="hero-background-image"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black"></div>
       </div>
 
@@ -34,6 +98,26 @@ export default function HeroSection() {
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#c72d28]/20 rounded-full blur-[100px] animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#c72d28]/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
+
+      {/* Slide navigation arrows */}
+      {hasSlides && slides.length > 1 && (
+        <>
+          <button
+            onClick={prevSlide}
+            className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-20 p-3 bg-black/30 backdrop-blur-sm rounded-full border border-white/20 text-white/80 hover:text-white hover:bg-black/50 transition-all"
+            data-testid="prev-slide-button"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <button
+            onClick={nextSlide}
+            className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-20 p-3 bg-black/30 backdrop-blur-sm rounded-full border border-white/20 text-white/80 hover:text-white hover:bg-black/50 transition-all"
+            data-testid="next-slide-button"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </>
+      )}
       
       {/* Main content */}
       <div className={`relative z-10 text-center px-4 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
@@ -70,6 +154,24 @@ export default function HeroSection() {
           <span className="text-white/90 text-sm sm:text-base">Mauritius</span>
         </div>
       </div>
+
+      {/* Slide indicators */}
+      {hasSlides && slides.length > 1 && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 flex gap-2" data-testid="slide-indicators">
+          {slides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`w-2 h-2 rounded-full transition-all ${
+                index === currentSlide 
+                  ? 'bg-[#c72d28] w-8' 
+                  : 'bg-white/40 hover:bg-white/60'
+              }`}
+              data-testid={`slide-indicator-${index}`}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Scroll indicator */}
       <button 
