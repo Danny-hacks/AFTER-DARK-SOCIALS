@@ -22,7 +22,7 @@ export default function AboutSection() {
             About Us
           </span>
           <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6" data-testid="about-title">
-            What is <span className="gradient-text">AFTR</span>?
+            What is <span className="gradient-text">After Dark Social</span>?
           </h2>
           <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto rounded-full"></div>
         </div>
@@ -30,7 +30,7 @@ export default function AboutSection() {
         {/* Main content */}
         <div className="max-w-4xl mx-auto text-center mb-16">
           <p className="text-lg sm:text-xl text-white/80 leading-relaxed mb-8" data-testid="about-description">
-            AFTR is more than just a party — it's a movement. Born from the underground rave culture of Mauritius, 
+            After Dark Social is more than just a party — it's a movement. Born from the underground rave culture of Mauritius, 
             we bring together the island's finest DJs, pulsating beats, and an electrifying atmosphere that keeps 
             you dancing until the sun comes up.
           </p>

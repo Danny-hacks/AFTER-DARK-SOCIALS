@@ -38,9 +38,9 @@ export default function HeroSection() {
       {/* Main content */}
       <div className={`relative z-10 text-center px-4 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
         {/* Logo/Brand */}
-        <div className="mb-6">
-          <span className="text-sm sm:text-base tracking-[0.3em] text-white/60 uppercase font-light">
-            Welcome to
+        <div className="mb-4">
+          <span className="text-sm sm:text-base tracking-[0.3em] text-purple-400 uppercase font-medium">
+            After Dark Social
           </span>
         </div>
         
