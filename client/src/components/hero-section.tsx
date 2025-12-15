@@ -74,7 +74,7 @@ export default function HeroSection() {
                 />
               ) : (
                 <img
-                  src={slide.url.startsWith('/') ? slide.url : slide.url}
+                  src={slide.url.includes('/assets/stock_images/') ? heroImage : slide.url}
                   alt={slide.title || 'Hero background'}
                   className="w-full h-full object-cover scale-105"
                   data-testid={`hero-image-${index}`}
