@@ -8,26 +8,31 @@ export default function HeroSection() {
   const [isVisible, setIsVisible] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  const { data } = useQuery<{ success: boolean; slides: HeroSlide[] }>({
+  const { data, isLoading } = useQuery<{ success: boolean; slides: HeroSlide[] }>({
     queryKey: ['/api/hero-slides'],
   });
 
-  const slides = data?.slides || [];
-  const hasSlides = slides.length > 0;
+  // Process slides - replace local asset paths with imported image
+  const processedSlides = (data?.slides || []).map(slide => ({
+    ...slide,
+    url: slide.url.includes('/assets/stock_images/') ? heroImage : slide.url
+  }));
+  
+  const hasSlides = processedSlides.length > 0;
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
 
   useEffect(() => {
-    if (slides.length <= 1) return;
+    if (processedSlides.length <= 1) return;
 
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 6000);
+      setCurrentSlide((prev) => (prev + 1) % processedSlides.length);
+    }, 8000);
 
     return () => clearInterval(interval);
-  }, [slides.length]);
+  }, [processedSlides.length]);
 
   const scrollToAbout = () => {
     const element = document.getElementById('about');
@@ -41,55 +46,55 @@ export default function HeroSection() {
   };
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length);
+    setCurrentSlide((prev) => (prev + 1) % processedSlides.length);
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    setCurrentSlide((prev) => (prev - 1 + processedSlides.length) % processedSlides.length);
   };
 
-  const currentSlideData = hasSlides ? slides[currentSlide] : null;
+  const currentSlideData = hasSlides ? processedSlides[currentSlide] : null;
 
   return (
     <section className="relative h-screen flex items-center justify-center overflow-hidden">
       {/* Background slides */}
       <div className="absolute inset-0">
-        {hasSlides ? (
-          slides.map((slide, index) => (
-            <div
-              key={slide.id}
-              className={`absolute inset-0 transition-opacity duration-1000 ${
-                index === currentSlide ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              {slide.type === 'video' ? (
-                <video
-                  src={slide.url}
-                  className="w-full h-full object-cover"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  data-testid={`hero-video-${index}`}
-                />
-              ) : (
-                <img
-                  src={slide.url.includes('/assets/stock_images/') ? heroImage : slide.url}
-                  alt={slide.title || 'Hero background'}
-                  className="w-full h-full object-cover scale-105"
-                  data-testid={`hero-image-${index}`}
-                />
-              )}
-            </div>
-          ))
-        ) : (
-          <img
-            src={heroImage}
-            alt="Nightclub rave with crowd silhouettes and colorful lights"
-            className="w-full h-full object-cover scale-105"
-            data-testid="hero-background-image"
-          />
-        )}
+        {/* Always show default image as base layer */}
+        <img
+          src={heroImage}
+          alt="Nightclub rave with crowd silhouettes and colorful lights"
+          className="w-full h-full object-cover scale-105"
+          data-testid="hero-background-image"
+        />
+        
+        {/* Overlay slides on top when loaded */}
+        {hasSlides && !isLoading && processedSlides.map((slide, index) => (
+          <div
+            key={slide.id}
+            className={`absolute inset-0 transition-opacity duration-[2000ms] ease-in-out ${
+              index === currentSlide ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            {slide.type === 'video' ? (
+              <video
+                src={slide.url}
+                className="w-full h-full object-cover"
+                autoPlay
+                muted
+                loop
+                playsInline
+                data-testid={`hero-video-${index}`}
+              />
+            ) : (
+              <img
+                src={slide.url}
+                alt={slide.title || 'Hero background'}
+                className="w-full h-full object-cover scale-105"
+                data-testid={`hero-image-${index}`}
+              />
+            )}
+          </div>
+        ))}
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black"></div>
       </div>
 
@@ -100,7 +105,7 @@ export default function HeroSection() {
       </div>
 
       {/* Slide navigation arrows */}
-      {hasSlides && slides.length > 1 && (
+      {hasSlides && processedSlides.length > 1 && (
         <>
           <button
             onClick={prevSlide}
@@ -156,9 +161,9 @@ export default function HeroSection() {
       </div>
 
       {/* Slide indicators */}
-      {hasSlides && (
+      {hasSlides && processedSlides.length > 1 && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 flex gap-3" data-testid="slide-indicators">
-          {slides.map((_, index) => (
+          {processedSlides.map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
