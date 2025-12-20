@@ -180,59 +180,6 @@ export default function PastEvents() {
           </div>
         </div>
 
-        {/* AFTR Coming Soon Section */}
-        <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-black via-card to-black mb-12" data-testid="coming-soon-section">
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-[80px] animate-pulse"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-primary/20 rounded-full blur-[80px] animate-pulse" style={{ animationDelay: '1s' }}></div>
-          </div>
-          
-          <div className="relative z-10 p-8 sm:p-12 text-center">
-            <div className="inline-block mb-6">
-              <span className="bg-primary/20 text-primary px-4 py-2 rounded-full text-sm font-bold border border-primary/30 animate-pulse" data-testid="coming-soon-badge">
-                COMING SOON
-              </span>
-            </div>
-            
-            <h3 className="text-4xl sm:text-6xl font-black mb-4" data-testid="coming-soon-title"
-              style={{
-                background: 'linear-gradient(135deg, #fff 0%, #c72d28 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              AFTR 2.0
-            </h3>
-            
-            <p className="text-xl sm:text-2xl text-white/80 font-light mb-2" data-testid="coming-soon-tagline">
-              The Rave Returns
-            </p>
-            
-            <p className="text-muted-foreground mb-8 max-w-2xl mx-auto" data-testid="coming-soon-description">
-              Something bigger is coming. New venue. New vibes. Same energy that keeps the city awake.
-              Be the first to know when tickets drop.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <a 
-                href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="px-8 py-4 gradient-bg text-white font-bold rounded-full hover:scale-105 transition-transform text-lg"
-                data-testid="coming-soon-join-button"
-              >
-                Join AFTR Community
-              </a>
-              <a 
-                href="#contact" 
-                className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-bold rounded-full border border-white/20 hover:bg-white/20 transition-all text-lg"
-                data-testid="coming-soon-notify-button"
-              >
-                Get Notified
-              </a>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   );
