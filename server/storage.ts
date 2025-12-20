@@ -14,6 +14,7 @@ export interface IStorage {
   getTicketByReference(referenceCode: string): Promise<Ticket | undefined>;
   createTicket(ticket: InsertTicket): Promise<Ticket>;
   getAllTickets(): Promise<Ticket[]>;
+  getTicketsByEvent(eventId: string): Promise<Ticket[]>;
   markTicketAsUsed(id: string): Promise<Ticket | undefined>;
   deleteTicket(id: string): Promise<boolean>;
 
@@ -76,6 +77,10 @@ export class DatabaseStorage implements IStorage {
 
   async getAllTickets(): Promise<Ticket[]> {
     return db.select().from(tickets);
+  }
+
+  async getTicketsByEvent(eventId: string): Promise<Ticket[]> {
+    return db.select().from(tickets).where(eq(tickets.eventId, eventId));
   }
 
   async markTicketAsUsed(id: string): Promise<Ticket | undefined> {

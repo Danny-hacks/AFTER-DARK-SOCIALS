@@ -41,6 +41,7 @@ const eventSchema = z.object({
 
 // Ticket creation schema
 const ticketSchema = z.object({
+  eventId: z.string().min(1, "Please select an event"),
   referenceCode: z.string().min(1, "Reference code is required").regex(/^AFTR-/, "Reference code must start with 'AFTR-'"),
   customerName: z.string().min(1, "Customer name is required"),
   customerEmail: z.string().optional().refine((val) => !val || z.string().email().safeParse(val).success, {
@@ -66,6 +67,7 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'events' | 'tickets' | 'hero'>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'used' | 'available'>('all');
+  const [filterEventId, setFilterEventId] = useState<string>('all');
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventType | null>(null);
   const { toast } = useToast();
@@ -114,6 +116,7 @@ export default function AdminPanel() {
   const ticketForm = useForm<TicketFormData>({
     resolver: zodResolver(ticketSchema),
     defaultValues: {
+      eventId: "",
       referenceCode: "AFTR-",
       customerName: "",
       customerEmail: "",
@@ -258,6 +261,7 @@ export default function AdminPanel() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/tickets'] });
       ticketForm.reset({
+        eventId: ticketForm.getValues('eventId'),
         referenceCode: "AFTR-",
         customerName: "",
         customerEmail: "",
@@ -354,7 +358,8 @@ export default function AdminPanel() {
   });
 
   // Filter tickets
-  const filteredTickets = allTickets.filter((ticket: TicketType) => {
+  const filteredTickets = allTickets.filter((ticket) => {
+    const ticketEventId = (ticket as TicketType & { eventId?: string | null }).eventId;
     const matchesSearch = 
       ticket.referenceCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ticket.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -365,7 +370,10 @@ export default function AdminPanel() {
       filterStatus === 'used' ? ticket.isUsed :
       filterStatus === 'available' ? !ticket.isUsed : true;
     
-    return matchesSearch && matchesStatus;
+    const matchesEvent = 
+      filterEventId === 'all' ? true : ticketEventId === filterEventId;
+    
+    return matchesSearch && matchesStatus && matchesEvent;
   });
 
   // QR Scanner handler
@@ -921,6 +929,30 @@ export default function AdminPanel() {
                   <form onSubmit={ticketForm.handleSubmit((data) => createTicketMutation.mutate(data))} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <FormField
                       control={ticketForm.control}
+                      name="eventId"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2 lg:col-span-3">
+                          <FormLabel>Event</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-ticket-event">
+                                <SelectValue placeholder="Select an event" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {allEvents.map((event) => (
+                                <SelectItem key={event.id} value={event.id}>
+                                  {event.name} {event.isPast ? '(Past)' : '(Upcoming)'}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={ticketForm.control}
                       name="referenceCode"
                       render={({ field }) => (
                         <FormItem>
@@ -1023,8 +1055,8 @@ export default function AdminPanel() {
                 <CardTitle>All Tickets</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-4 mb-4">
-                  <div className="flex-1 relative">
+                <div className="flex flex-wrap gap-4 mb-4">
+                  <div className="flex-1 min-w-[200px] relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search by name, email, or reference..."
@@ -1034,6 +1066,19 @@ export default function AdminPanel() {
                       data-testid="input-search-tickets"
                     />
                   </div>
+                  <Select value={filterEventId} onValueChange={setFilterEventId}>
+                    <SelectTrigger className="w-48" data-testid="select-filter-event">
+                      <SelectValue placeholder="All Events" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Events</SelectItem>
+                      {allEvents.map((event) => (
+                        <SelectItem key={event.id} value={event.id}>
+                          {event.name} {event.isPast ? '(Past)' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Select value={filterStatus} onValueChange={(v: 'all' | 'used' | 'available') => setFilterStatus(v)}>
                     <SelectTrigger className="w-40" data-testid="select-filter-status">
                       <SelectValue />
