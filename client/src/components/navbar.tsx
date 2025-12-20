@@ -42,8 +42,7 @@ export default function Navbar() {
             className="flex items-center gap-2"
             data-testid="nav-logo"
           >
-            <span className="text-2xl sm:text-3xl font-black text-white">AFTR</span>
-            <span className="hidden sm:block text-xs text-white/60 uppercase tracking-wider">Dark Social</span>
+            <span className="text-xl sm:text-2xl font-black text-white">After Dark Socials</span>
           </button>
 
           {/* Desktop Navigation */}
