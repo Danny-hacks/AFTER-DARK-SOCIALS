@@ -190,13 +190,13 @@ export default function PastEvents() {
           </p>
           <div className="flex justify-center gap-4">
             <a 
-              href="https://wa.me/23058205220" 
+              href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO" 
               target="_blank" 
               rel="noopener noreferrer"
               className="px-6 py-3 gradient-bg text-white font-bold rounded-full hover:scale-105 transition-transform"
               data-testid="whatsapp-updates-button"
             >
-              Get Updates on WhatsApp
+              Join AFTR Community
             </a>
           </div>
         </div>
