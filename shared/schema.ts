@@ -11,6 +11,7 @@ export const users = pgTable("users", {
 
 export const tickets = pgTable("tickets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id"),
   referenceCode: text("reference_code").notNull().unique(),
   customerName: text("customer_name").notNull(),
   customerEmail: text("customer_email"),
@@ -30,6 +31,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
 });
 
 export const insertTicketSchema = createInsertSchema(tickets).pick({
+  eventId: true,
   referenceCode: true,
   customerName: true,
   customerEmail: true,
