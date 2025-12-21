@@ -26,7 +26,7 @@ export default function ComingSoonBanner() {
             <img 
               src={comingSoonImage} 
               alt="AFTR 2.0 Coming Soon" 
-              className="w-full h-64 sm:h-80 object-cover object-center"
+              className="w-full h-80 sm:h-[500px] object-cover object-center"
               data-testid="coming-soon-image"
             />
           </div>

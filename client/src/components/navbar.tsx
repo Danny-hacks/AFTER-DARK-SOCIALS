@@ -58,11 +58,13 @@ export default function Navbar() {
               </button>
             ))}
             <a 
-              href="/admin" 
+              href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO" 
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-5 py-2 bg-[#c72d28] text-white text-sm uppercase tracking-wider font-medium rounded-full hover:bg-[#a82421] transition-colors"
-              data-testid="nav-admin-link"
+              data-testid="nav-join-link"
             >
-              Admin
+              Join Us
             </a>
           </div>
 
@@ -90,11 +92,13 @@ export default function Navbar() {
               </button>
             ))}
             <a 
-              href="/admin" 
+              href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO" 
+              target="_blank"
+              rel="noopener noreferrer"
               className="block mx-4 mt-4 px-5 py-3 bg-[#c72d28] text-white text-sm uppercase tracking-wider font-medium rounded-full text-center hover:bg-[#a82421] transition-colors"
-              data-testid="mobile-nav-admin-link"
+              data-testid="mobile-nav-join-link"
             >
-              Admin
+              Join Us
             </a>
           </div>
         )}
