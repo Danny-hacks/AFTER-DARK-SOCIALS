@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { HeroSlide } from "@shared/schema";
 import heroImage from "@assets/stock_images/dark_nightclub_rave__d23cebfd.jpg";
+import aftr2Image from "@assets/AFTR_black_white_1766249732057.jpg";
 
 export default function HeroSection() {
   const [isVisible, setIsVisible] = useState(false);
@@ -12,11 +13,16 @@ export default function HeroSection() {
     queryKey: ['/api/hero-slides'],
   });
 
-  // Process slides - replace local asset paths with imported image
-  const processedSlides = (data?.slides || []).map(slide => ({
-    ...slide,
-    url: slide.url.includes('/assets/stock_images/') ? heroImage : slide.url
-  }));
+  // Process slides - replace local asset paths with imported images
+  const processedSlides = (data?.slides || []).map(slide => {
+    let processedUrl = slide.url;
+    if (slide.url.includes('/assets/stock_images/')) {
+      processedUrl = heroImage;
+    } else if (slide.url.includes('AFTR_black_white')) {
+      processedUrl = aftr2Image;
+    }
+    return { ...slide, url: processedUrl };
+  });
   
   const hasSlides = processedSlides.length > 0;
 
