@@ -132,13 +132,6 @@ export default function HeroSection() {
       
       {/* Main content */}
       <div className={`relative z-10 text-center px-4 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-        {/* Logo/Brand */}
-        <div className="mb-4">
-          <span className="text-sm sm:text-base tracking-[0.3em] text-[#c72d28] uppercase font-medium">
-            After Dark Social
-          </span>
-        </div>
-        
         <h1 
           className="text-8xl sm:text-9xl md:text-[12rem] font-black tracking-tight mb-4"
           style={{
@@ -166,17 +159,17 @@ export default function HeroSection() {
         </div>
       </div>
 
-      {/* Slide indicators */}
+      {/* Slide radio indicators */}
       {hasSlides && processedSlides.length > 1 && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 flex gap-3" data-testid="slide-indicators">
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 flex gap-4" data-testid="slide-indicators">
           {processedSlides.map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`h-3 rounded-full transition-all duration-300 ${
+              className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ${
                 index === currentSlide 
-                  ? 'bg-[#c72d28] w-10' 
-                  : 'bg-white/50 w-3 hover:bg-white/80'
+                  ? 'border-[#c72d28] bg-[#c72d28]' 
+                  : 'border-white/60 bg-transparent hover:border-white'
               }`}
               data-testid={`slide-indicator-${index}`}
             />
