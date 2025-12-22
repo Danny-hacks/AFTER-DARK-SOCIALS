@@ -49,13 +49,13 @@ export default function Navbar() {
 
   return (
     <nav 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? 'bg-black/90 backdrop-blur-md shadow-lg' : 'bg-transparent'
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        isScrolled ? 'bg-black/70 backdrop-blur-sm' : 'bg-gradient-to-b from-black/50 to-transparent'
       }`}
       data-testid="navbar"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20">
+        <div className="flex items-center justify-between h-20 sm:h-24">
           {/* Logo */}
           <button 
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -65,7 +65,7 @@ export default function Navbar() {
             <img 
               src={logoImage} 
               alt="After Dark Socials" 
-              className="h-16 sm:h-20 w-auto"
+              className="h-20 sm:h-24 w-auto"
             />
           </button>
 
