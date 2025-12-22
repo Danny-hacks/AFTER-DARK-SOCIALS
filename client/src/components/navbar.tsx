@@ -4,11 +4,29 @@ import { Menu, X } from "lucide-react";
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('');
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
+      
+      // Determine active section based on scroll position
+      const sections = ['about', 'coming-soon', 'past-events', 'contact'];
+      let currentSection = '';
+      
+      for (const sectionId of sections) {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top <= 150 && rect.bottom >= 150) {
+            currentSection = sectionId;
+            break;
+          }
+        }
+      }
+      setActiveSection(currentSection);
     };
+    
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -23,7 +41,8 @@ export default function Navbar() {
 
   const navLinks = [
     { label: 'About', id: 'about' },
-    { label: 'Events', id: 'past-events' },
+    { label: 'Coming Soon', id: 'coming-soon' },
+    { label: 'Past Events', id: 'past-events' },
     { label: 'Contact', id: 'contact' },
   ];
 
@@ -46,15 +65,22 @@ export default function Navbar() {
           </button>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => (
               <button
                 key={link.id}
                 onClick={() => scrollTo(link.id)}
-                className="text-white/80 hover:text-white transition-colors text-sm uppercase tracking-wider font-medium"
+                className={`transition-colors text-sm uppercase tracking-wider font-medium relative py-1 ${
+                  activeSection === link.id 
+                    ? 'text-[#c72d28]' 
+                    : 'text-white/80 hover:text-white'
+                }`}
                 data-testid={`nav-link-${link.id}`}
               >
                 {link.label}
+                {activeSection === link.id && (
+                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#c72d28] rounded-full" />
+                )}
               </button>
             ))}
             <a 
@@ -85,7 +111,11 @@ export default function Navbar() {
               <button
                 key={link.id}
                 onClick={() => scrollTo(link.id)}
-                className="block w-full text-left px-4 py-3 text-white/80 hover:text-white hover:bg-white/5 transition-colors text-sm uppercase tracking-wider"
+                className={`block w-full text-left px-4 py-3 hover:bg-white/5 transition-colors text-sm uppercase tracking-wider ${
+                  activeSection === link.id 
+                    ? 'text-[#c72d28] border-l-2 border-[#c72d28]' 
+                    : 'text-white/80 hover:text-white'
+                }`}
                 data-testid={`mobile-nav-link-${link.id}`}
               >
                 {link.label}
