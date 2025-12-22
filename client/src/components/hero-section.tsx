@@ -104,8 +104,10 @@ export default function HeroSection() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black"></div>
       </div>
 
-      {/* Animated glow effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Animated glow effects - only show on first slide */}
+      <div className={`absolute inset-0 overflow-hidden pointer-events-none transition-opacity duration-700 ${
+        currentSlide === 0 ? 'opacity-100' : 'opacity-0'
+      }`}>
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#c72d28]/20 rounded-full blur-[100px] animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#c72d28]/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
@@ -130,8 +132,10 @@ export default function HeroSection() {
         </>
       )}
       
-      {/* Main content */}
-      <div className={`relative z-10 text-center px-4 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+      {/* Main content - only show on first slide */}
+      <div className={`relative z-10 text-center px-4 transition-all duration-700 ${
+        isVisible && currentSlide === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
+      }`}>
         <h1 
           className="text-8xl sm:text-9xl md:text-[12rem] font-black tracking-tight mb-4"
           style={{
