@@ -25,7 +25,7 @@ export default function ComingSoonBanner() {
             
             <img 
               src={comingSoonImage} 
-              alt="AFTR 2.0 Coming Soon" 
+              alt="AFTR vol.2 Coming Soon" 
               className="w-full h-80 sm:h-[500px] object-cover object-center"
               data-testid="coming-soon-image"
             />
@@ -33,7 +33,7 @@ export default function ComingSoonBanner() {
           
           <div className="p-6 sm:p-8">
             <h3 className="text-3xl font-bold gradient-text mb-4" data-testid="coming-soon-event-title">
-              AFTR 2.0: The Return
+              AFTR vol.2: The Return
             </h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
