@@ -1,5 +1,5 @@
-import { Music } from "lucide-react";
-import { SiInstagram, SiFacebook, SiX, SiYoutube } from "react-icons/si";
+import { SiInstagram } from "react-icons/si";
+import logoImage from "@assets/ChatGPT_Image_Dec_22,_2025,_08_25_03_AM_1766388371283.png";
 
 export default function Footer() {
   const scrollToSection = (sectionId: string) => {
@@ -15,7 +15,12 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-2" data-testid="footer-brand">
             <div className="mb-4">
-              <span className="text-4xl font-black gradient-text tracking-wider uppercase" data-testid="footer-brand-name">AFTR</span>
+              <img 
+                src={logoImage} 
+                alt="After Dark Socials" 
+                className="h-20 w-auto"
+                data-testid="footer-brand-name"
+              />
             </div>
             <p className="text-muted-foreground mb-4" data-testid="footer-description">
               An unforgettable night of music and energy with unmatched vibes 

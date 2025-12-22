@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
+import logoImage from "@assets/ChatGPT_Image_Dec_22,_2025,_08_25_03_AM_1766388371283.png";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -58,10 +59,14 @@ export default function Navbar() {
           {/* Logo */}
           <button 
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="flex items-center gap-2"
+            className="flex items-center"
             data-testid="nav-logo"
           >
-            <span className="text-xl sm:text-2xl font-black text-white">After Dark Socials</span>
+            <img 
+              src={logoImage} 
+              alt="After Dark Socials" 
+              className="h-12 sm:h-14 w-auto"
+            />
           </button>
 
           {/* Desktop Navigation */}
