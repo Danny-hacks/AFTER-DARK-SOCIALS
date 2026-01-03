@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Clock, Users, CheckCircle, ArrowLeft, Music, Sparkles, Volume2 } from "lucide-react";
+import { Calendar, MapPin, Clock, Users, CheckCircle, ArrowLeft, Music, Sparkles, Volume2, Navigation } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
@@ -244,14 +244,42 @@ export default function EventPage() {
             Venue
           </h2>
           
-          <div className="bg-muted rounded-xl p-8 text-center">
-            <MapPin className="w-12 h-12 text-primary mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-white mb-2">Shotz</h3>
-            <p className="text-lg text-muted-foreground mb-4">Flic en Flac, Mauritius</p>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              Located in the heart of Flic en Flac, Shotz provides the perfect setting for an epic night of music and dancing. 
-              Easy to find and accessible from all parts of the island.
-            </p>
+          <div className="bg-muted rounded-xl overflow-hidden">
+            {/* Google Map Embed */}
+            <div className="w-full h-64 sm:h-80">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3744.8!2d57.36539!3d-20.28325!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjDCsDE2JzU5LjciUyA1N8KwMjEnNTUuNCJF!5e0!3m2!1sen!2smu!4v1600000000000!5m2!1sen!2smu"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Shotz Flic en Flac Location"
+                data-testid="venue-map"
+              />
+            </div>
+            
+            <div className="p-8 text-center">
+              <MapPin className="w-12 h-12 text-primary mx-auto mb-4" />
+              <h3 className="text-2xl font-bold text-white mb-2">Shotz</h3>
+              <p className="text-lg text-muted-foreground mb-4">Flic en Flac, Mauritius</p>
+              <p className="text-muted-foreground max-w-xl mx-auto mb-6">
+                Located in the heart of Flic en Flac, Shotz provides the perfect setting for an epic night of music and dancing. 
+                Easy to find and accessible from all parts of the island.
+              </p>
+              
+              <a 
+                href="https://www.google.com/maps/dir/?api=1&destination=-20.28325,57.36539&destination_place_id=Shotz+Flic+en+Flac"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-3 px-6 py-3 bg-primary text-white font-bold rounded-full hover:scale-105 transition-transform"
+                data-testid="get-directions-button"
+              >
+                <Navigation className="w-5 h-5" />
+                Get Directions
+              </a>
+            </div>
           </div>
         </div>
       </section>
