@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Clock, Users, CheckCircle, ArrowLeft, Music, Sparkles, Volume2, Navigation, Menu, X } from "lucide-react";
+import { Calendar, MapPin, Clock, Users, CheckCircle, ArrowLeft, Music, Sparkles, Volume2, Navigation, Menu, X, Camera, Video, CreditCard } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
@@ -242,7 +242,7 @@ export default function EventPage() {
             What to Expect
           </h2>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="flex items-start space-x-4 bg-card rounded-xl p-6 border border-border">
               <Music className="w-8 h-8 text-primary flex-shrink-0" />
               <div>
@@ -262,6 +262,20 @@ export default function EventPage() {
               <div>
                 <h3 className="font-bold text-white mb-2">Epic Lighting</h3>
                 <p className="text-muted-foreground">Immersive lighting effects and visual production</p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-4 bg-card rounded-xl p-6 border border-border">
+              <Camera className="w-8 h-8 text-primary flex-shrink-0" />
+              <div>
+                <h3 className="font-bold text-white mb-2">Photo Booth</h3>
+                <p className="text-muted-foreground">Capture the moment with our professional photo booth</p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-4 bg-card rounded-xl p-6 border border-border">
+              <Video className="w-8 h-8 text-primary flex-shrink-0" />
+              <div>
+                <h3 className="font-bold text-white mb-2">360° Video Booth</h3>
+                <p className="text-muted-foreground">Get immersive 360-degree videos to share with friends</p>
               </div>
             </div>
             <div className="flex items-start space-x-4 bg-card rounded-xl p-6 border border-border">
@@ -315,9 +329,71 @@ export default function EventPage() {
             </div>
           </div>
 
-          <p className="text-muted-foreground mb-6">
-            Join our community to be the first to know when tickets drop!
-          </p>
+          {/* Payment Instructions */}
+          <div className="bg-card rounded-2xl p-8 border border-border text-left mb-8" data-testid="payment-instructions">
+            <h3 className="text-2xl font-bold gradient-text mb-6 flex items-center justify-center">
+              <CreditCard className="mr-3" />
+              How to Purchase Your Ticket
+            </h3>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div>
+                <h4 className="text-lg font-bold text-white mb-4">Payment Account Details</h4>
+                <div className="bg-muted rounded-xl p-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm text-muted-foreground">Bank Transfer</label>
+                      <div className="text-xl font-mono font-bold text-white bg-background px-4 py-2 rounded mt-1">
+                        000453915337
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">MCB - AFTR Account</div>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">Juice Mobile</label>
+                      <div className="text-xl font-mono font-bold text-white bg-background px-4 py-2 rounded mt-1">
+                        58205220
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">Use reference: AFTR-[YOUR NAME]</div>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">Cash Payment</label>
+                      <div className="text-xl font-mono font-bold text-white bg-background px-4 py-2 rounded mt-1">
+                        58205220
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">Text or call with your location for cash pickup</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="text-lg font-bold text-white mb-4">Simple 3-Step Process</h4>
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">1</div>
+                    <div>
+                      <div className="font-semibold text-white">Send Payment</div>
+                      <div className="text-sm text-muted-foreground">Transfer the ticket amount with reference AFTR-[YOUR NAME]</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">2</div>
+                    <div>
+                      <div className="font-semibold text-white">Send Proof</div>
+                      <div className="text-sm text-muted-foreground">WhatsApp your receipt to 58205220 with name & email</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">3</div>
+                    <div>
+                      <div className="font-semibold text-white">Receive Ticket</div>
+                      <div className="text-sm text-muted-foreground">Get your digital ticket within 24 hours</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <a 
             href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO" 
