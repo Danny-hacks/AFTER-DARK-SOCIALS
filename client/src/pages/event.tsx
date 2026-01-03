@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Clock, Users, CheckCircle, ArrowLeft, Music, Sparkles, Volume2, Navigation, Menu, X, Camera, Video, CreditCard } from "lucide-react";
+import { Calendar, MapPin, Clock, Users, CheckCircle, ArrowLeft, Music, Sparkles, Volume2, Navigation, Menu, X, Camera, Video, CreditCard, Ticket, Crown, Check } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
@@ -290,56 +290,112 @@ export default function EventPage() {
       </section>
 
       {/* Tickets Section */}
-      <section id="tickets" className="py-16 bg-background">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold gradient-text mb-6" data-testid="tickets-title">
-            Tickets
+      <section id="tickets" className="py-20 bg-gradient-to-br from-card via-background to-card relative overflow-hidden">
+        {/* Background accent */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-primary rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
+          <h2 className="text-4xl sm:text-5xl font-bold gradient-text mb-6" data-testid="tickets-title">
+            Get Your Digital Tickets
           </h2>
-          <p className="text-xl text-muted-foreground mb-8">
-            Secure your spot at AFTR Volume 2 - Limited tickets available!
+          <p className="text-xl text-muted-foreground mb-12">
+            Secure your spot at AFTR Volume 2 - The rave that keeps the city awake!
           </p>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
             {/* Phase 1 */}
-            <div className="bg-card border border-primary rounded-xl p-8" data-testid="phase-1-ticket">
-              <div className="inline-block bg-primary/20 text-primary px-4 py-1 rounded-full text-sm font-bold mb-4">
-                PHASE 1
+            <div className="bg-card border-2 border-primary rounded-2xl p-8 transition-all hover:scale-105 relative overflow-hidden" data-testid="phase-1-ticket">
+              <div className="absolute top-0 right-0 px-3 py-1 text-sm font-bold bg-primary text-white">
+                EARLY BIRD - ACTIVE
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Early Bird</h3>
-              <p className="text-muted-foreground mb-4">5th Jan - 25th Jan 2026</p>
-              <div className="border-t border-border pt-4 mt-4">
-                <p className="text-sm text-muted-foreground">
-                  Get your tickets early and save! Limited availability.
-                </p>
+              <div className="text-center mb-6">
+                <Ticket className="w-12 h-12 text-primary mx-auto mb-4" />
+                <h3 className="text-3xl font-black gradient-text tracking-wider uppercase">AFTR Early Bird</h3>
+                <p className="text-muted-foreground">Phase 1 Pricing</p>
+              </div>
+              <div className="text-center mb-6">
+                <div className="text-4xl font-black gradient-text">Coming Soon</div>
+                <div className="text-sm text-muted-foreground">per person</div>
+              </div>
+              <ul className="space-y-3 mb-8 text-left">
+                <li className="flex items-center space-x-3">
+                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
+                  <span>6 hours of non-stop energy</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
+                  <span>Top DJs lineup</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
+                  <span>Photo Booth & 360° Video</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
+                  <span>Bar & refreshments available</span>
+                </li>
+              </ul>
+              <div className="text-center">
+                <div className="text-sm text-primary font-semibold bg-primary/10 px-4 py-2 rounded-lg">
+                  5th Jan - 25th Jan 2026
+                </div>
               </div>
             </div>
 
             {/* Phase 2 */}
-            <div className="bg-card border border-border rounded-xl p-8" data-testid="phase-2-ticket">
-              <div className="inline-block bg-muted text-muted-foreground px-4 py-1 rounded-full text-sm font-bold mb-4">
-                PHASE 2
+            <div className="bg-card border-2 border-border rounded-2xl p-8 transition-all hover:scale-105 relative overflow-hidden opacity-80" data-testid="phase-2-ticket">
+              <div className="absolute top-0 right-0 px-3 py-1 text-sm font-bold bg-muted text-muted-foreground">
+                PHASE 2 - COMING SOON
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Final Release</h3>
-              <p className="text-muted-foreground mb-4">26th Jan - 30th Jan 2026</p>
-              <div className="border-t border-border pt-4 mt-4">
-                <p className="text-sm text-muted-foreground">
-                  Last chance to grab your tickets before the event!
-                </p>
+              <div className="text-center mb-6">
+                <Crown className="w-12 h-12 text-primary mx-auto mb-4" />
+                <h3 className="text-3xl font-black gradient-text tracking-wider uppercase">AFTR Standard</h3>
+                <p className="text-muted-foreground">Phase 2 Pricing</p>
+              </div>
+              <div className="text-center mb-6">
+                <div className="text-4xl font-black gradient-text">Coming Soon</div>
+                <div className="text-sm text-muted-foreground">per person</div>
+              </div>
+              <ul className="space-y-3 mb-8 text-left">
+                <li className="flex items-center space-x-3">
+                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
+                  <span>6 hours of non-stop energy</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
+                  <span>Top DJs lineup</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
+                  <span>Photo Booth & 360° Video</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
+                  <span>Bar & refreshments available</span>
+                </li>
+              </ul>
+              <div className="text-center">
+                <div className="text-sm text-muted-foreground font-semibold bg-muted/50 px-4 py-2 rounded-lg">
+                  26th Jan - 30th Jan 2026
+                </div>
               </div>
             </div>
           </div>
 
           {/* Payment Instructions */}
-          <div className="bg-card rounded-2xl p-8 border border-border text-left mb-8" data-testid="payment-instructions">
-            <h3 className="text-2xl font-bold gradient-text mb-6 flex items-center justify-center">
-              <CreditCard className="mr-3" />
+          <div className="bg-muted rounded-2xl p-8 border-l-4 border-primary text-left mb-8" data-testid="payment-instructions">
+            <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
+              <CreditCard className="mr-3 text-primary" />
               How to Purchase Your Ticket
             </h3>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div>
                 <h4 className="text-lg font-bold text-white mb-4">Payment Account Details</h4>
-                <div className="bg-muted rounded-xl p-6">
+                <div className="bg-card rounded-xl p-6 border border-border">
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm text-muted-foreground">Bank Transfer</label>
@@ -353,7 +409,7 @@ export default function EventPage() {
                       <div className="text-xl font-mono font-bold text-white bg-background px-4 py-2 rounded mt-1">
                         58205220
                       </div>
-                      <div className="text-sm text-muted-foreground mt-1">Use reference: AFTR-[YOUR NAME]</div>
+                      <div className="text-sm text-muted-foreground mt-1">Use reference: AFTR-2-[YOUR NAME]</div>
                     </div>
                     <div>
                       <label className="text-sm text-muted-foreground">Cash Payment</label>
@@ -373,7 +429,7 @@ export default function EventPage() {
                     <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">1</div>
                     <div>
                       <div className="font-semibold text-white">Send Payment</div>
-                      <div className="text-sm text-muted-foreground">Transfer the ticket amount with reference AFTR-[YOUR NAME]</div>
+                      <div className="text-sm text-muted-foreground">Transfer the ticket amount with reference AFTR-2-[YOUR NAME]</div>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
@@ -393,18 +449,28 @@ export default function EventPage() {
                 </div>
               </div>
             </div>
+            
+            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+              <a
+                href="https://wa.me/23058205220?text=Hi!%20I'd%20like%20to%20purchase%20tickets%20for%20AFTR%20Volume%202%20on%20January%2030th.%20I%20have%20sent%20the%20payment%20and%20will%20share%20the%20proof%20now."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center transition-colors"
+                data-testid="whatsapp-payment-button"
+              >
+                <SiWhatsapp className="text-xl mr-3" />
+                WhatsApp Payment Proof
+              </a>
+              <a 
+                href="mailto:afterdarksocials@gmail.com?subject=AFTR%20Volume%202%20-%20Payment%20Proof&body=Hi%2C%0A%0AI%20have%20made%20payment%20for%20AFTR%20Volume%202%20tickets.%20Please%20find%20the%20payment%20proof%20attached.%0A%0AFull%20Name%3A%20%0AEmail%3A%20%0ANumber%20of%20Tickets%3A%20%0A%0AThank%20you!"
+                className="flex-1 border border-border bg-card text-white hover:bg-muted font-bold py-4 px-6 rounded-xl flex items-center justify-center transition-colors"
+                data-testid="email-payment-button"
+              >
+                <CreditCard className="text-xl mr-3" />
+                Email Payment Proof
+              </a>
+            </div>
           </div>
-
-          <a 
-            href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 px-8 py-4 gradient-bg text-white font-bold rounded-full hover:scale-105 transition-transform text-lg"
-            data-testid="join-community-button"
-          >
-            <SiWhatsapp className="text-xl" />
-            Join AFTR Community for Updates
-          </a>
         </div>
       </section>
 
