@@ -76,31 +76,22 @@ function CountdownTimer({ targetDate }: { targetDate: Date }) {
 }
 
 export default function ComingSoonBanner() {
-  const eventDate = new Date('2025-01-30T22:00:00+04:00');
+  const eventDate = new Date('2026-01-30T22:00:00+04:00');
 
   return (
     <section id="coming-soon" className="py-20 bg-gradient-to-b from-background via-card to-background" data-testid="coming-soon-section">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl sm:text-5xl font-bold gradient-text mb-6" data-testid="coming-soon-title">
-            Coming Soon
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto" data-testid="coming-soon-description">
-            The next chapter of AFTR is almost here
-          </p>
-        </div>
-
         <div className="bg-card border border-border rounded-2xl overflow-hidden" data-testid="coming-soon-card">
           <div className="relative">
             <div className="absolute top-4 left-4 z-10">
               <span className="bg-primary text-white px-4 py-2 rounded-full text-sm font-bold" data-testid="coming-soon-badge">
-                30 JANUARY 2025
+                30 JANUARY 2026
               </span>
             </div>
             
             <img 
               src={comingSoonImage} 
-              alt="AFTR Vol.2 Coming Soon" 
+              alt="AFTR Volume 2" 
               className="w-full h-80 sm:h-[500px] object-cover object-center"
               data-testid="coming-soon-image"
             />
@@ -108,7 +99,7 @@ export default function ComingSoonBanner() {
           
           <div className="p-6 sm:p-8">
             <h3 className="text-3xl font-bold gradient-text mb-6" data-testid="coming-soon-event-title">
-              AFTR Vol.2: The Return
+              AFTR Volume 2
             </h3>
 
             <CountdownTimer targetDate={eventDate} />
@@ -116,7 +107,7 @@ export default function ComingSoonBanner() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <div className="flex items-center justify-center sm:justify-start space-x-2 text-muted-foreground" data-testid="coming-soon-date">
                 <Calendar className="text-primary" />
-                <span>30th January 2025</span>
+                <span>30th January 2026</span>
               </div>
               <div className="flex items-center justify-center sm:justify-start space-x-2 text-muted-foreground" data-testid="coming-soon-time">
                 <Clock className="text-primary" />
@@ -124,7 +115,7 @@ export default function ComingSoonBanner() {
               </div>
               <div className="flex items-center justify-center sm:justify-start space-x-2 text-muted-foreground" data-testid="coming-soon-venue">
                 <MapPin className="text-primary" />
-                <span>Venue TBA</span>
+                <span>Saxo, Flic en Flac</span>
               </div>
             </div>
 
