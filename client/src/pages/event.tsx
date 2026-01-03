@@ -1,9 +1,15 @@
-import { Calendar, MapPin, Clock, Users, CheckCircle, ArrowLeft, Music, Sparkles, Volume2, Navigation } from "lucide-react";
+import { Calendar, MapPin, Clock, Users, CheckCircle, ArrowLeft, Music, Sparkles, Volume2, Navigation, Menu, X } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import comingSoonImage from "@assets/AFTR_black_white_1766249732057.jpg";
 import logoImage from "@assets/ChatGPT_Image_Dec_22,_2025,_08_25_03_AM_1766388371283.png";
+
+const eventNavLinks = [
+  { name: "Details", href: "#details" },
+  { name: "Tickets", href: "#tickets" },
+  { name: "Venue", href: "#venue" },
+];
 
 function CountdownTimer({ targetDate }: { targetDate: Date }) {
   const [timeLeft, setTimeLeft] = useState({
@@ -79,17 +85,80 @@ function CountdownTimer({ targetDate }: { targetDate: Date }) {
 
 export default function EventPage() {
   const eventDate = new Date('2026-01-30T22:00:00+04:00');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const scrollToSection = (href: string) => {
+    const element = document.querySelector(href);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+    setMobileMenuOpen(false);
+  };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-white/10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-white/80 hover:text-white transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm uppercase tracking-wider">Back to Home</span>
-          </Link>
-          <img src={logoImage} alt="After Dark Socials" className="h-12 w-auto" />
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <Link href="/" className="flex items-center">
+              <img src={logoImage} alt="After Dark Socials" className="h-12 w-auto" />
+            </Link>
+            
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-8">
+              <Link href="/" className="flex items-center gap-2 text-white/80 hover:text-white transition-colors text-sm uppercase tracking-wider">
+                <ArrowLeft className="w-4 h-4" />
+                Home
+              </Link>
+              {eventNavLinks.map((link) => (
+                <button
+                  key={link.name}
+                  onClick={() => scrollToSection(link.href)}
+                  className="text-white/80 hover:text-white transition-colors text-sm uppercase tracking-wider"
+                  data-testid={`nav-${link.name.toLowerCase()}`}
+                >
+                  {link.name}
+                </button>
+              ))}
+            </nav>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden text-white p-2"
+              data-testid="mobile-menu-toggle"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
+
+          {/* Mobile Navigation */}
+          {mobileMenuOpen && (
+            <nav className="md:hidden mt-4 pb-4 border-t border-white/10 pt-4">
+              <div className="flex flex-col gap-4">
+                <Link 
+                  href="/" 
+                  className="flex items-center gap-2 text-white/80 hover:text-white transition-colors text-sm uppercase tracking-wider"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Home
+                </Link>
+                {eventNavLinks.map((link) => (
+                  <button
+                    key={link.name}
+                    onClick={() => scrollToSection(link.href)}
+                    className="text-white/80 hover:text-white transition-colors text-sm uppercase tracking-wider text-left"
+                    data-testid={`mobile-nav-${link.name.toLowerCase()}`}
+                  >
+                    {link.name}
+                  </button>
+                ))}
+              </div>
+            </nav>
+          )}
         </div>
       </header>
 
@@ -127,7 +196,7 @@ export default function EventPage() {
       </section>
 
       {/* Event Details */}
-      <section className="py-16 bg-card">
+      <section id="details" className="py-16 bg-card">
         <div className="max-w-6xl mx-auto px-4">
           <h2 className="text-3xl sm:text-4xl font-bold gradient-text text-center mb-12" data-testid="event-details-title">
             Event Details
@@ -207,7 +276,7 @@ export default function EventPage() {
       </section>
 
       {/* Tickets Section */}
-      <section className="py-16 bg-background">
+      <section id="tickets" className="py-16 bg-background">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold gradient-text mb-6" data-testid="tickets-title">
             Tickets
@@ -238,7 +307,7 @@ export default function EventPage() {
       </section>
 
       {/* Venue Section */}
-      <section className="py-16 bg-card">
+      <section id="venue" className="py-16 bg-card">
         <div className="max-w-4xl mx-auto px-4">
           <h2 className="text-3xl sm:text-4xl font-bold gradient-text text-center mb-12" data-testid="venue-title">
             Venue
