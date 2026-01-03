@@ -282,16 +282,42 @@ export default function EventPage() {
             Tickets
           </h2>
           <p className="text-xl text-muted-foreground mb-8">
-            Tickets will be available soon. Join our community to be the first to know when they drop!
+            Secure your spot at AFTR Volume 2 - Limited tickets available!
           </p>
           
-          <div className="bg-card border border-border rounded-xl p-8 mb-8">
-            <div className="text-center">
-              <span className="text-sm text-muted-foreground uppercase tracking-wider">Early Bird Tickets</span>
-              <p className="text-4xl font-bold gradient-text my-4">Coming Soon</p>
-              <p className="text-muted-foreground">Be the first to secure your spot at AFTR Volume 2</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* Phase 1 */}
+            <div className="bg-card border border-primary rounded-xl p-8" data-testid="phase-1-ticket">
+              <div className="inline-block bg-primary/20 text-primary px-4 py-1 rounded-full text-sm font-bold mb-4">
+                PHASE 1
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">Early Bird</h3>
+              <p className="text-muted-foreground mb-4">5th Jan - 25th Jan 2026</p>
+              <div className="border-t border-border pt-4 mt-4">
+                <p className="text-sm text-muted-foreground">
+                  Get your tickets early and save! Limited availability.
+                </p>
+              </div>
+            </div>
+
+            {/* Phase 2 */}
+            <div className="bg-card border border-border rounded-xl p-8" data-testid="phase-2-ticket">
+              <div className="inline-block bg-muted text-muted-foreground px-4 py-1 rounded-full text-sm font-bold mb-4">
+                PHASE 2
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">Final Release</h3>
+              <p className="text-muted-foreground mb-4">26th Jan - 30th Jan 2026</p>
+              <div className="border-t border-border pt-4 mt-4">
+                <p className="text-sm text-muted-foreground">
+                  Last chance to grab your tickets before the event!
+                </p>
+              </div>
             </div>
           </div>
+
+          <p className="text-muted-foreground mb-6">
+            Join our community to be the first to know when tickets drop!
+          </p>
 
           <a 
             href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO" 
