@@ -1,5 +1,6 @@
-import { Calendar, MapPin, Clock, Users, CheckCircle } from "lucide-react";
+import { Calendar, MapPin, Clock, Users } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Link } from "wouter";
 import comingSoonImage from "@assets/AFTR_black_white_1766249732057.jpg";
 
 function CountdownTimer({ targetDate }: { targetDate: Date }) {
@@ -76,7 +77,6 @@ function CountdownTimer({ targetDate }: { targetDate: Date }) {
 
 export default function ComingSoonBanner() {
   const eventDate = new Date('2026-01-30T22:00:00+04:00');
-  const [showDetails, setShowDetails] = useState(false);
 
   return (
     <section id="coming-soon" className="py-20 bg-gradient-to-b from-background via-card to-background" data-testid="coming-soon-section">
@@ -127,36 +127,13 @@ export default function ComingSoonBanner() {
               The rave returns — bigger, louder, unstoppable. Get ready for the next edition of the rave that keeps the city awake.
             </p>
 
-            {!showDetails ? (
-              <div className="mb-8">
-                <button
-                  onClick={() => setShowDetails(true)}
-                  className="w-full py-4 px-6 gradient-bg text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:scale-[1.02] transition-transform"
-                  data-testid="view-event-button"
-                >
-                  View Event Details
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3 mb-8" data-testid="event-details">
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="text-accent" />
-                  <span>Top DJs performing back-to-back</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="text-accent" />
-                  <span>6 hours of non-stop energy</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="text-accent" />
-                  <span>Premium sound system & lighting</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="text-accent" />
-                  <span>Tickets dropping soon</span>
-                </div>
-              </div>
-            )}
+            <Link
+              href="/event"
+              className="w-full py-4 px-6 gradient-bg text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:scale-[1.02] transition-transform"
+              data-testid="view-event-button"
+            >
+              View Event Details
+            </Link>
           </div>
         </div>
       </div>
