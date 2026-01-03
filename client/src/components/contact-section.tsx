@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Phone, Mail } from "lucide-react";
-import { SiWhatsapp, SiInstagram, SiFacebook, SiX, SiTiktok } from "react-icons/si";
+import { Phone, Mail, Users } from "lucide-react";
+import { SiWhatsapp, SiInstagram } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,6 +61,27 @@ export default function ContactSection() {
           </p>
         </div>
         
+        {/* Community Section */}
+        <div className="mb-12 bg-card rounded-2xl p-8 border border-border text-center" data-testid="community-section">
+          <div className="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4">
+            <Users className="text-white text-2xl" />
+          </div>
+          <h3 className="text-2xl font-bold gradient-text mb-4" data-testid="community-title">Join the AFTR Community</h3>
+          <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+            Be the first to know about upcoming events, exclusive announcements, and connect with fellow ravers!
+          </p>
+          <a 
+            href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-3 px-8 py-4 gradient-bg text-white font-bold rounded-full hover:scale-105 transition-transform text-lg"
+            data-testid="join-community-button"
+          >
+            <SiWhatsapp className="text-xl" />
+            Join WhatsApp Group
+          </a>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="bg-card rounded-2xl p-8 border border-border" data-testid="contact-info-card">
             <h3 className="text-xl font-bold text-foreground mb-6" data-testid="contact-info-title">Contact Information</h3>
