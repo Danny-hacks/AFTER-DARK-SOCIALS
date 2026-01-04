@@ -98,17 +98,20 @@ export default function EventPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-white/10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-black/70 backdrop-blur-sm">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20 sm:h-24">
             {/* Logo */}
             <Link href="/" className="flex items-center">
-              <img src={logoImage} alt="After Dark Socials" className="h-16 sm:h-20 w-auto" />
+              <img src={logoImage} alt="After Dark Socials" className="h-14 sm:h-16 w-auto" />
             </Link>
             
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-8">
-              <Link href="/" className="flex items-center gap-2 text-white/80 hover:text-white transition-colors text-sm uppercase tracking-wider">
+            <div className="hidden md:flex items-center gap-6">
+              <Link 
+                href="/" 
+                className="flex items-center gap-2 text-white/80 hover:text-white transition-colors text-sm uppercase tracking-wider font-medium"
+              >
                 <ArrowLeft className="w-4 h-4" />
                 Home
               </Link>
@@ -116,13 +119,21 @@ export default function EventPage() {
                 <button
                   key={link.name}
                   onClick={() => scrollToSection(link.href)}
-                  className="text-white/80 hover:text-white transition-colors text-sm uppercase tracking-wider"
+                  className="text-white/80 hover:text-white transition-colors text-sm uppercase tracking-wider font-medium relative py-1"
                   data-testid={`nav-${link.name.toLowerCase()}`}
                 >
                   {link.name}
                 </button>
               ))}
-            </nav>
+              <a 
+                href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-5 py-2 bg-[#c72d28] text-white text-sm uppercase tracking-wider font-medium rounded-full hover:bg-[#a82421] transition-colors"
+              >
+                Join Us
+              </a>
+            </div>
 
             {/* Mobile Menu Button */}
             <button
@@ -136,28 +147,34 @@ export default function EventPage() {
 
           {/* Mobile Navigation */}
           {mobileMenuOpen && (
-            <nav className="md:hidden mt-4 pb-4 border-t border-white/10 pt-4">
-              <div className="flex flex-col gap-4">
-                <Link 
-                  href="/" 
-                  className="flex items-center gap-2 text-white/80 hover:text-white transition-colors text-sm uppercase tracking-wider"
-                  onClick={() => setMobileMenuOpen(false)}
+            <div className="md:hidden bg-black/95 backdrop-blur-md border-t border-white/10 py-4">
+              <Link 
+                href="/" 
+                className="flex items-center gap-2 px-4 py-3 text-white/80 hover:text-white hover:bg-white/5 transition-colors text-sm uppercase tracking-wider"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Home
+              </Link>
+              {eventNavLinks.map((link) => (
+                <button
+                  key={link.name}
+                  onClick={() => scrollToSection(link.href)}
+                  className="block w-full text-left px-4 py-3 text-white/80 hover:text-white hover:bg-white/5 transition-colors text-sm uppercase tracking-wider"
+                  data-testid={`mobile-nav-${link.name.toLowerCase()}`}
                 >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Home
-                </Link>
-                {eventNavLinks.map((link) => (
-                  <button
-                    key={link.name}
-                    onClick={() => scrollToSection(link.href)}
-                    className="text-white/80 hover:text-white transition-colors text-sm uppercase tracking-wider text-left"
-                    data-testid={`mobile-nav-${link.name.toLowerCase()}`}
-                  >
-                    {link.name}
-                  </button>
-                ))}
-              </div>
-            </nav>
+                  {link.name}
+                </button>
+              ))}
+              <a 
+                href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block mx-4 mt-4 px-5 py-3 bg-[#c72d28] text-white text-sm uppercase tracking-wider font-medium rounded-full text-center hover:bg-[#a82421] transition-colors"
+              >
+                Join Us
+              </a>
+            </div>
           )}
         </div>
       </header>
@@ -524,7 +541,7 @@ export default function EventPage() {
       {/* Footer */}
       <footer className="py-8 bg-black border-t border-white/10">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <img src={logoImage} alt="After Dark Socials" className="h-24 w-auto mx-auto mb-4" />
+          <img src={logoImage} alt="After Dark Socials" className="h-20 w-auto mx-auto mb-4" />
           <p className="text-muted-foreground text-sm">
             &copy; 2026 AFTR. All rights reserved. The rave that keeps the city awake.
           </p>

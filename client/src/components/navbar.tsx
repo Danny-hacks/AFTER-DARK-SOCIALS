@@ -65,7 +65,7 @@ export default function Navbar() {
             <img 
               src={logoImage} 
               alt="After Dark Socials" 
-              className="h-24 sm:h-28 w-auto"
+              className="h-14 sm:h-16 w-auto"
             />
           </button>
 
