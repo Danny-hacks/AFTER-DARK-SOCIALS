@@ -3,7 +3,7 @@ import { SiWhatsapp } from "react-icons/si";
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import comingSoonImage from "@assets/AFTR_black_white_1766249732057.jpg";
-import logoImage from "@assets/ChatGPT_Image_Dec_22,_2025,_08_25_03_AM_1766388371283.png";
+import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
 const eventNavLinks = [
   { name: "Details", href: "#details" },
@@ -103,7 +103,7 @@ export default function EventPage() {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link href="/" className="flex items-center">
-              <img src={logoImage} alt="After Dark Socials" className="h-12 w-auto" />
+              <img src={logoImage} alt="After Dark Socials" className="h-16 sm:h-20 w-auto" />
             </Link>
             
             {/* Desktop Navigation */}
@@ -524,7 +524,7 @@ export default function EventPage() {
       {/* Footer */}
       <footer className="py-8 bg-black border-t border-white/10">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <img src={logoImage} alt="After Dark Socials" className="h-16 w-auto mx-auto mb-4" />
+          <img src={logoImage} alt="After Dark Socials" className="h-24 w-auto mx-auto mb-4" />
           <p className="text-muted-foreground text-sm">
             &copy; 2026 AFTR. All rights reserved. The rave that keeps the city awake.
           </p>

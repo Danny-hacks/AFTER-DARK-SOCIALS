@@ -18,7 +18,7 @@ export default function Footer() {
               <img 
                 src={logoImage} 
                 alt="After Dark Socials" 
-                className="h-28 w-auto"
+                className="h-32 w-auto"
                 data-testid="footer-brand-name"
               />
             </div>
