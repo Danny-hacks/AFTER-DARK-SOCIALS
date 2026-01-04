@@ -1,5 +1,5 @@
 import { SiInstagram } from "react-icons/si";
-import logoImage from "@assets/ChatGPT_Image_Dec_22,_2025,_08_25_03_AM_1766388371283.png";
+import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
 export default function Footer() {
   const scrollToSection = (sectionId: string) => {

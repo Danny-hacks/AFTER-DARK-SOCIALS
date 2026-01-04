@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
-import logoImage from "@assets/ChatGPT_Image_Dec_22,_2025,_08_25_03_AM_1766388371283.png";
+import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
