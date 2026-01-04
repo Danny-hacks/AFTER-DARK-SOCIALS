@@ -86,6 +86,16 @@ function CountdownTimer({ targetDate }: { targetDate: Date }) {
 export default function EventPage() {
   const eventDate = new Date('2026-01-30T22:00:00+04:00');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const scrollToSection = (href: string) => {
     const element = document.querySelector(href);
@@ -98,7 +108,9 @@ export default function EventPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-black/70 backdrop-blur-sm">
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        isScrolled ? 'bg-black/70 backdrop-blur-sm' : 'bg-gradient-to-b from-black/50 to-transparent'
+      }`}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20 sm:h-24">
             {/* Logo */}
