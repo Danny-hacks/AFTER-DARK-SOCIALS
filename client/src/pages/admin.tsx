@@ -70,6 +70,8 @@ export default function AdminPanel() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'used' | 'available'>('all');
   const [filterEventId, setFilterEventId] = useState<string>('all');
+  const [vol2SearchQuery, setVol2SearchQuery] = useState('');
+  const [vol2FilterStatus, setVol2FilterStatus] = useState<'all' | 'used' | 'available'>('all');
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventType | null>(null);
   const { toast } = useToast();
@@ -196,6 +198,26 @@ export default function AdminPanel() {
   const pendingPurchases = allPurchases.filter(p => p.status === 'pending');
   const pastEvents = allEvents.filter(e => e.isPast);
   const upcomingEvents = allEvents.filter(e => !e.isPast);
+
+  // Vol.2 tickets (those with VOL2- prefix)
+  const vol2Tickets = allTickets.filter(t => t.referenceCode.startsWith('VOL2-'));
+  const vol2UsedTickets = vol2Tickets.filter(t => t.isUsed);
+  const vol2AvailableTickets = vol2Tickets.filter(t => !t.isUsed);
+  
+  // Filter Vol.2 tickets based on search and status
+  const filteredVol2Tickets = vol2Tickets.filter(ticket => {
+    const matchesSearch = vol2SearchQuery === '' || 
+      ticket.customerName.toLowerCase().includes(vol2SearchQuery.toLowerCase()) ||
+      ticket.referenceCode.toLowerCase().includes(vol2SearchQuery.toLowerCase()) ||
+      ticket.customerEmail?.toLowerCase().includes(vol2SearchQuery.toLowerCase()) ||
+      ticket.customerPhone?.toLowerCase().includes(vol2SearchQuery.toLowerCase());
+    
+    const matchesStatus = vol2FilterStatus === 'all' ||
+      (vol2FilterStatus === 'used' && ticket.isUsed) ||
+      (vol2FilterStatus === 'available' && !ticket.isUsed);
+    
+    return matchesSearch && matchesStatus;
+  });
 
   // Create event mutation
   const createEventMutation = useMutation({
@@ -975,6 +997,168 @@ export default function AdminPanel() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Vol.2 Ticket Management Section */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-2xl font-bold flex items-center gap-2">
+                  <Ticket className="w-6 h-6 text-primary" />
+                  AFTR Vol.2 Tickets
+                </h3>
+                <p className="text-muted-foreground">Manage tickets for Volume 2 event</p>
+              </div>
+
+              {/* Vol.2 Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Total Vol.2 Tickets</p>
+                        <p className="text-2xl font-bold">{vol2Tickets.length}</p>
+                      </div>
+                      <Users className="h-8 w-8 text-primary" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Used</p>
+                        <p className="text-2xl font-bold text-green-500">{vol2UsedTickets.length}</p>
+                      </div>
+                      <CheckCircle className="h-8 w-8 text-green-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Available</p>
+                        <p className="text-2xl font-bold text-primary">{vol2AvailableTickets.length}</p>
+                      </div>
+                      <Ticket className="h-8 w-8 text-primary" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Vol.2 Tickets Search and Filter */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Vol.2 Ticket List</CardTitle>
+                  <CardDescription>Search, filter, and manage Volume 2 tickets</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-4 mb-4">
+                    <div className="flex-1 min-w-[200px] relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search by name, email, phone, or reference..."
+                        value={vol2SearchQuery}
+                        onChange={(e) => setVol2SearchQuery(e.target.value)}
+                        className="pl-10"
+                        data-testid="input-search-vol2-tickets"
+                      />
+                    </div>
+                    <Select value={vol2FilterStatus} onValueChange={(v: 'all' | 'used' | 'available') => setVol2FilterStatus(v)}>
+                      <SelectTrigger className="w-40" data-testid="select-filter-vol2-status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Tickets</SelectItem>
+                        <SelectItem value="used">Used</SelectItem>
+                        <SelectItem value="available">Available</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {ticketsLoading ? (
+                    <p className="text-center py-8 text-muted-foreground">Loading tickets...</p>
+                  ) : filteredVol2Tickets.length === 0 ? (
+                    <p className="text-center py-8 text-muted-foreground">
+                      {vol2Tickets.length === 0 
+                        ? "No Vol.2 tickets yet. Verify purchases to create tickets." 
+                        : "No tickets match your search criteria"}
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {filteredVol2Tickets.map((ticket) => (
+                        <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-3 h-3 rounded-full ${ticket.isUsed ? 'bg-green-500' : 'bg-primary'}`} />
+                            <div>
+                              <p className="font-medium">{ticket.customerName}</p>
+                              <p className="text-sm text-muted-foreground font-mono">{ticket.referenceCode}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                {ticket.customerPhone && (
+                                  <span className="flex items-center gap-1">
+                                    <Phone className="w-3 h-3" />
+                                    {ticket.customerPhone}
+                                  </span>
+                                )}
+                                {ticket.customerEmail && (
+                                  <span className="flex items-center gap-1">
+                                    <Mail className="w-3 h-3" />
+                                    {ticket.customerEmail}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-right mr-2">
+                              <span className="text-sm font-medium">{ticket.price}</span>
+                              <div className={`text-xs px-2 py-0.5 rounded ${ticket.isUsed ? 'bg-green-100 text-green-700' : 'bg-primary/10 text-primary'}`}>
+                                {ticket.isUsed ? 'Used' : 'Available'}
+                              </div>
+                            </div>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button size="sm" variant="ghost" data-testid={`button-view-vol2-ticket-${ticket.id}`}>
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                                <DialogHeader>
+                                  <DialogTitle>Ticket - {ticket.referenceCode}</DialogTitle>
+                                </DialogHeader>
+                                <TicketGenerator ticket={ticket} />
+                              </DialogContent>
+                            </Dialog>
+                            {!ticket.isUsed && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => markUsedMutation.mutate(ticket.id)}
+                                disabled={markUsedMutation.isPending}
+                                data-testid={`button-mark-vol2-used-${ticket.id}`}
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </Button>
+                            )}
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => {
+                                if (confirm('Delete this ticket?')) {
+                                  deleteTicketMutation.mutate(ticket.id);
+                                }
+                              }}
+                              data-testid={`button-delete-vol2-ticket-${ticket.id}`}
+                            >
+                              <Trash className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
 
