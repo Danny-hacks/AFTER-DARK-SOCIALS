@@ -406,8 +406,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Purchase already processed" });
       }
       
-      // Generate unique reference code
-      const referenceCode = `AFTR-2-${purchase.customerName.toUpperCase().replace(/\s+/g, '-')}-${Date.now().toString(36).toUpperCase()}`;
+      // Generate unique reference code for Volume 2 (different format from Volume 1)
+      const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const referenceCode = `VOL2-${randomPart}`;
       
       // Create ticket
       const ticket = await storage.createTicket({
@@ -432,7 +433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Ticket created successfully. Ready for delivery.",
         deliveryMethod: purchase.deliveryMethod,
         whatsappLink: purchase.deliveryMethod === "whatsapp" 
-          ? `https://wa.me/${purchase.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Volume 2 Ticket\n\nHey ${purchase.customerName}!\n\nYour ticket is confirmed!\n\n📱 Reference: ${referenceCode}\n🎫 Type: ${purchase.ticketType}\n💰 Price: ${purchase.price}\n\nShow this message and your QR code at the door.\n\nSee you at the rave! 🔥`)}`
+          ? `https://wa.me/${purchase.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`🔥 AFTR VOL.2 TICKET 🔥\n\n━━━━━━━━━━━━━━━━━\nADMIT ONE\n${purchase.customerName.toUpperCase()}\n━━━━━━━━━━━━━━━━━\n\n📱 Ref: ${referenceCode}\n🎫 ${purchase.ticketType}\n💰 ${purchase.price}\n\n📅 JAN 30, 2026\n🕙 10PM - 4AM\n📍 Shotz, Flic en Flac\n\n━━━━━━━━━━━━━━━━━\nScreenshot this ticket.\nShow at door for entry.\n━━━━━━━━━━━━━━━━━`)}`
           : null
       });
     } catch (error) {
@@ -460,50 +461,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const msg = {
           to: ticket.customerEmail,
           from: process.env.SENDGRID_FROM_EMAIL || 'afterdarksocials@gmail.com',
-          subject: '🎉 Your AFTR Volume 2 Ticket is Confirmed!',
+          subject: '🔥 VOL.2 | Your AFTR Ticket is Ready!',
           html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0a0a; color: #ffffff; padding: 40px;">
-              <div style="text-align: center; margin-bottom: 30px;">
-                <h1 style="color: #c72d28; margin: 0;">AFTR</h1>
-                <p style="color: #888; margin: 5px 0;">VOLUME 2</p>
+            <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(180deg, #0a0a0a 0%, #1a0808 100%); color: #ffffff; padding: 0;">
+              <!-- Header Banner -->
+              <div style="background: linear-gradient(135deg, #c72d28 0%, #8b1f1b 50%, #0a0a0a 100%); padding: 30px; text-align: center; border-bottom: 3px solid #c72d28;">
+                <div style="font-size: 48px; font-weight: 900; letter-spacing: 8px; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">AFTR</div>
+                <div style="font-size: 24px; font-weight: 300; letter-spacing: 12px; color: #fff; margin-top: 5px;">VOL.2</div>
               </div>
               
-              <h2 style="color: #ffffff; text-align: center;">Hey ${ticket.customerName}! 🔥</h2>
-              <p style="color: #cccccc; text-align: center;">Your ticket to AFTR Volume 2 is confirmed!</p>
-              
-              <div style="background: #1a1a1a; border-radius: 12px; padding: 25px; margin: 30px 0; border: 1px solid #333;">
-                <div style="margin-bottom: 15px;">
-                  <span style="color: #888;">Reference Code:</span>
-                  <span style="color: #c72d28; font-weight: bold; float: right;">${ticket.referenceCode}</span>
+              <!-- Ticket Body -->
+              <div style="padding: 40px 30px;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                  <p style="color: #c72d28; font-size: 14px; letter-spacing: 3px; margin: 0;">ADMIT ONE</p>
+                  <h2 style="color: #ffffff; font-size: 24px; margin: 10px 0;">${ticket.customerName}</h2>
                 </div>
-                <div style="margin-bottom: 15px;">
-                  <span style="color: #888;">Ticket Type:</span>
-                  <span style="color: #fff; float: right;">${ticket.ticketType}</span>
+                
+                <!-- Ticket Details Card -->
+                <div style="background: rgba(199, 45, 40, 0.1); border: 2px dashed #c72d28; border-radius: 0; padding: 25px; margin: 20px 0;">
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                      <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <span style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Reference</span><br>
+                        <span style="color: #c72d28; font-size: 20px; font-weight: bold; font-family: monospace;">${ticket.referenceCode}</span>
+                      </td>
+                      <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: right;">
+                        <span style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Type</span><br>
+                        <span style="color: #fff; font-size: 16px;">${ticket.ticketType}</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 12px 0;">
+                        <span style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">QR Code</span><br>
+                        <span style="color: #fff; font-size: 14px; font-family: monospace;">${ticket.qrCode}</span>
+                      </td>
+                      <td style="padding: 12px 0; text-align: right;">
+                        <span style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Price</span><br>
+                        <span style="color: #c72d28; font-size: 20px; font-weight: bold;">${ticket.price}</span>
+                      </td>
+                    </tr>
+                  </table>
                 </div>
-                <div style="margin-bottom: 15px;">
-                  <span style="color: #888;">Price:</span>
-                  <span style="color: #fff; float: right;">${ticket.price}</span>
+                
+                <!-- Event Info -->
+                <div style="background: #0a0a0a; border-left: 4px solid #c72d28; padding: 20px; margin: 25px 0;">
+                  <div style="display: flex; justify-content: space-between;">
+                    <div>
+                      <p style="color: #888; font-size: 11px; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Date</p>
+                      <p style="color: #fff; font-size: 16px; margin: 5px 0 15px 0; font-weight: bold;">JAN 30, 2026</p>
+                      
+                      <p style="color: #888; font-size: 11px; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Time</p>
+                      <p style="color: #fff; font-size: 16px; margin: 5px 0 0 0; font-weight: bold;">10PM - 4AM</p>
+                    </div>
+                    <div style="text-align: right;">
+                      <p style="color: #888; font-size: 11px; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Venue</p>
+                      <p style="color: #fff; font-size: 16px; margin: 5px 0 0 0; font-weight: bold;">SHOTZ</p>
+                      <p style="color: #888; font-size: 14px; margin: 3px 0 0 0;">Flic en Flac</p>
+                    </div>
+                  </div>
                 </div>
-                <div style="margin-bottom: 15px;">
-                  <span style="color: #888;">QR Code:</span>
-                  <span style="color: #c72d28; font-weight: bold; float: right;">${ticket.qrCode}</span>
-                </div>
+                
+                <p style="color: #666; text-align: center; font-size: 13px; margin-top: 30px;">
+                  Screenshot this ticket. Show at the door for entry.
+                </p>
               </div>
               
-              <div style="background: linear-gradient(135deg, #c72d28, #8b1f1b); border-radius: 12px; padding: 25px; text-align: center; margin: 30px 0;">
-                <h3 style="color: #fff; margin: 0 0 15px 0;">📅 Event Details</h3>
-                <p style="color: #fff; margin: 5px 0;"><strong>Date:</strong> January 30, 2026</p>
-                <p style="color: #fff; margin: 5px 0;"><strong>Time:</strong> 10:00 PM - 4:00 AM</p>
-                <p style="color: #fff; margin: 5px 0;"><strong>Venue:</strong> Shotz, Flic en Flac</p>
-              </div>
-              
-              <p style="color: #888; text-align: center; font-size: 14px;">
-                Show this email or your QR code at the door for entry.
-              </p>
-              
-              <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #333;">
-                <p style="color: #c72d28; font-style: italic; margin: 0;">The Rave That Keeps The City Awake</p>
-                <p style="color: #666; font-size: 12px; margin-top: 10px;">© 2026 AFTR - After Dark Socials</p>
+              <!-- Footer -->
+              <div style="background: #0a0a0a; text-align: center; padding: 25px; border-top: 1px solid #222;">
+                <p style="color: #c72d28; font-style: italic; font-size: 14px; margin: 0; letter-spacing: 2px;">The Rave That Keeps The City Awake</p>
+                <p style="color: #444; font-size: 11px; margin-top: 15px;">© 2026 AFTR · After Dark Socials</p>
               </div>
             </div>
           `,

@@ -956,7 +956,7 @@ export default function AdminPanel() {
                             )}
                             {purchase.deliveryMethod === 'whatsapp' && (
                               <a
-                                href={`https://wa.me/${purchase.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Volume 2 Ticket\n\nHey ${purchase.customerName}!\n\nYour ticket is confirmed!\n\n📱 Reference: ${ticket?.referenceCode || ''}\n🎫 Type: ${purchase.ticketType}\n💰 Price: ${purchase.price}\n🔑 QR Code: ${ticket?.qrCode || ''}\n\n📅 Date: January 30, 2026\n🕙 Time: 10:00 PM - 4:00 AM\n📍 Venue: Shotz, Flic en Flac\n\nShow this message at the door.\n\nSee you at the rave! 🔥`)}`}
+                                href={`https://wa.me/${purchase.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`🔥 AFTR VOL.2 TICKET 🔥\n\n━━━━━━━━━━━━━━━━━\nADMIT ONE\n${purchase.customerName.toUpperCase()}\n━━━━━━━━━━━━━━━━━\n\n📱 Ref: ${ticket?.referenceCode || ''}\n🎫 ${purchase.ticketType}\n💰 ${purchase.price}\n🔑 QR: ${ticket?.qrCode || ''}\n\n📅 JAN 30, 2026\n🕙 10PM - 4AM\n📍 Shotz, Flic en Flac\n\n━━━━━━━━━━━━━━━━━\nScreenshot this ticket.\nShow at door for entry.\n━━━━━━━━━━━━━━━━━`)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700"
