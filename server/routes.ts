@@ -6,6 +6,7 @@ import { insertTicketSchema, insertEventSchema, insertHeroSlideSchema, insertTic
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import sgMail from "@sendgrid/mail";
+import { appendTicketToSheet, initializeSheetHeaders } from "./googleSheets";
 
 // Simple admin credentials - in production, use proper authentication
 const ADMIN_USERNAME = "aftr_admin";
@@ -426,6 +427,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update purchase with ticket ID
       await storage.verifyTicketPurchase(purchase.id, ticket.id);
+      
+      // Append to Google Sheet for record keeping
+      try {
+        await appendTicketToSheet({
+          timestamp: new Date().toISOString(),
+          customerName: purchase.customerName,
+          customerEmail: purchase.customerEmail,
+          customerPhone: purchase.customerPhone,
+          ticketType: purchase.ticketType,
+          price: purchase.price,
+          paymentMethod: purchase.paymentMethod,
+          deliveryMethod: purchase.deliveryMethod,
+          referenceCode: referenceCode,
+          qrCode: ticket.qrCode,
+          eventId: purchase.eventId || "aftr-vol-2",
+          status: "verified"
+        });
+      } catch (sheetError) {
+        console.error("Failed to append to Google Sheet (non-blocking):", sheetError);
+      }
       
       res.json({ 
         success: true, 
