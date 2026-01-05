@@ -346,7 +346,7 @@ export default function EventPage() {
                 <p className="text-muted-foreground">Phase 1 Pricing</p>
               </div>
               <div className="text-center mb-6">
-                <div className="text-4xl font-black gradient-text">Coming Soon</div>
+                <div className="text-4xl font-black gradient-text">Rs 350</div>
                 <div className="text-sm text-muted-foreground">per person</div>
               </div>
               <ul className="space-y-3 mb-8 text-left">
@@ -368,6 +368,17 @@ export default function EventPage() {
                 </li>
               </ul>
               <div className="text-center">
+                <a 
+                  href="#payment-instructions"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.getElementById('payment-instructions')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="inline-block w-full gradient-bg text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity mb-3"
+                  data-testid="buy-early-bird-btn"
+                >
+                  Buy Now
+                </a>
                 <div className="text-sm text-primary font-semibold bg-primary/10 px-4 py-2 rounded-lg">
                   5th Jan - 25th Jan 2026
                 </div>
@@ -415,7 +426,7 @@ export default function EventPage() {
           </div>
 
           {/* Payment Instructions */}
-          <div className="bg-muted rounded-2xl p-8 border-l-4 border-primary text-left mb-8" data-testid="payment-instructions">
+          <div id="payment-instructions" className="bg-muted rounded-2xl p-8 border-l-4 border-primary text-left mb-8" data-testid="payment-instructions">
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
               <CreditCard className="mr-3 text-primary" />
               How to Purchase Your Ticket
