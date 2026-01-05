@@ -941,10 +941,7 @@ export default function AdminPanel() {
             </Card>
 
             {/* Verified - Ready to Send */}
-            {allPurchases.filter(p => p.status === 'verified' && p.ticketId).filter(purchase => {
-              const ticket = allTickets.find(t => t.id === purchase.ticketId);
-              return ticket && !ticket.isDelivered;
-            }).length > 0 && (
+            {allPurchases.filter(p => p.status === 'verified' && p.ticketId).length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-green-600">
@@ -954,10 +951,7 @@ export default function AdminPanel() {
                   <CardDescription>Tickets created and waiting to be sent to customers</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {allPurchases.filter(p => p.status === 'verified' && p.ticketId).filter(purchase => {
-                    const ticket = allTickets.find(t => t.id === purchase.ticketId);
-                    return ticket && !ticket.isDelivered;
-                  }).map((purchase) => {
+                  {allPurchases.filter(p => p.status === 'verified' && p.ticketId).map((purchase) => {
                     const ticket = allTickets.find(t => t.id === purchase.ticketId);
                     return (
                       <div key={purchase.id} className="border border-green-200 bg-green-50/50 rounded-lg p-4">
