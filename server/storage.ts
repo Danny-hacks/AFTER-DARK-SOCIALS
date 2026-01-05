@@ -1,6 +1,6 @@
-import { type User, type InsertUser, type Ticket, type InsertTicket, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, users, tickets, events, heroSlides } from "@shared/schema";
+import { type User, type InsertUser, type Ticket, type InsertTicket, type TicketPurchase, type InsertTicketPurchase, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, users, tickets, ticketPurchases, events, heroSlides } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -9,13 +9,24 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
+  // Ticket Purchase operations
+  getTicketPurchase(id: string): Promise<TicketPurchase | undefined>;
+  getAllTicketPurchases(): Promise<TicketPurchase[]>;
+  getPendingTicketPurchases(): Promise<TicketPurchase[]>;
+  createTicketPurchase(purchase: InsertTicketPurchase): Promise<TicketPurchase>;
+  updateTicketPurchase(id: string, data: Partial<TicketPurchase>): Promise<TicketPurchase | undefined>;
+  verifyTicketPurchase(id: string, ticketId: string): Promise<TicketPurchase | undefined>;
+  rejectTicketPurchase(id: string, reason: string): Promise<TicketPurchase | undefined>;
+  
   // Ticket operations
   getTicket(id: string): Promise<Ticket | undefined>;
   getTicketByReference(referenceCode: string): Promise<Ticket | undefined>;
+  getTicketByQrCode(qrCode: string): Promise<Ticket | undefined>;
   createTicket(ticket: InsertTicket): Promise<Ticket>;
   getAllTickets(): Promise<Ticket[]>;
   getTicketsByEvent(eventId: string): Promise<Ticket[]>;
   markTicketAsUsed(id: string): Promise<Ticket | undefined>;
+  markTicketAsDelivered(id: string): Promise<Ticket | undefined>;
   deleteTicket(id: string): Promise<boolean>;
 
   // Event operations
@@ -55,6 +66,55 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  // Ticket Purchase operations
+  async getTicketPurchase(id: string): Promise<TicketPurchase | undefined> {
+    const [purchase] = await db.select().from(ticketPurchases).where(eq(ticketPurchases.id, id));
+    return purchase || undefined;
+  }
+
+  async getAllTicketPurchases(): Promise<TicketPurchase[]> {
+    return db.select().from(ticketPurchases).orderBy(desc(ticketPurchases.createdAt));
+  }
+
+  async getPendingTicketPurchases(): Promise<TicketPurchase[]> {
+    return db.select().from(ticketPurchases).where(eq(ticketPurchases.status, "pending")).orderBy(desc(ticketPurchases.createdAt));
+  }
+
+  async createTicketPurchase(insertPurchase: InsertTicketPurchase): Promise<TicketPurchase> {
+    const [purchase] = await db
+      .insert(ticketPurchases)
+      .values(insertPurchase)
+      .returning();
+    return purchase;
+  }
+
+  async updateTicketPurchase(id: string, data: Partial<TicketPurchase>): Promise<TicketPurchase | undefined> {
+    const [purchase] = await db
+      .update(ticketPurchases)
+      .set(data)
+      .where(eq(ticketPurchases.id, id))
+      .returning();
+    return purchase || undefined;
+  }
+
+  async verifyTicketPurchase(id: string, ticketId: string): Promise<TicketPurchase | undefined> {
+    const [purchase] = await db
+      .update(ticketPurchases)
+      .set({ status: "verified", ticketId, verifiedAt: new Date() })
+      .where(eq(ticketPurchases.id, id))
+      .returning();
+    return purchase || undefined;
+  }
+
+  async rejectTicketPurchase(id: string, reason: string): Promise<TicketPurchase | undefined> {
+    const [purchase] = await db
+      .update(ticketPurchases)
+      .set({ status: "rejected", rejectionReason: reason, rejectedAt: new Date() })
+      .where(eq(ticketPurchases.id, id))
+      .returning();
+    return purchase || undefined;
+  }
+
   // Ticket operations
   async getTicket(id: string): Promise<Ticket | undefined> {
     const [ticket] = await db.select().from(tickets).where(eq(tickets.id, id));
@@ -63,6 +123,11 @@ export class DatabaseStorage implements IStorage {
 
   async getTicketByReference(referenceCode: string): Promise<Ticket | undefined> {
     const [ticket] = await db.select().from(tickets).where(eq(tickets.referenceCode, referenceCode));
+    return ticket || undefined;
+  }
+
+  async getTicketByQrCode(qrCode: string): Promise<Ticket | undefined> {
+    const [ticket] = await db.select().from(tickets).where(eq(tickets.qrCode, qrCode));
     return ticket || undefined;
   }
 
@@ -87,6 +152,15 @@ export class DatabaseStorage implements IStorage {
     const [ticket] = await db
       .update(tickets)
       .set({ isUsed: true, usedAt: new Date() })
+      .where(eq(tickets.id, id))
+      .returning();
+    return ticket || undefined;
+  }
+
+  async markTicketAsDelivered(id: string): Promise<Ticket | undefined> {
+    const [ticket] = await db
+      .update(tickets)
+      .set({ isDelivered: true, deliveredAt: new Date() })
       .where(eq(tickets.id, id))
       .returning();
     return ticket || undefined;

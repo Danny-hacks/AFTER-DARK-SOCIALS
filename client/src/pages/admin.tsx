@@ -15,9 +15,11 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Ticket, LogIn, LogOut, Plus, Users, CheckCircle, Eye, QrCode, 
   Search, Trash, Calendar, Video, Upload, Music, MapPin, Clock,
-  LayoutDashboard, PartyPopper, Edit, X, Image, Play
+  LayoutDashboard, PartyPopper, Edit, X, Image, Play, CreditCard,
+  Mail, Phone, XCircle, ExternalLink, Loader2
 } from "lucide-react";
-import type { Ticket as TicketType, Event as EventType, HeroSlide as HeroSlideType } from "@shared/schema";
+import { SiWhatsapp } from "react-icons/si";
+import type { Ticket as TicketType, Event as EventType, HeroSlide as HeroSlideType, TicketPurchase as TicketPurchaseType } from "@shared/schema";
 import { TicketGenerator } from "@/components/ticket-generator";
 import { QRScanner } from "@/components/qr-scanner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
@@ -64,7 +66,7 @@ export default function AdminPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [scannedTicket, setScannedTicket] = useState<TicketType | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'events' | 'tickets' | 'hero'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'purchases' | 'events' | 'tickets' | 'hero'>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'used' | 'available'>('all');
   const [filterEventId, setFilterEventId] = useState<string>('all');
@@ -180,10 +182,18 @@ export default function AdminPanel() {
     enabled: isAuthenticated,
   });
 
+  // Fetch ticket purchases
+  const { data: purchasesData, isLoading: purchasesLoading } = useQuery<{purchases: TicketPurchaseType[]}>({
+    queryKey: ['/api/admin/purchases'],
+    enabled: isAuthenticated,
+  });
+
   // Process data
   const allEvents: EventType[] = Array.isArray(eventsData?.events) ? eventsData.events : [];
   const allTickets: TicketType[] = Array.isArray(ticketsData?.tickets) ? ticketsData.tickets : [];
   const allHeroSlides: HeroSlideType[] = Array.isArray(heroSlidesData?.slides) ? heroSlidesData.slides : [];
+  const allPurchases: TicketPurchaseType[] = Array.isArray(purchasesData?.purchases) ? purchasesData.purchases : [];
+  const pendingPurchases = allPurchases.filter(p => p.status === 'pending');
   const pastEvents = allEvents.filter(e => e.isPast);
   const upcomingEvents = allEvents.filter(e => !e.isPast);
 
@@ -357,6 +367,69 @@ export default function AdminPanel() {
     },
   });
 
+  // Verify purchase mutation
+  const verifyPurchaseMutation = useMutation({
+    mutationFn: async (purchaseId: string) => {
+      return apiRequest('POST', `/api/admin/purchases/${purchaseId}/verify`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/purchases'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tickets'] });
+      toast({
+        title: "Purchase Verified!",
+        description: "Ticket has been created. Now send it to the customer.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Verification Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reject purchase mutation
+  const rejectPurchaseMutation = useMutation({
+    mutationFn: async ({ purchaseId, reason }: { purchaseId: string; reason: string }) => {
+      return apiRequest('POST', `/api/admin/purchases/${purchaseId}/reject`, { reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/purchases'] });
+      toast({
+        title: "Purchase Rejected",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Rejection Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Send email ticket mutation
+  const sendEmailMutation = useMutation({
+    mutationFn: async (ticketId: string) => {
+      return apiRequest('POST', `/api/admin/tickets/${ticketId}/send-email`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tickets'] });
+      toast({
+        title: "Email Sent!",
+        description: "Ticket has been delivered to the customer's email.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Email Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Filter tickets
   const filteredTickets = allTickets.filter((ticket) => {
     const ticketEventId = (ticket as TicketType & { eventId?: string | null }).eventId;
@@ -487,6 +560,21 @@ export default function AdminPanel() {
           >
             <LayoutDashboard className="w-4 h-4" />
             Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab('purchases')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'purchases'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+            data-testid="nav-purchases"
+          >
+            <CreditCard className="w-4 h-4" />
+            Purchases
+            {pendingPurchases.length > 0 && (
+              <span className="ml-auto text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full">{pendingPurchases.length}</span>
+            )}
           </button>
           <button
             onClick={() => setActiveTab('events')}
@@ -667,6 +755,226 @@ export default function AdminPanel() {
                 )}
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {/* Purchases Tab */}
+        {activeTab === 'purchases' && (
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-3xl font-bold mb-2">Ticket Purchases</h2>
+              <p className="text-muted-foreground">Review and verify customer payments</p>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-2xl font-bold text-orange-500">{pendingPurchases.length}</div>
+                  <div className="text-sm text-muted-foreground">Pending</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-2xl font-bold text-green-500">{allPurchases.filter(p => p.status === 'verified').length}</div>
+                  <div className="text-sm text-muted-foreground">Verified</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-2xl font-bold text-red-500">{allPurchases.filter(p => p.status === 'rejected').length}</div>
+                  <div className="text-sm text-muted-foreground">Rejected</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-2xl font-bold">{allPurchases.length}</div>
+                  <div className="text-sm text-muted-foreground">Total</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Pending Purchases */}
+            {pendingPurchases.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
+                    Pending Verification ({pendingPurchases.length})
+                  </CardTitle>
+                  <CardDescription>Review payment proofs and verify purchases</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {pendingPurchases.map((purchase) => (
+                    <div key={purchase.id} className="border rounded-lg p-4 space-y-4">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-primary" />
+                            <span className="font-semibold">{purchase.customerName}</span>
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Phone className="w-3 h-3" /> {purchase.customerPhone}
+                            </span>
+                            {purchase.customerEmail && (
+                              <span className="flex items-center gap-1">
+                                <Mail className="w-3 h-3" /> {purchase.customerEmail}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-primary">{purchase.price}</div>
+                          <div className="text-xs text-muted-foreground">{purchase.ticketType}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="bg-muted px-2 py-1 rounded">{purchase.paymentMethod}</span>
+                        <span className="flex items-center gap-1">
+                          {purchase.deliveryMethod === 'whatsapp' ? (
+                            <><SiWhatsapp className="w-3 h-3 text-green-500" /> WhatsApp</>
+                          ) : (
+                            <><Mail className="w-3 h-3" /> Email</>
+                          )}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {purchase.createdAt ? new Date(purchase.createdAt).toLocaleString() : ''}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          onClick={() => verifyPurchaseMutation.mutate(purchase.id)}
+                          disabled={verifyPurchaseMutation.isPending}
+                          className="bg-green-600 hover:bg-green-700"
+                          data-testid={`verify-purchase-${purchase.id}`}
+                        >
+                          {verifyPurchaseMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                          )}
+                          Verify & Create Ticket
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          onClick={() => rejectPurchaseMutation.mutate({ purchaseId: purchase.id, reason: 'Payment not verified' })}
+                          disabled={rejectPurchaseMutation.isPending}
+                          className="text-red-500 border-red-500 hover:bg-red-500/10"
+                          data-testid={`reject-purchase-${purchase.id}`}
+                        >
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* All Purchases */}
+            <Card>
+              <CardHeader>
+                <CardTitle>All Purchases</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {purchasesLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">Loading purchases...</div>
+                ) : allPurchases.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No purchases yet. Customers can buy tickets from the event page.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {allPurchases.map((purchase) => (
+                      <div key={purchase.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-2 h-2 rounded-full ${
+                            purchase.status === 'pending' ? 'bg-orange-500' :
+                            purchase.status === 'verified' ? 'bg-green-500' : 'bg-red-500'
+                          }`}></div>
+                          <div>
+                            <div className="font-medium">{purchase.customerName}</div>
+                            <div className="text-sm text-muted-foreground">{purchase.customerPhone}</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold">{purchase.price}</div>
+                          <div className={`text-xs px-2 py-0.5 rounded ${
+                            purchase.status === 'pending' ? 'bg-orange-100 text-orange-700' :
+                            purchase.status === 'verified' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          }`}>
+                            {purchase.status}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Verified - Ready to Send */}
+            {allPurchases.filter(p => p.status === 'verified' && p.ticketId).length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-green-600">
+                    <CheckCircle className="w-5 h-5" />
+                    Ready to Deliver
+                  </CardTitle>
+                  <CardDescription>Tickets created and waiting to be sent to customers</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {allPurchases.filter(p => p.status === 'verified' && p.ticketId).map((purchase) => {
+                    const ticket = allTickets.find(t => t.id === purchase.ticketId);
+                    return (
+                      <div key={purchase.id} className="border border-green-200 bg-green-50/50 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <div className="font-semibold">{purchase.customerName}</div>
+                            <div className="text-sm text-muted-foreground">{ticket?.referenceCode}</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {purchase.deliveryMethod === 'email' && ticket && (
+                              <Button
+                                onClick={() => sendEmailMutation.mutate(ticket.id)}
+                                disabled={sendEmailMutation.isPending || ticket.isDelivered}
+                                size="sm"
+                                className="bg-blue-600 hover:bg-blue-700"
+                                data-testid={`send-email-${ticket.id}`}
+                              >
+                                {sendEmailMutation.isPending ? (
+                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                ) : (
+                                  <Mail className="w-4 h-4 mr-1" />
+                                )}
+                                {ticket.isDelivered ? 'Sent' : 'Send Email'}
+                              </Button>
+                            )}
+                            {purchase.deliveryMethod === 'whatsapp' && (
+                              <a
+                                href={`https://wa.me/${purchase.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Volume 2 Ticket\n\nHey ${purchase.customerName}!\n\nYour ticket is confirmed!\n\n📱 Reference: ${ticket?.referenceCode || ''}\n🎫 Type: ${purchase.ticketType}\n💰 Price: ${purchase.price}\n🔑 QR Code: ${ticket?.qrCode || ''}\n\n📅 Date: January 30, 2026\n🕙 Time: 10:00 PM - 4:00 AM\n📍 Venue: Shotz, Flic en Flac\n\nShow this message at the door.\n\nSee you at the rave! 🔥`)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700"
+                                data-testid={`send-whatsapp-${purchase.id}`}
+                              >
+                                <SiWhatsapp className="w-4 h-4" />
+                                Send WhatsApp
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 

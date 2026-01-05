@@ -1,7 +1,10 @@
-import { Calendar, MapPin, Clock, Users, CheckCircle, ArrowLeft, Music, Sparkles, Volume2, Navigation, Menu, X, Camera, Video, CreditCard, Ticket, Crown, Check } from "lucide-react";
+import { Calendar, MapPin, Clock, Users, CheckCircle, ArrowLeft, Music, Sparkles, Volume2, Navigation, Menu, X, Camera, Video, CreditCard, Ticket, Crown, Check, Loader2, Mail, Phone, User } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import comingSoonImage from "@assets/AFTR_black_white_1766249732057.jpg";
 import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
@@ -83,10 +86,335 @@ function CountdownTimer({ targetDate }: { targetDate: Date }) {
   );
 }
 
+function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const { toast } = useToast();
+  const [formData, setFormData] = useState({
+    customerName: '',
+    customerEmail: '',
+    customerPhone: '',
+    paymentMethod: 'MCB Bank',
+    deliveryMethod: 'email',
+    quantity: 1,
+  });
+  const [step, setStep] = useState(1);
+
+  const purchaseMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const response = await apiRequest('POST', '/api/tickets/purchase', {
+        ...data,
+        eventId: 'aftr-vol-2',
+        ticketType: 'Early Bird',
+        price: 'Rs 350',
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Purchase Request Submitted!",
+        description: "Please complete payment and send proof via WhatsApp. Your ticket will be sent within 24 hours after verification.",
+      });
+      setStep(3);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit purchase request. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (step === 1) {
+      if (!formData.customerName || !formData.customerPhone) {
+        toast({ title: "Error", description: "Please fill in all required fields", variant: "destructive" });
+        return;
+      }
+      if (formData.deliveryMethod === 'email' && !formData.customerEmail) {
+        toast({ title: "Error", description: "Email is required for email delivery", variant: "destructive" });
+        return;
+      }
+      setStep(2);
+    } else if (step === 2) {
+      purchaseMutation.mutate(formData);
+    }
+  };
+
+  const resetAndClose = () => {
+    setFormData({
+      customerName: '',
+      customerEmail: '',
+      customerPhone: '',
+      paymentMethod: 'MCB Bank',
+      deliveryMethod: 'email',
+      quantity: 1,
+    });
+    setStep(1);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={resetAndClose}>
+      <div className="bg-card border border-border rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold gradient-text">Buy Ticket</h2>
+            <button onClick={resetAndClose} className="text-muted-foreground hover:text-white" data-testid="close-purchase-modal">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {step === 1 && (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 mb-6">
+                <div className="flex justify-between items-center">
+                  <span className="text-white font-semibold">AFTR Early Bird</span>
+                  <span className="text-primary font-bold text-xl">Rs 350</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Full Name *</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={formData.customerName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
+                    className="w-full bg-background border border-border rounded-lg py-3 pl-11 pr-4 text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                    placeholder="Enter your full name"
+                    required
+                    data-testid="input-customer-name"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Phone Number *</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <input
+                    type="tel"
+                    value={formData.customerPhone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, customerPhone: e.target.value }))}
+                    className="w-full bg-background border border-border rounded-lg py-3 pl-11 pr-4 text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                    placeholder="e.g., 58205220"
+                    required
+                    data-testid="input-customer-phone"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Email {formData.deliveryMethod === 'email' ? '*' : '(optional)'}</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <input
+                    type="email"
+                    value={formData.customerEmail}
+                    onChange={(e) => setFormData(prev => ({ ...prev, customerEmail: e.target.value }))}
+                    className="w-full bg-background border border-border rounded-lg py-3 pl-11 pr-4 text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                    placeholder="your@email.com"
+                    required={formData.deliveryMethod === 'email'}
+                    data-testid="input-customer-email"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Payment Method</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['MCB Bank', 'Juice', 'Cash'].map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, paymentMethod: method }))}
+                      className={`py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                        formData.paymentMethod === method
+                          ? 'bg-primary text-white'
+                          : 'bg-background border border-border text-muted-foreground hover:border-primary'
+                      }`}
+                      data-testid={`payment-method-${method.toLowerCase().replace(' ', '-')}`}
+                    >
+                      {method}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Ticket Delivery</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, deliveryMethod: 'email' }))}
+                    className={`py-3 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                      formData.deliveryMethod === 'email'
+                        ? 'bg-primary text-white'
+                        : 'bg-background border border-border text-muted-foreground hover:border-primary'
+                    }`}
+                    data-testid="delivery-email"
+                  >
+                    <Mail className="w-4 h-4" /> Email
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, deliveryMethod: 'whatsapp' }))}
+                    className={`py-3 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                      formData.deliveryMethod === 'whatsapp'
+                        ? 'bg-[#25D366] text-white'
+                        : 'bg-background border border-border text-muted-foreground hover:border-[#25D366]'
+                    }`}
+                    data-testid="delivery-whatsapp"
+                  >
+                    <SiWhatsapp className="w-4 h-4" /> WhatsApp
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full gradient-bg text-white font-bold py-4 rounded-lg hover:opacity-90 transition-opacity mt-6"
+                data-testid="continue-to-payment"
+              >
+                Continue to Payment
+              </button>
+            </form>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-6">
+              <div className="bg-muted rounded-xl p-4">
+                <h3 className="font-bold text-white mb-3">Order Summary</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Name:</span>
+                    <span className="text-white">{formData.customerName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Phone:</span>
+                    <span className="text-white">{formData.customerPhone}</span>
+                  </div>
+                  {formData.customerEmail && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Email:</span>
+                      <span className="text-white">{formData.customerEmail}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Payment:</span>
+                    <span className="text-white">{formData.paymentMethod}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Delivery:</span>
+                    <span className="text-white capitalize">{formData.deliveryMethod}</span>
+                  </div>
+                  <div className="border-t border-border pt-2 mt-2 flex justify-between font-bold">
+                    <span className="text-white">Total:</span>
+                    <span className="text-primary">Rs 350</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-4">
+                <h4 className="font-bold text-white mb-3">Payment Details</h4>
+                {formData.paymentMethod === 'MCB Bank' && (
+                  <div className="space-y-2">
+                    <div className="text-sm text-muted-foreground">Bank Account:</div>
+                    <div className="font-mono text-lg font-bold text-primary bg-background p-3 rounded-lg">000453915337</div>
+                    <div className="text-xs text-muted-foreground">MCB - AFTR Account</div>
+                  </div>
+                )}
+                {formData.paymentMethod === 'Juice' && (
+                  <div className="space-y-2">
+                    <div className="text-sm text-muted-foreground">Juice Number:</div>
+                    <div className="font-mono text-lg font-bold text-primary bg-background p-3 rounded-lg">58205220</div>
+                  </div>
+                )}
+                {formData.paymentMethod === 'Cash' && (
+                  <div className="space-y-2">
+                    <div className="text-sm text-muted-foreground">Contact for Cash Pickup:</div>
+                    <div className="font-mono text-lg font-bold text-primary bg-background p-3 rounded-lg">58205220</div>
+                  </div>
+                )}
+                <div className="mt-3 p-3 bg-primary/10 border border-primary/30 rounded-lg">
+                  <div className="text-sm text-primary font-medium">Reference: AFTR-2-{formData.customerName.toUpperCase().replace(/\s+/g, '-')}</div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="flex-1 bg-background border border-border text-white font-semibold py-3 rounded-lg hover:bg-muted transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={purchaseMutation.isPending}
+                  className="flex-1 gradient-bg text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                  data-testid="confirm-purchase"
+                >
+                  {purchaseMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Confirm Purchase'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="text-center space-y-6">
+              <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle className="w-10 h-10 text-green-500" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">Purchase Request Submitted!</h3>
+                <p className="text-muted-foreground">
+                  Please complete your payment and send proof via WhatsApp. Your ticket will be sent within 24 hours after we verify your payment.
+                </p>
+              </div>
+              
+              <a
+                href={`https://wa.me/23058205220?text=${encodeURIComponent(`Hi! I just submitted a purchase for AFTR Volume 2.\n\nName: ${formData.customerName}\nPhone: ${formData.customerPhone}\nPayment Method: ${formData.paymentMethod}\n\nI will send my payment proof now.`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 bg-[#25D366] text-white font-bold py-4 px-6 rounded-lg hover:bg-[#1da851] transition-colors w-full"
+                data-testid="send-whatsapp-proof"
+              >
+                <SiWhatsapp className="w-5 h-5" />
+                Send Payment Proof via WhatsApp
+              </a>
+
+              <button
+                onClick={resetAndClose}
+                className="text-muted-foreground hover:text-white transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function EventPage() {
   const eventDate = new Date('2026-01-30T22:00:00+04:00');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -368,17 +696,13 @@ export default function EventPage() {
                 </li>
               </ul>
               <div className="text-center">
-                <a 
-                  href="#payment-instructions"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    document.getElementById('payment-instructions')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="inline-block w-full gradient-bg text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity mb-3"
+                <button 
+                  onClick={() => setPurchaseModalOpen(true)}
+                  className="w-full gradient-bg text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity mb-3"
                   data-testid="buy-early-bird-btn"
                 >
                   Buy Now
-                </a>
+                </button>
                 <div className="text-sm text-primary font-semibold bg-primary/10 px-4 py-2 rounded-lg">
                   5th Jan - 25th Jan 2026
                 </div>
@@ -570,6 +894,12 @@ export default function EventPage() {
           </p>
         </div>
       </footer>
+
+      {/* Purchase Modal */}
+      <TicketPurchaseModal 
+        isOpen={purchaseModalOpen} 
+        onClose={() => setPurchaseModalOpen(false)} 
+      />
     </div>
   );
 }
