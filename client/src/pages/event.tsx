@@ -91,6 +91,7 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   const [formData, setFormData] = useState({
     customerName: '',
     customerEmail: '',
+    countryCode: '+230',
     customerPhone: '',
     paymentMethod: 'MCB Bank',
     deliveryMethod: 'email',
@@ -101,7 +102,12 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   const purchaseMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const response = await apiRequest('POST', '/api/tickets/purchase', {
-        ...data,
+        customerName: data.customerName,
+        customerEmail: data.customerEmail,
+        customerPhone: `${data.countryCode}${data.customerPhone}`,
+        paymentMethod: data.paymentMethod,
+        deliveryMethod: data.deliveryMethod,
+        quantity: data.quantity,
         eventId: 'aftr-vol-2',
         ticketType: 'Early Bird',
         price: 'Rs 350',
@@ -145,6 +151,7 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
     setFormData({
       customerName: '',
       customerEmail: '',
+      countryCode: '+230',
       customerPhone: '',
       paymentMethod: 'MCB Bank',
       deliveryMethod: 'email',
@@ -153,6 +160,8 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
     setStep(1);
     onClose();
   };
+
+  const fullPhoneNumber = `${formData.countryCode}${formData.customerPhone}`;
 
   if (!isOpen) return null;
 
@@ -194,17 +203,35 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-2">Phone Number *</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
-                    type="tel"
-                    value={formData.customerPhone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, customerPhone: e.target.value }))}
-                    className="w-full bg-background border border-border rounded-lg py-3 pl-11 pr-4 text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-                    placeholder="e.g., 58205220"
-                    required
-                    data-testid="input-customer-phone"
-                  />
+                <div className="flex gap-2">
+                  <select
+                    value={formData.countryCode}
+                    onChange={(e) => setFormData(prev => ({ ...prev, countryCode: e.target.value }))}
+                    className="bg-background border border-border rounded-lg py-3 px-3 text-white focus:outline-none focus:border-primary w-[110px]"
+                    data-testid="select-country-code"
+                  >
+                    <option value="+230">+230 MU</option>
+                    <option value="+33">+33 FR</option>
+                    <option value="+44">+44 UK</option>
+                    <option value="+1">+1 US</option>
+                    <option value="+27">+27 ZA</option>
+                    <option value="+91">+91 IN</option>
+                    <option value="+86">+86 CN</option>
+                    <option value="+61">+61 AU</option>
+                    <option value="+971">+971 AE</option>
+                  </select>
+                  <div className="relative flex-1">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <input
+                      type="tel"
+                      value={formData.customerPhone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, customerPhone: e.target.value.replace(/\D/g, '') }))}
+                      className="w-full bg-background border border-border rounded-lg py-3 pl-11 pr-4 text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                      placeholder="58205220"
+                      required
+                      data-testid="input-customer-phone"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -296,7 +323,7 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Phone:</span>
-                    <span className="text-white">{formData.customerPhone}</span>
+                    <span className="text-white">{fullPhoneNumber}</span>
                   </div>
                   {formData.customerEmail && (
                     <div className="flex justify-between">
@@ -386,7 +413,7 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
               </div>
               
               <a
-                href={`https://wa.me/23058205220?text=${encodeURIComponent(`Hi! I just submitted a purchase for AFTR Volume 2.\n\nName: ${formData.customerName}\nPhone: ${formData.customerPhone}\nPayment Method: ${formData.paymentMethod}\n\nI will send my payment proof now.`)}`}
+                href={`https://wa.me/23058205220?text=${encodeURIComponent(`Hi! I just submitted a purchase for AFTR Volume 2.\n\nName: ${formData.customerName}\nPhone: ${fullPhoneNumber}\nPayment Method: ${formData.paymentMethod}\n\nI will send my payment proof now.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 bg-[#25D366] text-white font-bold py-4 px-6 rounded-lg hover:bg-[#1da851] transition-colors w-full"
