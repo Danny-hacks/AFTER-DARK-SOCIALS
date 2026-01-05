@@ -206,11 +206,12 @@ export default function AdminPanel() {
   
   // Filter Vol.2 tickets based on search and status
   const filteredVol2Tickets = vol2Tickets.filter(ticket => {
+    const searchLower = vol2SearchQuery.toLowerCase();
     const matchesSearch = vol2SearchQuery === '' || 
-      ticket.customerName.toLowerCase().includes(vol2SearchQuery.toLowerCase()) ||
-      ticket.referenceCode.toLowerCase().includes(vol2SearchQuery.toLowerCase()) ||
-      ticket.customerEmail?.toLowerCase().includes(vol2SearchQuery.toLowerCase()) ||
-      ticket.customerPhone?.toLowerCase().includes(vol2SearchQuery.toLowerCase());
+      ticket.customerName.toLowerCase().includes(searchLower) ||
+      ticket.referenceCode.toLowerCase().includes(searchLower) ||
+      (ticket.customerEmail ?? '').toLowerCase().includes(searchLower) ||
+      (ticket.customerPhone ?? '').toLowerCase().includes(searchLower);
     
     const matchesStatus = vol2FilterStatus === 'all' ||
       (vol2FilterStatus === 'used' && ticket.isUsed) ||
