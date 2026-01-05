@@ -16,7 +16,7 @@ import {
   Ticket, LogIn, LogOut, Plus, Users, CheckCircle, Eye, QrCode, 
   Search, Trash, Calendar, Video, Upload, Music, MapPin, Clock,
   LayoutDashboard, PartyPopper, Edit, X, Image, Play, CreditCard,
-  Mail, Phone, XCircle, ExternalLink, Loader2
+  Mail, Phone, XCircle, ExternalLink, Loader2, ChevronDown, ChevronUp
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import type { Ticket as TicketType, Event as EventType, HeroSlide as HeroSlideType, TicketPurchase as TicketPurchaseType } from "@shared/schema";
@@ -73,6 +73,10 @@ export default function AdminPanel() {
   const [vol2SearchQuery, setVol2SearchQuery] = useState('');
   const [vol2FilterStatus, setVol2FilterStatus] = useState<'all' | 'used' | 'available'>('all');
   const [showCreateEvent, setShowCreateEvent] = useState(false);
+  // Collapsible section states for Purchases tab
+  const [pendingExpanded, setPendingExpanded] = useState(true);
+  const [readyToDeliverExpanded, setReadyToDeliverExpanded] = useState(true);
+  const [vol2TicketsExpanded, setVol2TicketsExpanded] = useState(true);
   const [editingEvent, setEditingEvent] = useState<EventType | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -820,14 +824,21 @@ export default function AdminPanel() {
             {/* Pending Purchases */}
             {pendingPurchases.length > 0 && (
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
-                    Pending Verification ({pendingPurchases.length})
+                <CardHeader 
+                  className="cursor-pointer select-none" 
+                  onClick={() => setPendingExpanded(!pendingExpanded)}
+                  data-testid="toggle-pending-purchases"
+                >
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
+                      Pending Verification ({pendingPurchases.length})
+                    </div>
+                    {pendingExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                   </CardTitle>
                   <CardDescription>Review payment proofs and verify purchases</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                {pendingExpanded && <CardContent className="space-y-4">
                   {pendingPurchases.map((purchase) => (
                     <div key={purchase.id} className="border rounded-lg p-4 space-y-4">
                       <div className="flex items-start justify-between">
@@ -894,7 +905,7 @@ export default function AdminPanel() {
                       </div>
                     </div>
                   ))}
-                </CardContent>
+                </CardContent>}
               </Card>
             )}
 
@@ -943,14 +954,21 @@ export default function AdminPanel() {
             {/* Verified - Ready to Send */}
             {allPurchases.filter(p => p.status === 'verified' && p.ticketId).length > 0 && (
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-green-600">
-                    <CheckCircle className="w-5 h-5" />
-                    Ready to Deliver
+                <CardHeader 
+                  className="cursor-pointer select-none" 
+                  onClick={() => setReadyToDeliverExpanded(!readyToDeliverExpanded)}
+                  data-testid="toggle-ready-to-deliver"
+                >
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-green-600">
+                      <CheckCircle className="w-5 h-5" />
+                      Ready to Deliver ({allPurchases.filter(p => p.status === 'verified' && p.ticketId).length})
+                    </div>
+                    {readyToDeliverExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                   </CardTitle>
                   <CardDescription>Tickets created and waiting to be sent to customers</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                {readyToDeliverExpanded && <CardContent className="space-y-4">
                   {allPurchases.filter(p => p.status === 'verified' && p.ticketId).map((purchase) => {
                     const ticket = allTickets.find(t => t.id === purchase.ticketId);
                     return (
@@ -995,22 +1013,29 @@ export default function AdminPanel() {
                       </div>
                     );
                   })}
-                </CardContent>
+                </CardContent>}
               </Card>
             )}
 
             {/* Vol.2 Ticket Management Section */}
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-2xl font-bold flex items-center gap-2">
-                  <Ticket className="w-6 h-6 text-primary" />
-                  AFTR Vol.2 Tickets
-                </h3>
-                <p className="text-muted-foreground">Manage tickets for Volume 2 event</p>
-              </div>
-
-              {/* Vol.2 Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader 
+                className="cursor-pointer select-none" 
+                onClick={() => setVol2TicketsExpanded(!vol2TicketsExpanded)}
+                data-testid="toggle-vol2-tickets"
+              >
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Ticket className="w-5 h-5 text-primary" />
+                    AFTR Vol.2 Tickets ({vol2Tickets.length})
+                  </div>
+                  {vol2TicketsExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                </CardTitle>
+                <CardDescription>Manage tickets for Volume 2 event</CardDescription>
+              </CardHeader>
+              {vol2TicketsExpanded && <CardContent className="space-y-4">
+                {/* Vol.2 Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
@@ -1159,7 +1184,8 @@ export default function AdminPanel() {
                   )}
                 </CardContent>
               </Card>
-            </div>
+              </CardContent>}
+            </Card>
           </div>
         )}
 
