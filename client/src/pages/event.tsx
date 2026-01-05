@@ -207,18 +207,53 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                   <select
                     value={formData.countryCode}
                     onChange={(e) => setFormData(prev => ({ ...prev, countryCode: e.target.value }))}
-                    className="bg-background border border-border rounded-lg py-3 px-3 text-white focus:outline-none focus:border-primary w-[110px]"
+                    className="bg-background border border-border rounded-lg py-3 px-3 text-white focus:outline-none focus:border-primary w-[130px]"
                     data-testid="select-country-code"
                   >
-                    <option value="+230">+230 MU</option>
-                    <option value="+33">+33 FR</option>
-                    <option value="+44">+44 UK</option>
-                    <option value="+1">+1 US</option>
-                    <option value="+27">+27 ZA</option>
-                    <option value="+91">+91 IN</option>
-                    <option value="+86">+86 CN</option>
-                    <option value="+61">+61 AU</option>
-                    <option value="+971">+971 AE</option>
+                    <optgroup label="── Default ──">
+                      <option value="+230">+230 Mauritius</option>
+                    </optgroup>
+                    <optgroup label="── Africa ──">
+                      <option value="+213">+213 Algeria</option>
+                      <option value="+267">+267 Botswana</option>
+                      <option value="+257">+257 Burundi</option>
+                      <option value="+237">+237 Cameroon</option>
+                      <option value="+269">+269 Comoros</option>
+                      <option value="+20">+20 Egypt</option>
+                      <option value="+268">+268 Eswatini</option>
+                      <option value="+251">+251 Ethiopia</option>
+                      <option value="+233">+233 Ghana</option>
+                      <option value="+225">+225 Ivory Coast</option>
+                      <option value="+254">+254 Kenya</option>
+                      <option value="+266">+266 Lesotho</option>
+                      <option value="+261">+261 Madagascar</option>
+                      <option value="+265">+265 Malawi</option>
+                      <option value="+212">+212 Morocco</option>
+                      <option value="+258">+258 Mozambique</option>
+                      <option value="+264">+264 Namibia</option>
+                      <option value="+234">+234 Nigeria</option>
+                      <option value="+262">+262 Réunion</option>
+                      <option value="+250">+250 Rwanda</option>
+                      <option value="+221">+221 Senegal</option>
+                      <option value="+248">+248 Seychelles</option>
+                      <option value="+27">+27 South Africa</option>
+                      <option value="+255">+255 Tanzania</option>
+                      <option value="+216">+216 Tunisia</option>
+                      <option value="+256">+256 Uganda</option>
+                      <option value="+260">+260 Zambia</option>
+                      <option value="+263">+263 Zimbabwe</option>
+                    </optgroup>
+                    <optgroup label="── Tourist Countries ──">
+                      <option value="+61">+61 Australia</option>
+                      <option value="+86">+86 China</option>
+                      <option value="+33">+33 France</option>
+                      <option value="+49">+49 Germany</option>
+                      <option value="+91">+91 India</option>
+                      <option value="+39">+39 Italy</option>
+                      <option value="+41">+41 Switzerland</option>
+                      <option value="+971">+971 UAE</option>
+                      <option value="+44">+44 UK</option>
+                    </optgroup>
                   </select>
                   <div className="relative flex-1">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
