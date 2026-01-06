@@ -1130,7 +1130,7 @@ export default function AdminPanel() {
                                       {isSent ? (
                                         <Button
                                           onClick={() => {
-                                            const whatsappUrl = `https://wa.me/${purchase.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`🔥 AFTR VOL.2 TICKET 🔥\n\n━━━━━━━━━━━━━━━━━\nADMIT ONE\n${purchase.customerName.toUpperCase()}\n━━━━━━━━━━━━━━━━━\n\n📱 Ref: ${ticket?.referenceCode || ''}\n🎫 ${purchase.ticketType}\n💰 ${purchase.price}\n🔑 QR: ${ticket?.qrCode || ''}\n\n📅 JAN 30, 2026\n🕙 10PM - 4AM\n📍 Shotz, Flic en Flac\n\n━━━━━━━━━━━━━━━━━\nScreenshot this ticket.\nShow at door for entry.\n━━━━━━━━━━━━━━━━━`)}`;
+                                            const whatsappUrl = `https://wa.me/${purchase.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Rave Ticket is Ready! 🎉\n\n📧 Customer: ${purchase.customerName}\n🎫 Reference: ${ticket?.referenceCode || ''}\n💰 Price: ${purchase.price}\n📅 Date: January 30, 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10PM\n\nYour digital ticket PDF will be downloaded automatically.\n\nSee you on the dance floor! 🎵🔥`)}`;
                                             window.open(whatsappUrl, '_blank');
                                           }}
                                           size="sm"
@@ -1145,7 +1145,7 @@ export default function AdminPanel() {
                                         <Button
                                           onClick={() => {
                                             markDeliveredMutation.mutate(ticket.id);
-                                            const whatsappUrl = `https://wa.me/${purchase.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`🔥 AFTR VOL.2 TICKET 🔥\n\n━━━━━━━━━━━━━━━━━\nADMIT ONE\n${purchase.customerName.toUpperCase()}\n━━━━━━━━━━━━━━━━━\n\n📱 Ref: ${ticket?.referenceCode || ''}\n🎫 ${purchase.ticketType}\n💰 ${purchase.price}\n🔑 QR: ${ticket?.qrCode || ''}\n\n📅 JAN 30, 2026\n🕙 10PM - 4AM\n📍 Shotz, Flic en Flac\n\n━━━━━━━━━━━━━━━━━\nScreenshot this ticket.\nShow at door for entry.\n━━━━━━━━━━━━━━━━━`)}`;
+                                            const whatsappUrl = `https://wa.me/${purchase.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Rave Ticket is Ready! 🎉\n\n📧 Customer: ${purchase.customerName}\n🎫 Reference: ${ticket?.referenceCode || ''}\n💰 Price: ${purchase.price}\n📅 Date: January 30, 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10PM\n\nYour digital ticket PDF will be downloaded automatically.\n\nSee you on the dance floor! 🎵🔥`)}`;
                                             window.open(whatsappUrl, '_blank');
                                           }}
                                           disabled={markDeliveredMutation.isPending}
