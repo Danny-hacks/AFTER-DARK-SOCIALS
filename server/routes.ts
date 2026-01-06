@@ -149,6 +149,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/admin/tickets/:id/deliver", requireAuth, async (req, res) => {
+    try {
+      const ticket = await storage.markTicketAsDelivered(req.params.id);
+      if (!ticket) {
+        return res.status(404).json({ error: "Ticket not found" });
+      }
+      res.json({ success: true, ticket });
+    } catch (error) {
+      console.error("Error marking ticket as delivered:", error);
+      res.status(500).json({ error: "Failed to mark ticket as delivered" });
+    }
+  });
+
   app.delete("/api/admin/tickets/:id", requireAuth, async (req, res) => {
     try {
       const deleted = await storage.deleteTicket(req.params.id);

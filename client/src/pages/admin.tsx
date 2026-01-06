@@ -73,10 +73,14 @@ export default function AdminPanel() {
   const [vol2SearchQuery, setVol2SearchQuery] = useState('');
   const [vol2FilterStatus, setVol2FilterStatus] = useState<'all' | 'used' | 'available'>('all');
   const [showCreateEvent, setShowCreateEvent] = useState(false);
-  // Collapsible section states for Purchases tab
-  const [pendingExpanded, setPendingExpanded] = useState(true);
-  const [readyToDeliverExpanded, setReadyToDeliverExpanded] = useState(true);
-  const [vol2TicketsExpanded, setVol2TicketsExpanded] = useState(true);
+  // Purchases sub-tab state
+  const [purchasesSubTab, setPurchasesSubTab] = useState<'all' | 'ready' | 'vol2'>('all');
+  // Search and filter for All Purchases tab
+  const [allPurchasesSearch, setAllPurchasesSearch] = useState('');
+  const [allPurchasesFilter, setAllPurchasesFilter] = useState<'all' | 'pending' | 'verified' | 'rejected'>('all');
+  // Search and filter for Ready to Deliver tab
+  const [readyToDeliverSearch, setReadyToDeliverSearch] = useState('');
+  const [readyToDeliverFilter, setReadyToDeliverFilter] = useState<'all' | 'pending' | 'sent'>('all');
   const [editingEvent, setEditingEvent] = useState<EventType | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -222,6 +226,40 @@ export default function AdminPanel() {
       (vol2FilterStatus === 'available' && !ticket.isUsed);
     
     return matchesSearch && matchesStatus;
+  });
+
+  // Ready to Deliver purchases (verified with ticket)
+  const readyToDeliverPurchases = allPurchases.filter(p => p.status === 'verified' && p.ticketId);
+
+  // Filter All Purchases based on search and status
+  const filteredAllPurchases = allPurchases.filter(purchase => {
+    const searchLower = allPurchasesSearch.toLowerCase();
+    const matchesSearch = allPurchasesSearch === '' ||
+      purchase.customerName.toLowerCase().includes(searchLower) ||
+      (purchase.customerEmail ?? '').toLowerCase().includes(searchLower) ||
+      purchase.customerPhone.toLowerCase().includes(searchLower);
+    
+    const matchesFilter = allPurchasesFilter === 'all' || purchase.status === allPurchasesFilter;
+    
+    return matchesSearch && matchesFilter;
+  });
+
+  // Filter Ready to Deliver based on search and sent status
+  const filteredReadyToDeliver = readyToDeliverPurchases.filter(purchase => {
+    const ticket = allTickets.find(t => t.id === purchase.ticketId);
+    const searchLower = readyToDeliverSearch.toLowerCase();
+    const matchesSearch = readyToDeliverSearch === '' ||
+      purchase.customerName.toLowerCase().includes(searchLower) ||
+      (purchase.customerEmail ?? '').toLowerCase().includes(searchLower) ||
+      purchase.customerPhone.toLowerCase().includes(searchLower) ||
+      (ticket?.referenceCode ?? '').toLowerCase().includes(searchLower);
+    
+    const isSent = ticket?.isDelivered ?? false;
+    const matchesFilter = readyToDeliverFilter === 'all' ||
+      (readyToDeliverFilter === 'sent' && isSent) ||
+      (readyToDeliverFilter === 'pending' && !isSent);
+    
+    return matchesSearch && matchesFilter;
   });
 
   // Create event mutation
@@ -451,6 +489,27 @@ export default function AdminPanel() {
     onError: (error) => {
       toast({
         title: "Email Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mark ticket as delivered (for WhatsApp tracking)
+  const markDeliveredMutation = useMutation({
+    mutationFn: async (ticketId: string) => {
+      return apiRequest('PATCH', `/api/admin/tickets/${ticketId}/deliver`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/tickets'] });
+      toast({
+        title: "Marked as Sent",
+        description: "Ticket delivery has been recorded.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Update",
         description: error.message,
         variant: "destructive",
       });
@@ -790,405 +849,498 @@ export default function AdminPanel() {
 
         {/* Purchases Tab */}
         {activeTab === 'purchases' && (
-          <div className="space-y-8">
+          <div className="space-y-6">
             <div>
               <h2 className="text-3xl font-bold mb-2">Ticket Purchases</h2>
               <p className="text-muted-foreground">Review and verify customer payments</p>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-orange-500">{pendingPurchases.length}</div>
-                  <div className="text-sm text-muted-foreground">Pending</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-green-500">{allPurchases.filter(p => p.status === 'verified').length}</div>
-                  <div className="text-sm text-muted-foreground">Verified</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-red-500">{allPurchases.filter(p => p.status === 'rejected').length}</div>
-                  <div className="text-sm text-muted-foreground">Rejected</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-2xl font-bold">{allPurchases.length}</div>
-                  <div className="text-sm text-muted-foreground">Total</div>
-                </CardContent>
-              </Card>
+            {/* Sub-tabs Navigation */}
+            <div className="flex gap-2 border-b pb-2">
+              <button
+                onClick={() => setPurchasesSubTab('all')}
+                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+                  purchasesSubTab === 'all'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted'
+                }`}
+                data-testid="purchases-subtab-all"
+              >
+                All Purchases
+                <span className="ml-2 text-xs bg-muted px-2 py-0.5 rounded">{allPurchases.length}</span>
+              </button>
+              <button
+                onClick={() => setPurchasesSubTab('ready')}
+                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+                  purchasesSubTab === 'ready'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted'
+                }`}
+                data-testid="purchases-subtab-ready"
+              >
+                Ready to Deliver
+                <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">{readyToDeliverPurchases.length}</span>
+              </button>
+              <button
+                onClick={() => setPurchasesSubTab('vol2')}
+                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+                  purchasesSubTab === 'vol2'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted'
+                }`}
+                data-testid="purchases-subtab-vol2"
+              >
+                Vol.2 Tickets
+                <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">{vol2Tickets.length}</span>
+              </button>
             </div>
 
-            {/* Pending Purchases */}
-            {pendingPurchases.length > 0 && (
-              <Card>
-                <CardHeader 
-                  className="cursor-pointer select-none" 
-                  onClick={() => setPendingExpanded(!pendingExpanded)}
-                  data-testid="toggle-pending-purchases"
-                >
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
-                      Pending Verification ({pendingPurchases.length})
-                    </div>
-                    {pendingExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                  </CardTitle>
-                  <CardDescription>Review payment proofs and verify purchases</CardDescription>
-                </CardHeader>
-                {pendingExpanded && <CardContent className="space-y-4">
-                  {pendingPurchases.map((purchase) => (
-                    <div key={purchase.id} className="border rounded-lg p-4 space-y-4">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-primary" />
-                            <span className="font-semibold">{purchase.customerName}</span>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Phone className="w-3 h-3" /> {purchase.customerPhone}
-                            </span>
-                            {purchase.customerEmail && (
+            {/* ALL PURCHASES SUB-TAB */}
+            {purchasesSubTab === 'all' && (
+              <div className="space-y-6">
+                {/* Stats Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-orange-500">{pendingPurchases.length}</div>
+                      <div className="text-sm text-muted-foreground">Pending</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-green-500">{allPurchases.filter(p => p.status === 'verified').length}</div>
+                      <div className="text-sm text-muted-foreground">Verified</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-red-500">{allPurchases.filter(p => p.status === 'rejected').length}</div>
+                      <div className="text-sm text-muted-foreground">Rejected</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold">{allPurchases.length}</div>
+                      <div className="text-sm text-muted-foreground">Total</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Search and Filter */}
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex-1 min-w-[200px] relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name, email, or phone..."
+                      value={allPurchasesSearch}
+                      onChange={(e) => setAllPurchasesSearch(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-search-all-purchases"
+                    />
+                  </div>
+                  <Select value={allPurchasesFilter} onValueChange={(v: 'all' | 'pending' | 'verified' | 'rejected') => setAllPurchasesFilter(v)}>
+                    <SelectTrigger className="w-40" data-testid="select-filter-all-purchases">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="verified">Verified</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Purchases List */}
+                <Card>
+                  <CardContent className="p-4">
+                    {purchasesLoading ? (
+                      <div className="text-center py-8 text-muted-foreground">Loading purchases...</div>
+                    ) : filteredAllPurchases.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        {allPurchases.length === 0 
+                          ? "No purchases yet. Customers can buy tickets from the event page."
+                          : "No purchases match your search criteria."}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {filteredAllPurchases.map((purchase) => (
+                          <div key={purchase.id} className="border rounded-lg p-4 space-y-3">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-2 h-2 rounded-full ${
+                                    purchase.status === 'pending' ? 'bg-orange-500' :
+                                    purchase.status === 'verified' ? 'bg-green-500' : 'bg-red-500'
+                                  }`}></div>
+                                  <span className="font-semibold">{purchase.customerName}</span>
+                                </div>
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                  <span className="flex items-center gap-1">
+                                    <Phone className="w-3 h-3" /> {purchase.customerPhone}
+                                  </span>
+                                  {purchase.customerEmail && (
+                                    <span className="flex items-center gap-1">
+                                      <Mail className="w-3 h-3" /> {purchase.customerEmail}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-bold">{purchase.price}</div>
+                                <div className={`text-xs px-2 py-0.5 rounded inline-block ${
+                                  purchase.status === 'pending' ? 'bg-orange-100 text-orange-700' :
+                                  purchase.status === 'verified' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                }`}>
+                                  {purchase.status}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-4 text-sm">
+                              <span className="bg-muted px-2 py-1 rounded">{purchase.paymentMethod}</span>
                               <span className="flex items-center gap-1">
-                                <Mail className="w-3 h-3" /> {purchase.customerEmail}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold text-primary">{purchase.price}</div>
-                          <div className="text-xs text-muted-foreground">{purchase.ticketType}</div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="bg-muted px-2 py-1 rounded">{purchase.paymentMethod}</span>
-                        <span className="flex items-center gap-1">
-                          {purchase.deliveryMethod === 'whatsapp' ? (
-                            <><SiWhatsapp className="w-3 h-3 text-green-500" /> WhatsApp</>
-                          ) : (
-                            <><Mail className="w-3 h-3" /> Email</>
-                          )}
-                        </span>
-                        <span className="text-muted-foreground">
-                          {purchase.createdAt ? new Date(purchase.createdAt).toLocaleString() : ''}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          onClick={() => verifyPurchaseMutation.mutate(purchase.id)}
-                          disabled={verifyPurchaseMutation.isPending}
-                          className="bg-green-600 hover:bg-green-700"
-                          data-testid={`verify-purchase-${purchase.id}`}
-                        >
-                          {verifyPurchaseMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                          )}
-                          Verify & Create Ticket
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          onClick={() => rejectPurchaseMutation.mutate({ purchaseId: purchase.id, reason: 'Payment not verified' })}
-                          disabled={rejectPurchaseMutation.isPending}
-                          className="text-red-500 border-red-500 hover:bg-red-500/10"
-                          data-testid={`reject-purchase-${purchase.id}`}
-                        >
-                          <XCircle className="w-4 h-4 mr-2" />
-                          Reject
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>}
-              </Card>
-            )}
-
-            {/* All Purchases */}
-            <Card>
-              <CardHeader>
-                <CardTitle>All Purchases</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {purchasesLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">Loading purchases...</div>
-                ) : allPurchases.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No purchases yet. Customers can buy tickets from the event page.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {allPurchases.map((purchase) => (
-                      <div key={purchase.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-2 h-2 rounded-full ${
-                            purchase.status === 'pending' ? 'bg-orange-500' :
-                            purchase.status === 'verified' ? 'bg-green-500' : 'bg-red-500'
-                          }`}></div>
-                          <div>
-                            <div className="font-medium">{purchase.customerName}</div>
-                            <div className="text-sm text-muted-foreground">{purchase.customerPhone}</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-semibold">{purchase.price}</div>
-                          <div className={`text-xs px-2 py-0.5 rounded ${
-                            purchase.status === 'pending' ? 'bg-orange-100 text-orange-700' :
-                            purchase.status === 'verified' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                          }`}>
-                            {purchase.status}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Verified - Ready to Send */}
-            {allPurchases.filter(p => p.status === 'verified' && p.ticketId).length > 0 && (
-              <Card>
-                <CardHeader 
-                  className="cursor-pointer select-none" 
-                  onClick={() => setReadyToDeliverExpanded(!readyToDeliverExpanded)}
-                  data-testid="toggle-ready-to-deliver"
-                >
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-green-600">
-                      <CheckCircle className="w-5 h-5" />
-                      Ready to Deliver ({allPurchases.filter(p => p.status === 'verified' && p.ticketId).length})
-                    </div>
-                    {readyToDeliverExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                  </CardTitle>
-                  <CardDescription>Tickets created and waiting to be sent to customers</CardDescription>
-                </CardHeader>
-                {readyToDeliverExpanded && <CardContent className="space-y-4">
-                  {allPurchases.filter(p => p.status === 'verified' && p.ticketId).map((purchase) => {
-                    const ticket = allTickets.find(t => t.id === purchase.ticketId);
-                    return (
-                      <div key={purchase.id} className="border border-green-200 bg-green-50/50 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div>
-                            <div className="font-semibold">{purchase.customerName}</div>
-                            <div className="text-sm text-muted-foreground">{ticket?.referenceCode}</div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {purchase.deliveryMethod === 'email' && ticket && (
-                              <Button
-                                onClick={() => sendEmailMutation.mutate(ticket.id)}
-                                disabled={sendEmailMutation.isPending || ticket.isDelivered}
-                                size="sm"
-                                className="bg-blue-600 hover:bg-blue-700"
-                                data-testid={`send-email-${ticket.id}`}
-                              >
-                                {sendEmailMutation.isPending ? (
-                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                {purchase.deliveryMethod === 'whatsapp' ? (
+                                  <><SiWhatsapp className="w-3 h-3 text-green-500" /> WhatsApp</>
                                 ) : (
-                                  <Mail className="w-4 h-4 mr-1" />
+                                  <><Mail className="w-3 h-3" /> Email</>
                                 )}
-                                {ticket.isDelivered ? 'Sent' : 'Send Email'}
-                              </Button>
-                            )}
-                            {purchase.deliveryMethod === 'whatsapp' && (
-                              <a
-                                href={`https://wa.me/${purchase.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`🔥 AFTR VOL.2 TICKET 🔥\n\n━━━━━━━━━━━━━━━━━\nADMIT ONE\n${purchase.customerName.toUpperCase()}\n━━━━━━━━━━━━━━━━━\n\n📱 Ref: ${ticket?.referenceCode || ''}\n🎫 ${purchase.ticketType}\n💰 ${purchase.price}\n🔑 QR: ${ticket?.qrCode || ''}\n\n📅 JAN 30, 2026\n🕙 10PM - 4AM\n📍 Shotz, Flic en Flac\n\n━━━━━━━━━━━━━━━━━\nScreenshot this ticket.\nShow at door for entry.\n━━━━━━━━━━━━━━━━━`)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700"
-                                data-testid={`send-whatsapp-${purchase.id}`}
-                              >
-                                <SiWhatsapp className="w-4 h-4" />
-                                Send WhatsApp
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
+                              </span>
+                              <span className="text-muted-foreground">
+                                {purchase.createdAt ? new Date(purchase.createdAt).toLocaleString() : ''}
+                              </span>
+                            </div>
+
+                            {purchase.status === 'pending' && (
+                              <div className="flex items-center gap-2 pt-2 border-t">
+                                <Button 
+                                  onClick={() => verifyPurchaseMutation.mutate(purchase.id)}
+                                  disabled={verifyPurchaseMutation.isPending}
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  data-testid={`verify-purchase-${purchase.id}`}
+                                >
+                                  {verifyPurchaseMutation.isPending ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                  )}
+                                  Verify & Create Ticket
+                                </Button>
+                                <Button 
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => rejectPurchaseMutation.mutate({ purchaseId: purchase.id, reason: 'Payment not verified' })}
+                                  disabled={rejectPurchaseMutation.isPending}
+                                  className="text-red-500 border-red-500 hover:bg-red-500/10"
+                                  data-testid={`reject-purchase-${purchase.id}`}
+                                >
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  Reject
+                                </Button>
+                              </div>
                             )}
                           </div>
-                        </div>
+                        ))}
                       </div>
-                    );
-                  })}
-                </CardContent>}
-              </Card>
-            )}
-
-            {/* Vol.2 Ticket Management Section */}
-            <Card>
-              <CardHeader 
-                className="cursor-pointer select-none" 
-                onClick={() => setVol2TicketsExpanded(!vol2TicketsExpanded)}
-                data-testid="toggle-vol2-tickets"
-              >
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Ticket className="w-5 h-5 text-primary" />
-                    AFTR Vol.2 Tickets ({vol2Tickets.length})
-                  </div>
-                  {vol2TicketsExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </CardTitle>
-                <CardDescription>Manage tickets for Volume 2 event</CardDescription>
-              </CardHeader>
-              {vol2TicketsExpanded && <CardContent className="space-y-4">
-                {/* Vol.2 Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Total Vol.2 Tickets</p>
-                        <p className="text-2xl font-bold">{vol2Tickets.length}</p>
-                      </div>
-                      <Users className="h-8 w-8 text-primary" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Used</p>
-                        <p className="text-2xl font-bold text-green-500">{vol2UsedTickets.length}</p>
-                      </div>
-                      <CheckCircle className="h-8 w-8 text-green-500" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Available</p>
-                        <p className="text-2xl font-bold text-primary">{vol2AvailableTickets.length}</p>
-                      </div>
-                      <Ticket className="h-8 w-8 text-primary" />
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
+            )}
 
-              {/* Vol.2 Tickets Search and Filter */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Vol.2 Ticket List</CardTitle>
-                  <CardDescription>Search, filter, and manage Volume 2 tickets</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-4 mb-4">
-                    <div className="flex-1 min-w-[200px] relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search by name, email, phone, or reference..."
-                        value={vol2SearchQuery}
-                        onChange={(e) => setVol2SearchQuery(e.target.value)}
-                        className="pl-10"
-                        data-testid="input-search-vol2-tickets"
-                      />
-                    </div>
-                    <Select value={vol2FilterStatus} onValueChange={(v: 'all' | 'used' | 'available') => setVol2FilterStatus(v)}>
-                      <SelectTrigger className="w-40" data-testid="select-filter-vol2-status">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Tickets</SelectItem>
-                        <SelectItem value="used">Used</SelectItem>
-                        <SelectItem value="available">Available</SelectItem>
-                      </SelectContent>
-                    </Select>
+            {/* READY TO DELIVER SUB-TAB */}
+            {purchasesSubTab === 'ready' && (
+              <div className="space-y-6">
+                {/* Search and Filter */}
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex-1 min-w-[200px] relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name, email, phone, or reference..."
+                      value={readyToDeliverSearch}
+                      onChange={(e) => setReadyToDeliverSearch(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-search-ready-deliver"
+                    />
                   </div>
+                  <Select value={readyToDeliverFilter} onValueChange={(v: 'all' | 'pending' | 'sent') => setReadyToDeliverFilter(v)}>
+                    <SelectTrigger className="w-40" data-testid="select-filter-ready-deliver">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="pending">Not Sent</SelectItem>
+                      <SelectItem value="sent">Sent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  {ticketsLoading ? (
-                    <p className="text-center py-8 text-muted-foreground">Loading tickets...</p>
-                  ) : filteredVol2Tickets.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">
-                      {vol2Tickets.length === 0 
-                        ? "No Vol.2 tickets yet. Verify purchases to create tickets." 
-                        : "No tickets match your search criteria"}
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {filteredVol2Tickets.map((ticket) => (
-                        <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-3 h-3 rounded-full ${ticket.isUsed ? 'bg-green-500' : 'bg-primary'}`} />
-                            <div>
-                              <p className="font-medium">{ticket.customerName}</p>
-                              <p className="text-sm text-muted-foreground font-mono">{ticket.referenceCode}</p>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                {ticket.customerPhone && (
-                                  <span className="flex items-center gap-1">
-                                    <Phone className="w-3 h-3" />
-                                    {ticket.customerPhone}
-                                  </span>
-                                )}
-                                {ticket.customerEmail && (
-                                  <span className="flex items-center gap-1">
-                                    <Mail className="w-3 h-3" />
-                                    {ticket.customerEmail}
-                                  </span>
-                                )}
+                {/* Ready to Deliver List */}
+                <Card>
+                  <CardContent className="p-4">
+                    {filteredReadyToDeliver.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        {readyToDeliverPurchases.length === 0
+                          ? "No tickets ready to deliver. Verify purchases first."
+                          : "No tickets match your search criteria."}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {filteredReadyToDeliver.map((purchase) => {
+                          const ticket = allTickets.find(t => t.id === purchase.ticketId);
+                          const isSent = ticket?.isDelivered ?? false;
+                          return (
+                            <div key={purchase.id} className={`border rounded-lg p-4 ${isSent ? 'bg-green-50/30 border-green-200' : 'bg-orange-50/30 border-orange-200'}`}>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="font-semibold">{purchase.customerName}</div>
+                                    {isSent && (
+                                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded flex items-center gap-1">
+                                        <CheckCircle className="w-3 h-3" /> Sent
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground font-mono">{ticket?.referenceCode}</div>
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    {purchase.customerPhone}
+                                    {purchase.customerEmail && ` • ${purchase.customerEmail}`}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {purchase.deliveryMethod === 'email' && ticket && (
+                                    <Button
+                                      onClick={() => sendEmailMutation.mutate(ticket.id)}
+                                      disabled={sendEmailMutation.isPending}
+                                      size="sm"
+                                      className={isSent ? "bg-gray-500 hover:bg-gray-600" : "bg-blue-600 hover:bg-blue-700"}
+                                      data-testid={`send-email-${ticket.id}`}
+                                    >
+                                      {sendEmailMutation.isPending ? (
+                                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                      ) : (
+                                        <Mail className="w-4 h-4 mr-1" />
+                                      )}
+                                      {isSent ? 'Resend Email' : 'Send Email'}
+                                    </Button>
+                                  )}
+                                  {purchase.deliveryMethod === 'whatsapp' && ticket && (
+                                    <>
+                                      {isSent ? (
+                                        <Button
+                                          onClick={() => {
+                                            const whatsappUrl = `https://wa.me/${purchase.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`🔥 AFTR VOL.2 TICKET 🔥\n\n━━━━━━━━━━━━━━━━━\nADMIT ONE\n${purchase.customerName.toUpperCase()}\n━━━━━━━━━━━━━━━━━\n\n📱 Ref: ${ticket?.referenceCode || ''}\n🎫 ${purchase.ticketType}\n💰 ${purchase.price}\n🔑 QR: ${ticket?.qrCode || ''}\n\n📅 JAN 30, 2026\n🕙 10PM - 4AM\n📍 Shotz, Flic en Flac\n\n━━━━━━━━━━━━━━━━━\nScreenshot this ticket.\nShow at door for entry.\n━━━━━━━━━━━━━━━━━`)}`;
+                                            window.open(whatsappUrl, '_blank');
+                                          }}
+                                          size="sm"
+                                          className="bg-gray-500 hover:bg-gray-600"
+                                          data-testid={`resend-whatsapp-${purchase.id}`}
+                                        >
+                                          <SiWhatsapp className="w-4 h-4 mr-1" />
+                                          Resend
+                                          <ExternalLink className="w-3 h-3 ml-1" />
+                                        </Button>
+                                      ) : (
+                                        <Button
+                                          onClick={() => {
+                                            markDeliveredMutation.mutate(ticket.id);
+                                            const whatsappUrl = `https://wa.me/${purchase.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`🔥 AFTR VOL.2 TICKET 🔥\n\n━━━━━━━━━━━━━━━━━\nADMIT ONE\n${purchase.customerName.toUpperCase()}\n━━━━━━━━━━━━━━━━━\n\n📱 Ref: ${ticket?.referenceCode || ''}\n🎫 ${purchase.ticketType}\n💰 ${purchase.price}\n🔑 QR: ${ticket?.qrCode || ''}\n\n📅 JAN 30, 2026\n🕙 10PM - 4AM\n📍 Shotz, Flic en Flac\n\n━━━━━━━━━━━━━━━━━\nScreenshot this ticket.\nShow at door for entry.\n━━━━━━━━━━━━━━━━━`)}`;
+                                            window.open(whatsappUrl, '_blank');
+                                          }}
+                                          disabled={markDeliveredMutation.isPending}
+                                          size="sm"
+                                          className="bg-green-600 hover:bg-green-700"
+                                          data-testid={`send-whatsapp-${purchase.id}`}
+                                        >
+                                          {markDeliveredMutation.isPending ? (
+                                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                          ) : (
+                                            <SiWhatsapp className="w-4 h-4 mr-1" />
+                                          )}
+                                          Send WhatsApp
+                                          <ExternalLink className="w-3 h-3 ml-1" />
+                                        </Button>
+                                      )}
+                                    </>
+                                  )}
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button size="sm" variant="ghost" data-testid={`view-ticket-${ticket?.id}`}>
+                                        <Eye className="w-4 h-4" />
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                                      <DialogHeader>
+                                        <DialogTitle>Ticket - {ticket?.referenceCode}</DialogTitle>
+                                      </DialogHeader>
+                                      {ticket && <TicketGenerator ticket={ticket} />}
+                                    </DialogContent>
+                                  </Dialog>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-right mr-2">
-                              <span className="text-sm font-medium">{ticket.price}</span>
-                              <div className={`text-xs px-2 py-0.5 rounded ${ticket.isUsed ? 'bg-green-100 text-green-700' : 'bg-primary/10 text-primary'}`}>
-                                {ticket.isUsed ? 'Used' : 'Available'}
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* VOL.2 TICKETS SUB-TAB */}
+            {purchasesSubTab === 'vol2' && (
+              <div className="space-y-6">
+                {/* Vol.2 Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Total Vol.2 Tickets</p>
+                          <p className="text-2xl font-bold">{vol2Tickets.length}</p>
+                        </div>
+                        <Users className="h-8 w-8 text-primary" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Used</p>
+                          <p className="text-2xl font-bold text-green-500">{vol2UsedTickets.length}</p>
+                        </div>
+                        <CheckCircle className="h-8 w-8 text-green-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Available</p>
+                          <p className="text-2xl font-bold text-primary">{vol2AvailableTickets.length}</p>
+                        </div>
+                        <Ticket className="h-8 w-8 text-primary" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Vol.2 Search and Filter */}
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex-1 min-w-[200px] relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name, email, phone, or reference..."
+                      value={vol2SearchQuery}
+                      onChange={(e) => setVol2SearchQuery(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-search-vol2-tickets"
+                    />
+                  </div>
+                  <Select value={vol2FilterStatus} onValueChange={(v: 'all' | 'used' | 'available') => setVol2FilterStatus(v)}>
+                    <SelectTrigger className="w-40" data-testid="select-filter-vol2-status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Tickets</SelectItem>
+                      <SelectItem value="used">Used</SelectItem>
+                      <SelectItem value="available">Available</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Vol.2 Tickets List */}
+                <Card>
+                  <CardContent className="p-4">
+                    {ticketsLoading ? (
+                      <p className="text-center py-8 text-muted-foreground">Loading tickets...</p>
+                    ) : filteredVol2Tickets.length === 0 ? (
+                      <p className="text-center py-8 text-muted-foreground">
+                        {vol2Tickets.length === 0 
+                          ? "No Vol.2 tickets yet. Verify purchases to create tickets." 
+                          : "No tickets match your search criteria"}
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {filteredVol2Tickets.map((ticket) => (
+                          <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center gap-4">
+                              <div className={`w-3 h-3 rounded-full ${ticket.isUsed ? 'bg-green-500' : 'bg-primary'}`} />
+                              <div>
+                                <p className="font-medium">{ticket.customerName}</p>
+                                <p className="text-sm text-muted-foreground font-mono">{ticket.referenceCode}</p>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                  {ticket.customerPhone && (
+                                    <span className="flex items-center gap-1">
+                                      <Phone className="w-3 h-3" />
+                                      {ticket.customerPhone}
+                                    </span>
+                                  )}
+                                  {ticket.customerEmail && (
+                                    <span className="flex items-center gap-1">
+                                      <Mail className="w-3 h-3" />
+                                      {ticket.customerEmail}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button size="sm" variant="ghost" data-testid={`button-view-vol2-ticket-${ticket.id}`}>
-                                  <Eye className="w-4 h-4" />
+                            <div className="flex items-center gap-2">
+                              <div className="text-right mr-2">
+                                <span className="text-sm font-medium">{ticket.price}</span>
+                                <div className={`text-xs px-2 py-0.5 rounded ${ticket.isUsed ? 'bg-green-100 text-green-700' : 'bg-primary/10 text-primary'}`}>
+                                  {ticket.isUsed ? 'Used' : 'Available'}
+                                </div>
+                              </div>
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button size="sm" variant="ghost" data-testid={`button-view-vol2-ticket-${ticket.id}`}>
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                                  <DialogHeader>
+                                    <DialogTitle>Ticket - {ticket.referenceCode}</DialogTitle>
+                                  </DialogHeader>
+                                  <TicketGenerator ticket={ticket} />
+                                </DialogContent>
+                              </Dialog>
+                              {!ticket.isUsed && (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => markUsedMutation.mutate(ticket.id)}
+                                  disabled={markUsedMutation.isPending}
+                                  data-testid={`button-mark-vol2-used-${ticket.id}`}
+                                >
+                                  <CheckCircle className="w-4 h-4" />
                                 </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                                <DialogHeader>
-                                  <DialogTitle>Ticket - {ticket.referenceCode}</DialogTitle>
-                                </DialogHeader>
-                                <TicketGenerator ticket={ticket} />
-                              </DialogContent>
-                            </Dialog>
-                            {!ticket.isUsed && (
+                              )}
                               <Button 
                                 size="sm" 
-                                variant="outline"
-                                onClick={() => markUsedMutation.mutate(ticket.id)}
-                                disabled={markUsedMutation.isPending}
-                                data-testid={`button-mark-vol2-used-${ticket.id}`}
+                                variant="ghost"
+                                onClick={() => {
+                                  if (confirm('Delete this ticket?')) {
+                                    deleteTicketMutation.mutate(ticket.id);
+                                  }
+                                }}
+                                data-testid={`button-delete-vol2-ticket-${ticket.id}`}
                               >
-                                <CheckCircle className="w-4 h-4" />
+                                <Trash className="w-4 h-4 text-destructive" />
                               </Button>
-                            )}
-                            <Button 
-                              size="sm" 
-                              variant="ghost"
-                              onClick={() => {
-                                if (confirm('Delete this ticket?')) {
-                                  deleteTicketMutation.mutate(ticket.id);
-                                }
-                              }}
-                              data-testid={`button-delete-vol2-ticket-${ticket.id}`}
-                            >
-                              <Trash className="w-4 h-4 text-destructive" />
-                            </Button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              </CardContent>}
-            </Card>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         )}
 
