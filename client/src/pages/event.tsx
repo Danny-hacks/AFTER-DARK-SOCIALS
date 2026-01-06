@@ -849,27 +849,34 @@ export default function EventPage() {
               </div>
               
               <div>
-                <h4 className="text-lg font-bold text-white mb-4">Simple 3-Step Process</h4>
+                <h4 className="text-lg font-bold text-white mb-4">Simple 4-Step Process</h4>
                 <div className="space-y-4">
                   <div className="flex items-start space-x-4">
                     <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">1</div>
                     <div>
-                      <div className="font-semibold text-white">Send Payment</div>
-                      <div className="text-sm text-muted-foreground">Transfer the ticket amount with reference AFTR-2-[YOUR NAME]</div>
+                      <div className="font-semibold text-white">Click Buy Now</div>
+                      <div className="text-sm text-muted-foreground">Scroll up or click the button below to start your purchase</div>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
                     <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">2</div>
                     <div>
-                      <div className="font-semibold text-white">Send Proof</div>
-                      <div className="text-sm text-muted-foreground">WhatsApp your receipt to 58205220 with name & email</div>
+                      <div className="font-semibold text-white">Fill Your Details & Pay</div>
+                      <div className="text-sm text-muted-foreground">Enter your info, make payment using the details on the left, and upload your proof</div>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
                     <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">3</div>
                     <div>
-                      <div className="font-semibold text-white">Receive Ticket</div>
-                      <div className="text-sm text-muted-foreground">Get your digital ticket within 24 hours</div>
+                      <div className="font-semibold text-white">Wait for Verification</div>
+                      <div className="text-sm text-muted-foreground">Our team will verify your payment within 24 hours</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-4">
+                    <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">4</div>
+                    <div>
+                      <div className="font-semibold text-white">Receive Your Ticket</div>
+                      <div className="text-sm text-muted-foreground">Get your digital ticket via Email or WhatsApp</div>
                     </div>
                   </div>
                 </div>
@@ -878,22 +885,22 @@ export default function EventPage() {
             
             <div className="mt-8 flex flex-col sm:flex-row gap-4">
               <a
-                href="https://wa.me/23058205220?text=Hi!%20I'd%20like%20to%20purchase%20tickets%20for%20AFTR%20Volume%202%20on%20January%2030th.%20I%20have%20sent%20the%20payment%20and%20will%20share%20the%20proof%20now."
+                href="#tickets"
+                className="flex-1 gradient-bg text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center transition-all hover:scale-105"
+                data-testid="buy-now-payment-section"
+              >
+                <Ticket className="text-xl mr-3" />
+                Buy Now
+              </a>
+              <a
+                href="https://wa.me/23058205220?text=Hi!%20I%20have%20a%20question%20about%20AFTR%20Volume%202%20tickets."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center transition-colors"
-                data-testid="whatsapp-payment-button"
+                data-testid="whatsapp-support-button"
               >
                 <SiWhatsapp className="text-xl mr-3" />
-                WhatsApp Payment Proof
-              </a>
-              <a 
-                href="mailto:afterdarksocials@gmail.com?subject=AFTR%20Volume%202%20-%20Payment%20Proof&body=Hi%2C%0A%0AI%20have%20made%20payment%20for%20AFTR%20Volume%202%20tickets.%20Please%20find%20the%20payment%20proof%20attached.%0A%0AFull%20Name%3A%20%0AEmail%3A%20%0ANumber%20of%20Tickets%3A%20%0A%0AThank%20you!"
-                className="flex-1 border border-border bg-card text-white hover:bg-muted font-bold py-4 px-6 rounded-xl flex items-center justify-center transition-colors"
-                data-testid="email-payment-button"
-              >
-                <CreditCard className="text-xl mr-3" />
-                Email Payment Proof
+                Need Help? WhatsApp Us
               </a>
             </div>
           </div>
