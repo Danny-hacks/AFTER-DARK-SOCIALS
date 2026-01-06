@@ -884,14 +884,14 @@ export default function EventPage() {
             </div>
             
             <div className="mt-8 flex flex-col sm:flex-row gap-4">
-              <a
-                href="#tickets"
+              <button
+                onClick={() => setPurchaseModalOpen(true)}
                 className="flex-1 gradient-bg text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center transition-all hover:scale-105"
                 data-testid="buy-now-payment-section"
               >
                 <Ticket className="text-xl mr-3" />
                 Buy Now
-              </a>
+              </button>
               <a
                 href="https://wa.me/23058205220?text=Hi!%20I%20have%20a%20question%20about%20AFTR%20Volume%202%20tickets."
                 target="_blank"

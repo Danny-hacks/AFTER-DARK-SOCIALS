@@ -457,8 +457,11 @@ export default function AdminPanel() {
     },
   });
 
-  // Filter tickets
-  const filteredTickets = allTickets.filter((ticket) => {
+  // Legacy tickets (exclude Vol.2 which are managed in Purchases tab)
+  const legacyTickets = allTickets.filter(t => !t.referenceCode.startsWith('VOL2-'));
+
+  // Filter legacy tickets
+  const filteredTickets = legacyTickets.filter((ticket) => {
     const ticketEventId = (ticket as TicketType & { eventId?: string | null }).eventId;
     const matchesSearch = 
       ticket.referenceCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -626,8 +629,8 @@ export default function AdminPanel() {
             data-testid="nav-tickets"
           >
             <Ticket className="w-4 h-4" />
-            Tickets
-            <span className="ml-auto text-xs bg-muted px-2 py-0.5 rounded">{allTickets.length}</span>
+            Legacy Tickets
+            <span className="ml-auto text-xs bg-muted px-2 py-0.5 rounded">{legacyTickets.length}</span>
           </button>
           <button
             onClick={() => setActiveTab('hero')}
@@ -1351,8 +1354,8 @@ export default function AdminPanel() {
           <div className="space-y-8">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-3xl font-bold mb-2">Tickets</h2>
-                <p className="text-muted-foreground">Manage ticket sales and check-ins</p>
+                <h2 className="text-3xl font-bold mb-2">Legacy Tickets</h2>
+                <p className="text-muted-foreground">Tickets from previous editions (Vol.2 tickets are managed in Purchases tab)</p>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setShowQRScanner(!showQRScanner)} data-testid="button-qr-scanner">
@@ -1404,8 +1407,8 @@ export default function AdminPanel() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Total Tickets</p>
-                      <p className="text-2xl font-bold">{allTickets.length}</p>
+                      <p className="text-sm text-muted-foreground">Legacy Tickets</p>
+                      <p className="text-2xl font-bold">{legacyTickets.length}</p>
                     </div>
                     <Users className="h-8 w-8 text-primary" />
                   </div>
@@ -1416,7 +1419,7 @@ export default function AdminPanel() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">Used</p>
-                      <p className="text-2xl font-bold">{allTickets.filter(t => t.isUsed).length}</p>
+                      <p className="text-2xl font-bold">{legacyTickets.filter(t => t.isUsed).length}</p>
                     </div>
                     <CheckCircle className="h-8 w-8 text-green-500" />
                   </div>
@@ -1427,7 +1430,7 @@ export default function AdminPanel() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">Available</p>
-                      <p className="text-2xl font-bold">{allTickets.filter(t => !t.isUsed).length}</p>
+                      <p className="text-2xl font-bold">{legacyTickets.filter(t => !t.isUsed).length}</p>
                     </div>
                     <Ticket className="h-8 w-8 text-primary" />
                   </div>
