@@ -5,7 +5,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { insertTicketSchema, insertEventSchema, insertHeroSlideSchema, insertTicketPurchaseSchema } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import sgMail from "@sendgrid/mail";
+import nodemailer from "nodemailer";
 import { appendTicketToSheet, initializeSheetHeaders } from "./googleSheets";
 
 // Simple admin credentials - in production, use proper authentication
@@ -476,7 +476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Send ticket via email
+  // Send ticket via email using Gmail SMTP
   app.post("/api/admin/tickets/:id/send-email", requireAuth, async (req, res) => {
     try {
       const ticket = await storage.getTicket(req.params.id);
@@ -488,94 +488,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No email address for this ticket" });
       }
       
-      // Initialize SendGrid
-      if (process.env.SENDGRID_API_KEY) {
-        sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-        
-        const msg = {
-          to: ticket.customerEmail,
-          from: process.env.SENDGRID_FROM_EMAIL || 'afterdarksocials@gmail.com',
-          subject: '🔥 VOL.2 | Your AFTR Ticket is Ready!',
-          html: `
-            <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(180deg, #0a0a0a 0%, #1a0808 100%); color: #ffffff; padding: 0;">
-              <!-- Header Banner -->
-              <div style="background: linear-gradient(135deg, #c72d28 0%, #8b1f1b 50%, #0a0a0a 100%); padding: 30px; text-align: center; border-bottom: 3px solid #c72d28;">
-                <div style="font-size: 48px; font-weight: 900; letter-spacing: 8px; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">AFTR</div>
-                <div style="font-size: 24px; font-weight: 300; letter-spacing: 12px; color: #fff; margin-top: 5px;">VOL.2</div>
+      const gmailUser = process.env.GMAIL_USER || 'afterdarksocials@gmail.com';
+      const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+      
+      if (!gmailAppPassword) {
+        return res.status(400).json({ error: "Gmail app password not configured. Please add GMAIL_APP_PASSWORD secret." });
+      }
+      
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: gmailUser,
+          pass: gmailAppPassword,
+        },
+      });
+      
+      const mailOptions = {
+        from: `"AFTR" <${gmailUser}>`,
+        to: ticket.customerEmail,
+        subject: '🔥 VOL.2 | Your AFTR Ticket is Ready!',
+        html: `
+          <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(180deg, #0a0a0a 0%, #1a0808 100%); color: #ffffff; padding: 0;">
+            <!-- Header Banner -->
+            <div style="background: linear-gradient(135deg, #c72d28 0%, #8b1f1b 50%, #0a0a0a 100%); padding: 30px; text-align: center; border-bottom: 3px solid #c72d28;">
+              <div style="font-size: 48px; font-weight: 900; letter-spacing: 8px; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">AFTR</div>
+              <div style="font-size: 24px; font-weight: 300; letter-spacing: 12px; color: #fff; margin-top: 5px;">VOL.2</div>
+            </div>
+            
+            <!-- Ticket Body -->
+            <div style="padding: 40px 30px;">
+              <div style="text-align: center; margin-bottom: 30px;">
+                <p style="color: #c72d28; font-size: 14px; letter-spacing: 3px; margin: 0;">ADMIT ONE</p>
+                <h2 style="color: #ffffff; font-size: 24px; margin: 10px 0;">${ticket.customerName}</h2>
               </div>
               
-              <!-- Ticket Body -->
-              <div style="padding: 40px 30px;">
-                <div style="text-align: center; margin-bottom: 30px;">
-                  <p style="color: #c72d28; font-size: 14px; letter-spacing: 3px; margin: 0;">ADMIT ONE</p>
-                  <h2 style="color: #ffffff; font-size: 24px; margin: 10px 0;">${ticket.customerName}</h2>
-                </div>
-                
-                <!-- Ticket Details Card -->
-                <div style="background: rgba(199, 45, 40, 0.1); border: 2px dashed #c72d28; border-radius: 0; padding: 25px; margin: 20px 0;">
-                  <table style="width: 100%; border-collapse: collapse;">
-                    <tr>
-                      <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                        <span style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Reference</span><br>
-                        <span style="color: #c72d28; font-size: 20px; font-weight: bold; font-family: monospace;">${ticket.referenceCode}</span>
-                      </td>
-                      <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: right;">
-                        <span style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Type</span><br>
-                        <span style="color: #fff; font-size: 16px;">${ticket.ticketType}</span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 12px 0;">
-                        <span style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">QR Code</span><br>
-                        <span style="color: #fff; font-size: 14px; font-family: monospace;">${ticket.qrCode}</span>
-                      </td>
-                      <td style="padding: 12px 0; text-align: right;">
-                        <span style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Price</span><br>
-                        <span style="color: #c72d28; font-size: 20px; font-weight: bold;">${ticket.price}</span>
-                      </td>
-                    </tr>
-                  </table>
-                </div>
-                
-                <!-- Event Info -->
-                <div style="background: #0a0a0a; border-left: 4px solid #c72d28; padding: 20px; margin: 25px 0;">
-                  <div style="display: flex; justify-content: space-between;">
-                    <div>
-                      <p style="color: #888; font-size: 11px; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Date</p>
-                      <p style="color: #fff; font-size: 16px; margin: 5px 0 15px 0; font-weight: bold;">JAN 30, 2026</p>
-                      
-                      <p style="color: #888; font-size: 11px; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Time</p>
-                      <p style="color: #fff; font-size: 16px; margin: 5px 0 0 0; font-weight: bold;">10PM - 4AM</p>
-                    </div>
-                    <div style="text-align: right;">
-                      <p style="color: #888; font-size: 11px; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Venue</p>
-                      <p style="color: #fff; font-size: 16px; margin: 5px 0 0 0; font-weight: bold;">SHOTZ</p>
-                      <p style="color: #888; font-size: 14px; margin: 3px 0 0 0;">Flic en Flac</p>
-                    </div>
+              <!-- Ticket Details Card -->
+              <div style="background: rgba(199, 45, 40, 0.1); border: 2px dashed #c72d28; border-radius: 0; padding: 25px; margin: 20px 0;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                      <span style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Reference</span><br>
+                      <span style="color: #c72d28; font-size: 20px; font-weight: bold; font-family: monospace;">${ticket.referenceCode}</span>
+                    </td>
+                    <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: right;">
+                      <span style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Type</span><br>
+                      <span style="color: #fff; font-size: 16px;">${ticket.ticketType}</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 0;">
+                      <span style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">QR Code</span><br>
+                      <span style="color: #fff; font-size: 14px; font-family: monospace;">${ticket.qrCode}</span>
+                    </td>
+                    <td style="padding: 12px 0; text-align: right;">
+                      <span style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Price</span><br>
+                      <span style="color: #c72d28; font-size: 20px; font-weight: bold;">${ticket.price}</span>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+              
+              <!-- Event Info -->
+              <div style="background: #0a0a0a; border-left: 4px solid #c72d28; padding: 20px; margin: 25px 0;">
+                <div style="display: flex; justify-content: space-between;">
+                  <div>
+                    <p style="color: #888; font-size: 11px; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Date</p>
+                    <p style="color: #fff; font-size: 16px; margin: 5px 0 15px 0; font-weight: bold;">JAN 30, 2026</p>
+                    
+                    <p style="color: #888; font-size: 11px; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Time</p>
+                    <p style="color: #fff; font-size: 16px; margin: 5px 0 0 0; font-weight: bold;">10PM - 4AM</p>
+                  </div>
+                  <div style="text-align: right;">
+                    <p style="color: #888; font-size: 11px; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Venue</p>
+                    <p style="color: #fff; font-size: 16px; margin: 5px 0 0 0; font-weight: bold;">SHOTZ</p>
+                    <p style="color: #888; font-size: 14px; margin: 3px 0 0 0;">Flic en Flac</p>
                   </div>
                 </div>
-                
-                <p style="color: #666; text-align: center; font-size: 13px; margin-top: 30px;">
-                  Screenshot this ticket. Show at the door for entry.
-                </p>
               </div>
               
-              <!-- Footer -->
-              <div style="background: #0a0a0a; text-align: center; padding: 25px; border-top: 1px solid #222;">
-                <p style="color: #c72d28; font-style: italic; font-size: 14px; margin: 0; letter-spacing: 2px;">The Rave That Keeps The City Awake</p>
-                <p style="color: #444; font-size: 11px; margin-top: 15px;">© 2026 AFTR · After Dark Socials</p>
-              </div>
+              <p style="color: #666; text-align: center; font-size: 13px; margin-top: 30px;">
+                Screenshot this ticket. Show at the door for entry.
+              </p>
             </div>
-          `,
-        };
-        
-        await sgMail.send(msg);
-        await storage.markTicketAsDelivered(ticket.id);
-        
-        res.json({ success: true, message: "Ticket sent via email successfully" });
-      } else {
-        res.status(400).json({ error: "SendGrid API key not configured" });
-      }
+            
+            <!-- Footer -->
+            <div style="background: #0a0a0a; text-align: center; padding: 25px; border-top: 1px solid #222;">
+              <p style="color: #c72d28; font-style: italic; font-size: 14px; margin: 0; letter-spacing: 2px;">The Rave That Keeps The City Awake</p>
+              <p style="color: #444; font-size: 11px; margin-top: 15px;">© 2026 AFTR · After Dark Socials</p>
+            </div>
+          </div>
+        `,
+      };
+      
+      await transporter.sendMail(mailOptions);
+      await storage.markTicketAsDelivered(ticket.id);
+      
+      res.json({ success: true, message: "Ticket sent via email successfully" });
     } catch (error) {
       console.error("Error sending ticket email:", error);
       res.status(500).json({ error: "Failed to send ticket email" });
