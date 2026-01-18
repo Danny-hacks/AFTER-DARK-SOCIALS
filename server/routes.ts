@@ -408,7 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Verify purchase and create ticket
+  // Verify purchase and create tickets (supports multiple tickets per purchase)
   app.post("/api/admin/purchases/:id/verify", requireAuth, async (req, res) => {
     try {
       const purchase = await storage.getTicketPurchase(req.params.id);
@@ -420,55 +420,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Purchase already processed" });
       }
       
-      // Generate unique reference code for Volume 2 (different format from Volume 1)
-      const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const referenceCode = `VOL2-${randomPart}`;
+      const quantity = purchase.quantity || 1;
+      const pricePerTicket = 350;
+      const tickets = [];
       
-      // Create ticket
-      const ticket = await storage.createTicket({
-        eventId: purchase.eventId || "aftr-vol-2",
-        purchaseId: purchase.id,
-        referenceCode,
-        customerName: purchase.customerName,
-        customerEmail: purchase.customerEmail,
-        customerPhone: purchase.customerPhone,
-        ticketType: purchase.ticketType,
-        price: purchase.price,
-        paymentMethod: purchase.paymentMethod,
-        deliveryMethod: purchase.deliveryMethod,
-      });
-      
-      // Update purchase with ticket ID
-      await storage.verifyTicketPurchase(purchase.id, ticket.id);
-      
-      // Append to Google Sheet for record keeping
-      try {
-        await appendTicketToSheet({
-          timestamp: new Date().toISOString(),
+      // Create multiple tickets based on quantity (each with unique reference/QR code)
+      for (let i = 0; i < quantity; i++) {
+        const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const referenceCode = `VOL2-${randomPart}`;
+        
+        const ticket = await storage.createTicket({
+          eventId: purchase.eventId || "aftr-vol-2",
+          purchaseId: purchase.id,
+          referenceCode,
           customerName: purchase.customerName,
           customerEmail: purchase.customerEmail,
           customerPhone: purchase.customerPhone,
           ticketType: purchase.ticketType,
-          price: purchase.price,
+          price: `Rs ${pricePerTicket}`,
           paymentMethod: purchase.paymentMethod,
           deliveryMethod: purchase.deliveryMethod,
-          referenceCode: referenceCode,
-          qrCode: ticket.qrCode,
-          eventId: purchase.eventId || "aftr-vol-2",
-          status: "verified"
         });
-      } catch (sheetError) {
-        console.error("Failed to append to Google Sheet (non-blocking):", sheetError);
+        
+        tickets.push(ticket);
+        
+        // Append each ticket to Google Sheet for record keeping
+        try {
+          await appendTicketToSheet({
+            timestamp: new Date().toISOString(),
+            customerName: purchase.customerName,
+            customerEmail: purchase.customerEmail,
+            customerPhone: purchase.customerPhone,
+            ticketType: purchase.ticketType,
+            price: `Rs ${pricePerTicket}`,
+            paymentMethod: purchase.paymentMethod,
+            deliveryMethod: purchase.deliveryMethod,
+            referenceCode: referenceCode,
+            qrCode: ticket.qrCode,
+            eventId: purchase.eventId || "aftr-vol-2",
+            status: "verified"
+          });
+        } catch (sheetError) {
+          console.error("Failed to append to Google Sheet (non-blocking):", sheetError);
+        }
       }
+      
+      // Update purchase with first ticket ID (for backwards compatibility)
+      await storage.verifyTicketPurchase(purchase.id, tickets[0].id);
       
       res.json({ 
         success: true, 
-        ticket, 
-        message: "Ticket created successfully. Ready for delivery.",
+        tickets,
+        ticketCount: tickets.length,
+        message: `${tickets.length} ticket${tickets.length > 1 ? 's' : ''} created successfully. Ready for delivery.`,
         deliveryMethod: purchase.deliveryMethod,
-        whatsappLink: purchase.deliveryMethod === "whatsapp" 
-          ? `https://wa.me/${purchase.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`🔥 AFTR VOL.2 TICKET 🔥\n\n━━━━━━━━━━━━━━━━━\nADMIT ONE\n${purchase.customerName.toUpperCase()}\n━━━━━━━━━━━━━━━━━\n\n📱 Ref: ${referenceCode}\n🎫 ${purchase.ticketType}\n💰 ${purchase.price}\n\n📅 JAN 30, 2026\n🕙 10PM - 4AM\n📍 Shotz, Flic en Flac\n\n━━━━━━━━━━━━━━━━━\nScreenshot this ticket.\nShow at door for entry.\n━━━━━━━━━━━━━━━━━`)}`
-          : null
       });
     } catch (error) {
       console.error("Error verifying purchase:", error);

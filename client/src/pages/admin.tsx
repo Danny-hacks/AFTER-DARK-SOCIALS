@@ -988,6 +988,9 @@ export default function AdminPanel() {
                               </div>
                               <div className="text-right">
                                 <div className="font-bold">{purchase.price}</div>
+                                {(purchase.quantity ?? 1) > 1 && (
+                                  <div className="text-xs text-muted-foreground">{purchase.quantity} tickets</div>
+                                )}
                                 <div className={`text-xs px-2 py-0.5 rounded inline-block ${
                                   purchase.status === 'pending' ? 'bg-orange-100 text-orange-700' :
                                   purchase.status === 'verified' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
@@ -1025,7 +1028,7 @@ export default function AdminPanel() {
                                   ) : (
                                     <CheckCircle className="w-4 h-4 mr-2" />
                                   )}
-                                  Verify & Create Ticket
+                                  Verify & Create {(purchase.quantity ?? 1) > 1 ? `${purchase.quantity} Tickets` : 'Ticket'}
                                 </Button>
                                 <Button 
                                   variant="outline"

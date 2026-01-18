@@ -101,6 +101,7 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 
   const purchaseMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      const totalPrice = 350 * data.quantity;
       const response = await apiRequest('POST', '/api/tickets/purchase', {
         customerName: data.customerName,
         customerEmail: data.customerEmail,
@@ -110,7 +111,7 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         quantity: data.quantity,
         eventId: 'aftr-vol-2',
         ticketType: 'Early Bird',
-        price: 'Rs 350',
+        price: `Rs ${totalPrice}`,
       });
       return response.json();
     },
@@ -179,9 +180,35 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
           {step === 1 && (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 mb-6">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center mb-3">
                   <span className="text-white font-semibold">AFTR Early Bird</span>
-                  <span className="text-primary font-bold text-xl">Rs 350</span>
+                  <span className="text-primary font-bold text-xl">Rs 350 each</span>
+                </div>
+                <div className="flex items-center justify-between pt-3 border-t border-primary/20">
+                  <span className="text-muted-foreground text-sm">Quantity</span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, quantity: Math.max(1, prev.quantity - 1) }))}
+                      className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center text-white hover:border-primary transition-colors"
+                      data-testid="btn-decrease-quantity"
+                    >
+                      -
+                    </button>
+                    <span className="text-white font-bold text-lg w-8 text-center" data-testid="quantity-display">{formData.quantity}</span>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, quantity: Math.min(10, prev.quantity + 1) }))}
+                      className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center text-white hover:border-primary transition-colors"
+                      data-testid="btn-increase-quantity"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mt-3 pt-3 border-t border-primary/20">
+                  <span className="text-white font-semibold">Total</span>
+                  <span className="text-primary font-bold text-2xl" data-testid="total-price">Rs {350 * formData.quantity}</span>
                 </div>
               </div>
 
