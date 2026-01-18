@@ -1134,7 +1134,7 @@ export default function AdminPanel() {
                                       {isSent ? (
                                         <Button
                                           onClick={() => {
-                                            const whatsappUrl = `https://wa.me/${(ticket.customerPhone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(`🔥 AFTR VOL.2 TICKET 🔥\n\n━━━━━━━━━━━━━━━━━\nADMIT ONE\n${ticket.customerName.toUpperCase()}\n━━━━━━━━━━━━━━━━━\n\n📱 Ref: ${ticket.referenceCode}\n🎫 ${ticket.ticketType}\n💰 ${ticket.price}\n\n📅 JAN 30, 2026\n🕙 10PM - 4AM\n📍 Shotz, Flic en Flac\n\n━━━━━━━━━━━━━━━━━\nScreenshot this ticket.\nShow at door for entry.\n━━━━━━━━━━━━━━━━━`)}`;
+                                            const whatsappUrl = `https://wa.me/${(ticket.customerPhone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Vol.2 Rave Ticket is Ready! 🎉\n\n📧 Customer: ${ticket.customerName}\n🎫 Reference: ${ticket.referenceCode}\n💰 Price: ${ticket.price}\n📅 Date: 30th January 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10:00 PM\n\nYour digital ticket PDF will be downloaded automatically.\n\nSee you on the dance floor! 🎵🔥`)}`;
                                             window.open(whatsappUrl, '_blank');
                                           }}
                                           size="sm"
@@ -1149,7 +1149,7 @@ export default function AdminPanel() {
                                         <Button
                                           onClick={() => {
                                             markDeliveredMutation.mutate(ticket.id);
-                                            const whatsappUrl = `https://wa.me/${(ticket.customerPhone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(`🔥 AFTR VOL.2 TICKET 🔥\n\n━━━━━━━━━━━━━━━━━\nADMIT ONE\n${ticket.customerName.toUpperCase()}\n━━━━━━━━━━━━━━━━━\n\n📱 Ref: ${ticket.referenceCode}\n🎫 ${ticket.ticketType}\n💰 ${ticket.price}\n\n📅 JAN 30, 2026\n🕙 10PM - 4AM\n📍 Shotz, Flic en Flac\n\n━━━━━━━━━━━━━━━━━\nScreenshot this ticket.\nShow at door for entry.\n━━━━━━━━━━━━━━━━━`)}`;
+                                            const whatsappUrl = `https://wa.me/${(ticket.customerPhone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Vol.2 Rave Ticket is Ready! 🎉\n\n📧 Customer: ${ticket.customerName}\n🎫 Reference: ${ticket.referenceCode}\n💰 Price: ${ticket.price}\n📅 Date: 30th January 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10:00 PM\n\nYour digital ticket PDF will be downloaded automatically.\n\nSee you on the dance floor! 🎵🔥`)}`;
                                             window.open(whatsappUrl, '_blank');
                                           }}
                                           disabled={markDeliveredMutation.isPending}
