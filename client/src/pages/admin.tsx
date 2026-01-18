@@ -228,8 +228,11 @@ export default function AdminPanel() {
     return matchesSearch && matchesStatus;
   });
 
-  // Ready to Deliver purchases (verified with ticket)
-  const readyToDeliverPurchases = allPurchases.filter(p => p.status === 'verified' && p.ticketId);
+  // Ready to Deliver tickets (tickets from verified purchases)
+  const readyToDeliverTickets = allTickets.filter(ticket => {
+    const purchase = allPurchases.find(p => p.id === ticket.purchaseId);
+    return purchase && purchase.status === 'verified';
+  });
 
   // Filter All Purchases based on search and status
   const filteredAllPurchases = allPurchases.filter(purchase => {
@@ -244,17 +247,16 @@ export default function AdminPanel() {
     return matchesSearch && matchesFilter;
   });
 
-  // Filter Ready to Deliver based on search and sent status
-  const filteredReadyToDeliver = readyToDeliverPurchases.filter(purchase => {
-    const ticket = allTickets.find(t => t.id === purchase.ticketId);
+  // Filter Ready to Deliver tickets based on search and sent status
+  const filteredReadyToDeliver = readyToDeliverTickets.filter(ticket => {
     const searchLower = readyToDeliverSearch.toLowerCase();
     const matchesSearch = readyToDeliverSearch === '' ||
-      purchase.customerName.toLowerCase().includes(searchLower) ||
-      (purchase.customerEmail ?? '').toLowerCase().includes(searchLower) ||
-      purchase.customerPhone.toLowerCase().includes(searchLower) ||
-      (ticket?.referenceCode ?? '').toLowerCase().includes(searchLower);
+      ticket.customerName.toLowerCase().includes(searchLower) ||
+      (ticket.customerEmail ?? '').toLowerCase().includes(searchLower) ||
+      (ticket.customerPhone ?? '').toLowerCase().includes(searchLower) ||
+      ticket.referenceCode.toLowerCase().includes(searchLower);
     
-    const isSent = ticket?.isDelivered ?? false;
+    const isSent = ticket.isDelivered ?? false;
     const matchesFilter = readyToDeliverFilter === 'all' ||
       (readyToDeliverFilter === 'sent' && isSent) ||
       (readyToDeliverFilter === 'pending' && !isSent);
@@ -879,7 +881,7 @@ export default function AdminPanel() {
                 data-testid="purchases-subtab-ready"
               >
                 Ready to Deliver
-                <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">{readyToDeliverPurchases.length}</span>
+                <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">{readyToDeliverTickets.length}</span>
               </button>
               <button
                 onClick={() => setPurchasesSubTab('vol2')}
@@ -1084,35 +1086,34 @@ export default function AdminPanel() {
                   <CardContent className="p-4">
                     {filteredReadyToDeliver.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
-                        {readyToDeliverPurchases.length === 0
+                        {readyToDeliverTickets.length === 0
                           ? "No tickets ready to deliver. Verify purchases first."
                           : "No tickets match your search criteria."}
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {filteredReadyToDeliver.map((purchase) => {
-                          const ticket = allTickets.find(t => t.id === purchase.ticketId);
-                          const isSent = ticket?.isDelivered ?? false;
+                        {filteredReadyToDeliver.map((ticket) => {
+                          const isSent = ticket.isDelivered ?? false;
                           return (
-                            <div key={purchase.id} className={`border rounded-lg p-4 ${isSent ? 'bg-green-50/30 border-green-200' : 'bg-orange-50/30 border-orange-200'}`}>
+                            <div key={ticket.id} className={`border rounded-lg p-4 ${isSent ? 'bg-green-50/30 border-green-200' : 'bg-orange-50/30 border-orange-200'}`}>
                               <div className="flex items-center justify-between">
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <div className="font-semibold">{purchase.customerName}</div>
+                                    <div className="font-semibold">{ticket.customerName}</div>
                                     {isSent && (
                                       <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded flex items-center gap-1">
                                         <CheckCircle className="w-3 h-3" /> Sent
                                       </span>
                                     )}
                                   </div>
-                                  <div className="text-sm text-muted-foreground font-mono">{ticket?.referenceCode}</div>
+                                  <div className="text-sm text-muted-foreground font-mono">{ticket.referenceCode}</div>
                                   <div className="text-xs text-muted-foreground mt-1">
-                                    {purchase.customerPhone}
-                                    {purchase.customerEmail && ` • ${purchase.customerEmail}`}
+                                    {ticket.customerPhone}
+                                    {ticket.customerEmail && ` • ${ticket.customerEmail}`}
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  {purchase.deliveryMethod === 'email' && ticket && (
+                                  {ticket.deliveryMethod === 'email' && (
                                     <Button
                                       onClick={() => sendEmailMutation.mutate(ticket.id)}
                                       disabled={sendEmailMutation.isPending}
@@ -1128,17 +1129,17 @@ export default function AdminPanel() {
                                       {isSent ? 'Resend Email' : 'Send Email'}
                                     </Button>
                                   )}
-                                  {purchase.deliveryMethod === 'whatsapp' && ticket && (
+                                  {ticket.deliveryMethod === 'whatsapp' && (
                                     <>
                                       {isSent ? (
                                         <Button
                                           onClick={() => {
-                                            const whatsappUrl = `https://wa.me/${purchase.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Rave Ticket is Ready! 🎉\n\n📧 Customer: ${purchase.customerName}\n🎫 Reference: ${ticket?.referenceCode || ''}\n💰 Price: ${purchase.price}\n📅 Date: January 30, 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10PM\n\nYour digital ticket PDF will be downloaded automatically.\n\nSee you on the dance floor! 🎵🔥`)}`;
+                                            const whatsappUrl = `https://wa.me/${(ticket.customerPhone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(`🔥 AFTR VOL.2 TICKET 🔥\n\n━━━━━━━━━━━━━━━━━\nADMIT ONE\n${ticket.customerName.toUpperCase()}\n━━━━━━━━━━━━━━━━━\n\n📱 Ref: ${ticket.referenceCode}\n🎫 ${ticket.ticketType}\n💰 ${ticket.price}\n\n📅 JAN 30, 2026\n🕙 10PM - 4AM\n📍 Shotz, Flic en Flac\n\n━━━━━━━━━━━━━━━━━\nScreenshot this ticket.\nShow at door for entry.\n━━━━━━━━━━━━━━━━━`)}`;
                                             window.open(whatsappUrl, '_blank');
                                           }}
                                           size="sm"
                                           className="bg-gray-500 hover:bg-gray-600"
-                                          data-testid={`resend-whatsapp-${purchase.id}`}
+                                          data-testid={`resend-whatsapp-${ticket.id}`}
                                         >
                                           <SiWhatsapp className="w-4 h-4 mr-1" />
                                           Resend
@@ -1148,13 +1149,13 @@ export default function AdminPanel() {
                                         <Button
                                           onClick={() => {
                                             markDeliveredMutation.mutate(ticket.id);
-                                            const whatsappUrl = `https://wa.me/${purchase.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Rave Ticket is Ready! 🎉\n\n📧 Customer: ${purchase.customerName}\n🎫 Reference: ${ticket?.referenceCode || ''}\n💰 Price: ${purchase.price}\n📅 Date: January 30, 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10PM\n\nYour digital ticket PDF will be downloaded automatically.\n\nSee you on the dance floor! 🎵🔥`)}`;
+                                            const whatsappUrl = `https://wa.me/${(ticket.customerPhone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(`🔥 AFTR VOL.2 TICKET 🔥\n\n━━━━━━━━━━━━━━━━━\nADMIT ONE\n${ticket.customerName.toUpperCase()}\n━━━━━━━━━━━━━━━━━\n\n📱 Ref: ${ticket.referenceCode}\n🎫 ${ticket.ticketType}\n💰 ${ticket.price}\n\n📅 JAN 30, 2026\n🕙 10PM - 4AM\n📍 Shotz, Flic en Flac\n\n━━━━━━━━━━━━━━━━━\nScreenshot this ticket.\nShow at door for entry.\n━━━━━━━━━━━━━━━━━`)}`;
                                             window.open(whatsappUrl, '_blank');
                                           }}
                                           disabled={markDeliveredMutation.isPending}
                                           size="sm"
                                           className="bg-green-600 hover:bg-green-700"
-                                          data-testid={`send-whatsapp-${purchase.id}`}
+                                          data-testid={`send-whatsapp-${ticket.id}`}
                                         >
                                           {markDeliveredMutation.isPending ? (
                                             <Loader2 className="w-4 h-4 mr-1 animate-spin" />
@@ -1169,15 +1170,15 @@ export default function AdminPanel() {
                                   )}
                                   <Dialog>
                                     <DialogTrigger asChild>
-                                      <Button size="sm" variant="ghost" data-testid={`view-ticket-${ticket?.id}`}>
+                                      <Button size="sm" variant="ghost" data-testid={`view-ticket-${ticket.id}`}>
                                         <Eye className="w-4 h-4" />
                                       </Button>
                                     </DialogTrigger>
                                     <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                                       <DialogHeader>
-                                        <DialogTitle>Ticket - {ticket?.referenceCode}</DialogTitle>
+                                        <DialogTitle>Ticket - {ticket.referenceCode}</DialogTitle>
                                       </DialogHeader>
-                                      {ticket && <TicketGenerator ticket={ticket} />}
+                                      <TicketGenerator ticket={ticket} />
                                     </DialogContent>
                                   </Dialog>
                                 </div>
