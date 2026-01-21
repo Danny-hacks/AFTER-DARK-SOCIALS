@@ -17,6 +17,7 @@ export interface IStorage {
   updateTicketPurchase(id: string, data: Partial<TicketPurchase>): Promise<TicketPurchase | undefined>;
   verifyTicketPurchase(id: string, ticketId: string): Promise<TicketPurchase | undefined>;
   rejectTicketPurchase(id: string, reason: string): Promise<TicketPurchase | undefined>;
+  markPurchaseProcessing(id: string): Promise<TicketPurchase | undefined>;
   
   // Ticket operations
   getTicket(id: string): Promise<Ticket | undefined>;
@@ -110,6 +111,15 @@ export class DatabaseStorage implements IStorage {
     const [purchase] = await db
       .update(ticketPurchases)
       .set({ status: "rejected", rejectionReason: reason, rejectedAt: new Date() })
+      .where(eq(ticketPurchases.id, id))
+      .returning();
+    return purchase || undefined;
+  }
+
+  async markPurchaseProcessing(id: string): Promise<TicketPurchase | undefined> {
+    const [purchase] = await db
+      .update(ticketPurchases)
+      .set({ status: "processing" })
       .where(eq(ticketPurchases.id, id))
       .returning();
     return purchase || undefined;

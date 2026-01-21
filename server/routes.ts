@@ -420,6 +420,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Purchase already processed" });
       }
       
+      // IMMEDIATELY mark as processing to prevent race condition from double-clicks
+      await storage.markPurchaseProcessing(req.params.id);
+      
       const quantity = purchase.quantity || 1;
       const pricePerTicket = 350;
       const tickets = [];
