@@ -94,7 +94,7 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
     countryCode: '+230',
     customerPhone: '',
     paymentMethod: 'MCB Bank',
-    deliveryMethod: 'email',
+    deliveryMethod: 'whatsapp',
     quantity: 1,
   });
   const [step, setStep] = useState(1);
@@ -155,7 +155,7 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
       countryCode: '+230',
       customerPhone: '',
       paymentMethod: 'MCB Bank',
-      deliveryMethod: 'email',
+      deliveryMethod: 'whatsapp',
       quantity: 1,
     });
     setStep(1);
@@ -336,31 +336,9 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-2">Ticket Delivery</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, deliveryMethod: 'email' }))}
-                    className={`py-3 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                      formData.deliveryMethod === 'email'
-                        ? 'bg-primary text-white'
-                        : 'bg-background border border-border text-muted-foreground hover:border-primary'
-                    }`}
-                    data-testid="delivery-email"
-                  >
-                    <Mail className="w-4 h-4" /> Email
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, deliveryMethod: 'whatsapp' }))}
-                    className={`py-3 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                      formData.deliveryMethod === 'whatsapp'
-                        ? 'bg-[#25D366] text-white'
-                        : 'bg-background border border-border text-muted-foreground hover:border-[#25D366]'
-                    }`}
-                    data-testid="delivery-whatsapp"
-                  >
-                    <SiWhatsapp className="w-4 h-4" /> WhatsApp
-                  </button>
+                <div className="bg-[#25D366]/10 border border-[#25D366]/30 rounded-lg py-3 px-4 flex items-center gap-2">
+                  <SiWhatsapp className="w-5 h-5 text-[#25D366]" />
+                  <span className="text-white text-sm">Your ticket will be sent via WhatsApp</span>
                 </div>
               </div>
 

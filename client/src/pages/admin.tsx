@@ -858,42 +858,44 @@ export default function AdminPanel() {
             </div>
 
             {/* Sub-tabs Navigation */}
-            <div className="flex gap-2 border-b pb-2">
+            <div className="flex flex-wrap gap-1 sm:gap-2 border-b pb-2 overflow-x-auto">
               <button
                 onClick={() => setPurchasesSubTab('all')}
-                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+                className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-t-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                   purchasesSubTab === 'all'
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-muted'
                 }`}
                 data-testid="purchases-subtab-all"
               >
-                All Purchases
-                <span className="ml-2 text-xs bg-muted px-2 py-0.5 rounded">{allPurchases.length}</span>
+                <span className="hidden sm:inline">All Purchases</span>
+                <span className="sm:hidden">All</span>
+                <span className="ml-1 sm:ml-2 text-xs bg-muted px-1.5 sm:px-2 py-0.5 rounded">{allPurchases.length}</span>
               </button>
               <button
                 onClick={() => setPurchasesSubTab('ready')}
-                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+                className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-t-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                   purchasesSubTab === 'ready'
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-muted'
                 }`}
                 data-testid="purchases-subtab-ready"
               >
-                Ready to Deliver
-                <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">{readyToDeliverTickets.length}</span>
+                <span className="hidden sm:inline">Ready to Deliver</span>
+                <span className="sm:hidden">Deliver</span>
+                <span className="ml-1 sm:ml-2 text-xs bg-green-100 text-green-700 px-1.5 sm:px-2 py-0.5 rounded">{readyToDeliverTickets.length}</span>
               </button>
               <button
                 onClick={() => setPurchasesSubTab('vol2')}
-                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+                className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-t-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                   purchasesSubTab === 'vol2'
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-muted'
                 }`}
                 data-testid="purchases-subtab-vol2"
               >
-                Vol.2 Tickets
-                <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">{vol2Tickets.length}</span>
+                Vol.2
+                <span className="ml-1 sm:ml-2 text-xs bg-primary/10 text-primary px-1.5 sm:px-2 py-0.5 rounded">{vol2Tickets.length}</span>
               </button>
             </div>
 
@@ -967,33 +969,34 @@ export default function AdminPanel() {
                     ) : (
                       <div className="space-y-3">
                         {filteredAllPurchases.map((purchase) => (
-                          <div key={purchase.id} className="border rounded-lg p-4 space-y-3">
-                            <div className="flex items-start justify-between">
-                              <div className="space-y-1">
+                          <div key={purchase.id} className="border rounded-lg p-3 sm:p-4 space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                              <div className="space-y-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <div className={`w-2 h-2 rounded-full ${
+                                  <div className={`w-2 h-2 rounded-full shrink-0 ${
                                     purchase.status === 'pending' ? 'bg-orange-500' :
                                     purchase.status === 'verified' ? 'bg-green-500' : 'bg-red-500'
                                   }`}></div>
-                                  <span className="font-semibold">{purchase.customerName}</span>
+                                  <span className="font-semibold truncate">{purchase.customerName}</span>
+                                  <div className={`text-xs px-2 py-0.5 rounded shrink-0 sm:hidden ${
+                                    purchase.status === 'pending' ? 'bg-orange-100 text-orange-700' :
+                                    purchase.status === 'verified' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                  }`}>
+                                    {purchase.status}
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                  <span className="flex items-center gap-1">
-                                    <Phone className="w-3 h-3" /> {purchase.customerPhone}
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm text-muted-foreground">
+                                  <span className="flex items-center gap-1 truncate">
+                                    <Phone className="w-3 h-3 shrink-0" /> {purchase.customerPhone}
                                   </span>
-                                  {purchase.customerEmail && (
-                                    <span className="flex items-center gap-1">
-                                      <Mail className="w-3 h-3" /> {purchase.customerEmail}
-                                    </span>
-                                  )}
                                 </div>
                               </div>
-                              <div className="text-right">
+                              <div className="text-left sm:text-right flex sm:flex-col items-center sm:items-end gap-2 sm:gap-0">
                                 <div className="font-bold">{purchase.price}</div>
                                 {(purchase.quantity ?? 1) > 1 && (
                                   <div className="text-xs text-muted-foreground">{purchase.quantity} tickets</div>
                                 )}
-                                <div className={`text-xs px-2 py-0.5 rounded inline-block ${
+                                <div className={`text-xs px-2 py-0.5 rounded hidden sm:inline-block ${
                                   purchase.status === 'pending' ? 'bg-orange-100 text-orange-700' :
                                   purchase.status === 'verified' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                                 }`}>
@@ -1002,46 +1005,43 @@ export default function AdminPanel() {
                               </div>
                             </div>
                             
-                            <div className="flex items-center gap-4 text-sm">
-                              <span className="bg-muted px-2 py-1 rounded">{purchase.paymentMethod}</span>
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm">
+                              <span className="bg-muted px-2 py-1 rounded text-xs sm:text-sm">{purchase.paymentMethod}</span>
                               <span className="flex items-center gap-1">
-                                {purchase.deliveryMethod === 'whatsapp' ? (
-                                  <><SiWhatsapp className="w-3 h-3 text-green-500" /> WhatsApp</>
-                                ) : (
-                                  <><Mail className="w-3 h-3" /> Email</>
-                                )}
+                                <SiWhatsapp className="w-3 h-3 text-green-500" /> <span className="hidden sm:inline">WhatsApp</span>
                               </span>
-                              <span className="text-muted-foreground">
-                                {purchase.createdAt ? new Date(purchase.createdAt).toLocaleString() : ''}
+                              <span className="text-muted-foreground text-xs sm:text-sm">
+                                {purchase.createdAt ? new Date(purchase.createdAt).toLocaleDateString() : ''}
                               </span>
                             </div>
 
                             {purchase.status === 'pending' && (
-                              <div className="flex items-center gap-2 pt-2 border-t">
+                              <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
                                 <Button 
                                   onClick={() => verifyPurchaseMutation.mutate(purchase.id)}
                                   disabled={verifyPurchaseMutation.isPending}
                                   size="sm"
-                                  className="bg-green-600 hover:bg-green-700"
+                                  className="bg-green-600 hover:bg-green-700 text-xs sm:text-sm"
                                   data-testid={`verify-purchase-${purchase.id}`}
                                 >
                                   {verifyPurchaseMutation.isPending ? (
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
                                   ) : (
-                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    <CheckCircle className="w-4 h-4 sm:mr-2" />
                                   )}
-                                  Verify & Create {(purchase.quantity ?? 1) > 1 ? `${purchase.quantity} Tickets` : 'Ticket'}
+                                  <span className="hidden sm:inline">Verify & Create {(purchase.quantity ?? 1) > 1 ? `${purchase.quantity} Tickets` : 'Ticket'}</span>
+                                  <span className="sm:hidden">Verify</span>
                                 </Button>
                                 <Button 
                                   variant="outline"
                                   size="sm"
                                   onClick={() => rejectPurchaseMutation.mutate({ purchaseId: purchase.id, reason: 'Payment not verified' })}
                                   disabled={rejectPurchaseMutation.isPending}
-                                  className="text-red-500 border-red-500 hover:bg-red-500/10"
+                                  className="text-red-500 border-red-500 hover:bg-red-500/10 text-xs sm:text-sm"
                                   data-testid={`reject-purchase-${purchase.id}`}
                                 >
-                                  <XCircle className="w-4 h-4 mr-2" />
-                                  Reject
+                                  <XCircle className="w-4 h-4 sm:mr-2" />
+                                  <span className="hidden sm:inline">Reject</span>
                                 </Button>
                               </div>
                             )}
@@ -1095,78 +1095,55 @@ export default function AdminPanel() {
                         {filteredReadyToDeliver.map((ticket) => {
                           const isSent = ticket.isDelivered ?? false;
                           return (
-                            <div key={ticket.id} className={`border rounded-lg p-4 ${isSent ? 'bg-green-50/30 border-green-200' : 'bg-orange-50/30 border-orange-200'}`}>
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <div className="font-semibold">{ticket.customerName}</div>
+                            <div key={ticket.id} className={`border rounded-lg p-3 sm:p-4 ${isSent ? 'bg-green-50/30 border-green-200' : 'bg-orange-50/30 border-orange-200'}`}>
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <div className="font-semibold truncate">{ticket.customerName}</div>
                                     {isSent && (
-                                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded flex items-center gap-1">
+                                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded flex items-center gap-1 shrink-0">
                                         <CheckCircle className="w-3 h-3" /> Sent
                                       </span>
                                     )}
                                   </div>
                                   <div className="text-sm text-muted-foreground font-mono">{ticket.referenceCode}</div>
-                                  <div className="text-xs text-muted-foreground mt-1">
+                                  <div className="text-xs text-muted-foreground mt-1 truncate">
                                     {ticket.customerPhone}
-                                    {ticket.customerEmail && ` • ${ticket.customerEmail}`}
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  {ticket.deliveryMethod === 'email' && (
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {isSent ? (
                                     <Button
-                                      onClick={() => sendEmailMutation.mutate(ticket.id)}
-                                      disabled={sendEmailMutation.isPending}
+                                      onClick={() => {
+                                        const whatsappUrl = `https://wa.me/${(ticket.customerPhone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Vol.2 Rave Ticket is Ready! 🎉\n\n📧 Customer: ${ticket.customerName}\n🎫 Reference: ${ticket.referenceCode}\n💰 Price: ${ticket.price}\n📅 Date: 30th January 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10:00 PM\n\nYour digital ticket PDF will be downloaded automatically.\n\nSee you on the dance floor! 🎵🔥`)}`;
+                                        window.open(whatsappUrl, '_blank');
+                                      }}
                                       size="sm"
-                                      className={isSent ? "bg-gray-500 hover:bg-gray-600" : "bg-blue-600 hover:bg-blue-700"}
-                                      data-testid={`send-email-${ticket.id}`}
+                                      className="bg-gray-500 hover:bg-gray-600"
+                                      data-testid={`resend-whatsapp-${ticket.id}`}
                                     >
-                                      {sendEmailMutation.isPending ? (
-                                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                                      ) : (
-                                        <Mail className="w-4 h-4 mr-1" />
-                                      )}
-                                      {isSent ? 'Resend Email' : 'Send Email'}
+                                      <SiWhatsapp className="w-4 h-4 sm:mr-1" />
+                                      <span className="hidden sm:inline">Resend</span>
                                     </Button>
-                                  )}
-                                  {ticket.deliveryMethod === 'whatsapp' && (
-                                    <>
-                                      {isSent ? (
-                                        <Button
-                                          onClick={() => {
-                                            const whatsappUrl = `https://wa.me/${(ticket.customerPhone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Vol.2 Rave Ticket is Ready! 🎉\n\n📧 Customer: ${ticket.customerName}\n🎫 Reference: ${ticket.referenceCode}\n💰 Price: ${ticket.price}\n📅 Date: 30th January 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10:00 PM\n\nYour digital ticket PDF will be downloaded automatically.\n\nSee you on the dance floor! 🎵🔥`)}`;
-                                            window.open(whatsappUrl, '_blank');
-                                          }}
-                                          size="sm"
-                                          className="bg-gray-500 hover:bg-gray-600"
-                                          data-testid={`resend-whatsapp-${ticket.id}`}
-                                        >
-                                          <SiWhatsapp className="w-4 h-4 mr-1" />
-                                          Resend
-                                          <ExternalLink className="w-3 h-3 ml-1" />
-                                        </Button>
+                                  ) : (
+                                    <Button
+                                      onClick={() => {
+                                        markDeliveredMutation.mutate(ticket.id);
+                                        const whatsappUrl = `https://wa.me/${(ticket.customerPhone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Vol.2 Rave Ticket is Ready! 🎉\n\n📧 Customer: ${ticket.customerName}\n🎫 Reference: ${ticket.referenceCode}\n💰 Price: ${ticket.price}\n📅 Date: 30th January 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10:00 PM\n\nYour digital ticket PDF will be downloaded automatically.\n\nSee you on the dance floor! 🎵🔥`)}`;
+                                        window.open(whatsappUrl, '_blank');
+                                      }}
+                                      disabled={markDeliveredMutation.isPending}
+                                      size="sm"
+                                      className="bg-green-600 hover:bg-green-700"
+                                      data-testid={`send-whatsapp-${ticket.id}`}
+                                    >
+                                      {markDeliveredMutation.isPending ? (
+                                        <Loader2 className="w-4 h-4 sm:mr-1 animate-spin" />
                                       ) : (
-                                        <Button
-                                          onClick={() => {
-                                            markDeliveredMutation.mutate(ticket.id);
-                                            const whatsappUrl = `https://wa.me/${(ticket.customerPhone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Vol.2 Rave Ticket is Ready! 🎉\n\n📧 Customer: ${ticket.customerName}\n🎫 Reference: ${ticket.referenceCode}\n💰 Price: ${ticket.price}\n📅 Date: 30th January 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10:00 PM\n\nYour digital ticket PDF will be downloaded automatically.\n\nSee you on the dance floor! 🎵🔥`)}`;
-                                            window.open(whatsappUrl, '_blank');
-                                          }}
-                                          disabled={markDeliveredMutation.isPending}
-                                          size="sm"
-                                          className="bg-green-600 hover:bg-green-700"
-                                          data-testid={`send-whatsapp-${ticket.id}`}
-                                        >
-                                          {markDeliveredMutation.isPending ? (
-                                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                                          ) : (
-                                            <SiWhatsapp className="w-4 h-4 mr-1" />
-                                          )}
-                                          Send WhatsApp
-                                          <ExternalLink className="w-3 h-3 ml-1" />
-                                        </Button>
+                                        <SiWhatsapp className="w-4 h-4 sm:mr-1" />
                                       )}
-                                    </>
+                                      <span className="hidden sm:inline">Send WhatsApp</span>
+                                    </Button>
                                   )}
                                   <Dialog>
                                     <DialogTrigger asChild>
