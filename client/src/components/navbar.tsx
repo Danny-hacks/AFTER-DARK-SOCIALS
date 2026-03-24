@@ -10,11 +10,8 @@ export default function Navbar() {
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
-      
-      // Determine active section based on scroll position
       const sections = ['about', 'coming-soon', 'past-events', 'contact'];
       let currentSection = '';
-      
       for (const sectionId of sections) {
         const element = document.getElementById(sectionId);
         if (element) {
@@ -27,110 +24,95 @@ export default function Navbar() {
       }
       setActiveSection(currentSection);
     };
-    
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const scrollTo = (id: string) => {
     const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+    if (element) element.scrollIntoView({ behavior: 'smooth' });
     setIsMobileMenuOpen(false);
   };
 
   const navLinks = [
     { label: 'About', id: 'about' },
-    { label: 'Coming Soon', id: 'coming-soon' },
+    { label: 'Next Event', id: 'coming-soon' },
     { label: 'Past Events', id: 'past-events' },
     { label: 'Contact', id: 'contact' },
   ];
 
   return (
-    <nav 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        isScrolled ? 'bg-black/70 backdrop-blur-sm' : 'bg-gradient-to-b from-black/50 to-transparent'
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled ? 'bg-black border-b border-white/10' : 'bg-transparent'
       }`}
       data-testid="navbar"
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20 sm:h-24">
-          {/* Logo */}
-          <button 
+      <div className="max-w-7xl mx-auto px-6 lg:px-12">
+        <div className="flex items-center justify-between h-16 sm:h-20">
+          <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             className="flex items-center"
             data-testid="nav-logo"
           >
-            <img 
-              src={logoImage} 
-              alt="After Dark Socials" 
-              className="h-14 sm:h-16 w-auto"
-            />
+            <img src={logoImage} alt="After Dark Socials" className="h-10 sm:h-12 w-auto" />
           </button>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <button
                 key={link.id}
                 onClick={() => scrollTo(link.id)}
-                className={`transition-colors text-sm uppercase tracking-wider font-medium relative py-1 ${
-                  activeSection === link.id 
-                    ? 'text-[#c72d28]' 
-                    : 'text-white/80 hover:text-white'
+                className={`text-xs uppercase tracking-[0.2em] font-medium transition-colors ${
+                  activeSection === link.id ? 'text-white' : 'text-white/50 hover:text-white'
                 }`}
                 data-testid={`nav-link-${link.id}`}
               >
                 {link.label}
                 {activeSection === link.id && (
-                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#c72d28] rounded-full" />
+                  <span className="block h-px bg-[#c72d28] mt-1 w-full" />
                 )}
               </button>
             ))}
-            <a 
-              href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO" 
+            <a
+              href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-5 py-2 bg-[#c72d28] text-white text-sm uppercase tracking-wider font-medium rounded-full hover:bg-[#a82421] transition-colors"
+              className="px-5 py-2 bg-[#c72d28] text-white text-xs uppercase tracking-[0.15em] font-bold hover:bg-[#a82421] transition-colors"
               data-testid="nav-join-link"
             >
               Join Us
             </a>
           </div>
 
-          {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden p-2 text-white"
             data-testid="mobile-menu-button"
           >
-            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
 
-        {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden bg-black/95 backdrop-blur-md border-t border-white/10 py-4" data-testid="mobile-menu">
+          <div className="md:hidden bg-black border-t border-white/10 py-6" data-testid="mobile-menu">
             {navLinks.map((link) => (
               <button
                 key={link.id}
                 onClick={() => scrollTo(link.id)}
-                className={`block w-full text-left px-4 py-3 hover:bg-white/5 transition-colors text-sm uppercase tracking-wider ${
-                  activeSection === link.id 
-                    ? 'text-[#c72d28] border-l-2 border-[#c72d28]' 
-                    : 'text-white/80 hover:text-white'
+                className={`block w-full text-left px-0 py-3 text-xs uppercase tracking-[0.2em] font-medium transition-colors border-b border-white/5 ${
+                  activeSection === link.id ? 'text-white' : 'text-white/50'
                 }`}
                 data-testid={`mobile-nav-link-${link.id}`}
               >
                 {link.label}
               </button>
             ))}
-            <a 
-              href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO" 
+            <a
+              href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO"
               target="_blank"
               rel="noopener noreferrer"
-              className="block mx-4 mt-4 px-5 py-3 bg-[#c72d28] text-white text-sm uppercase tracking-wider font-medium rounded-full text-center hover:bg-[#a82421] transition-colors"
+              className="block mt-6 px-5 py-3 bg-[#c72d28] text-white text-xs uppercase tracking-[0.15em] font-bold text-center hover:bg-[#a82421] transition-colors"
               data-testid="mobile-nav-join-link"
             >
               Join Us

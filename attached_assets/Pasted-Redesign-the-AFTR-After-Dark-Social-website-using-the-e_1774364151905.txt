@@ -1,0 +1,183 @@
+Redesign the AFTR After Dark Social website using the existing 
+codebase. Follow these rules strictly:
+
+RULES:
+- Keep all existing CSS variables exactly as they are (colors, 
+  radius, spacing etc.) — do not change or override any of them
+- The only CSS change allowed is replacing the font import:
+  Remove the Inter import and replace with:
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap');
+- Update --font-sans to 'DM Sans', --font-mono to 'Space Mono'
+- Add --font-display: 'Bebas Neue', sans-serif to :root
+- Add the display font to tailwind.config.ts fontFamily:
+  display: ['Bebas Neue', 'sans-serif']
+- Add these two keyframes to tailwind.config.ts alongside 
+  the existing accordion keyframes:
+    marquee: {
+      from: { transform: 'translateX(0)' },
+      to: { transform: 'translateX(-50%)' },
+    },
+    fadeUp: {
+      from: { opacity: '0', transform: 'translateY(30px)' },
+      to: { opacity: '1', transform: 'translateY(0)' },
+    },
+- Add to the animation section:
+    'marquee': 'marquee 20s linear infinite',
+    'fade-up': 'fadeUp 0.7s ease forwards',
+- Use only existing Tailwind color classes: bg-primary, 
+  text-primary, bg-card, bg-background, text-muted-foreground, 
+  border-border etc.
+- Build all sections as .tsx React components in 
+  ./client/src/components/
+- Section tag labels (small uppercase labels above headings) 
+  must use font-mono at 0.85rem with letter-spacing 0.25em — 
+  no prefix symbols, just clean styled text in text-primary
+
+LAYOUT & SECTIONS (in this order):
+1. Fixed Navbar — logo left, links (About, Coming Soon, Past 
+   Events, Contact) center, "Join Us" button right using 
+   existing primary color
+
+2. Hero — full viewport height, keep existing design exactly 
+   as it is (large AFTR heading, subtitle "The Rave That Keeps 
+   The City Awake", Mauritius location pill, AD logo, DISCOVER 
+   scroll indicator at bottom). Add video background:
+   - <video> with autoplay muted loop playsinline
+   - position: absolute; inset: 0; width: 100%; height: 100%; 
+     object-fit: cover; z-index: 0; opacity: 0;
+     transition: opacity 1.5s ease;
+   - Keep existing static crowd photo as CSS background-image 
+     fallback on the hero div — shows while video loads
+   - Use a React useRef + useEffect with canplaythrough event 
+     to trigger the fade: video.style.opacity = '1'
+   - Add comment in video src:
+     {/* Replace with actual event footage e.g. hero.mp4 */}
+   - Dark overlay and all hero content sit above video at 
+     higher z-index
+
+3. Marquee ticker strip — bg-primary red background, dark 
+   text, animate-marquee, bullet separators (•):
+   "Multiple Genres • Top DJs • Non-Stop Energy • Community 
+   • After Dark Social • Mauritius •"
+   Duplicate the items so the loop is seamless
+
+4. Countdown bar — bg-card background, countdown digits in 
+   font-display (Bebas Neue) text-primary, counting down to 
+   18 April 2025 at 10PM. Event name "AFTR Vol. 3" and 
+   "Doors 10PM · Mauritius" on the right side. 
+   useEffect + setInterval, clearInterval on unmount
+
+5. About — two column grid: text left, 2x2 feature grid right
+   Features: Multiple Genres, Top DJs, Non-Stop Energy, 
+   Community. Feature cards use bg-card border-border
+
+6. Upcoming Event — bold full-width hero card section:
+   - bg-card background with hero-pattern overlay
+   - Subtle red radial glow:
+     radial-gradient(ellipse 80% 60% at 50% 50%, 
+     rgba(199,45,40,0.1) 0%, transparent 70%)
+   - 2px red top border that animates scaleX 0 to 1 on load
+   - Large faded "03" watermark absolute top-right, 
+     font-display, opacity 6%
+   - Section tag: "Upcoming"
+   - Heading in font-display: "AFTR VOL. 3" line 1, 
+     "FULL CAPACITY" line 2 in text-primary red
+   - Date line in font-mono with left red line accent:
+     "18 . APR . 2025 — DOORS 10PM"
+   - Subtitle in DM Sans 300 muted:
+     "Vol. 2 is done. Vol. 3 is next. This one goes full 
+     capacity — don't get left outside."
+   - Two buttons: primary red "Get Tickets" with pulse-glow 
+     + ghost outline "Join Waitlist"
+   - Animate inner content in with fadeUp on load
+
+7. Events Grid — three cards side by side:
+   - Grid has 1px gaps, border around the whole grid
+   - Each card: bg-card, hover lightens background, red 
+     top border slides in from left on hover (scaleX)
+   - Large faded watermark number absolute top-right per card
+   - Each card has: section tag, date, title in font-display, 
+     description, genre tags, CTA button
+
+   Card 1 — Vol. 3 (active):
+   - Tag: "Next Event" — red background tint, red border
+   - Date: "18 . Apr . 2025 — Doors 10PM"
+   - Title: "AFTR Vol. 3"
+   - Copy: "Full capacity. The biggest night yet. 
+     Don't get left outside."
+   - Genre tags: Amapiano, Afrobeats, Hip-Hop
+   - Button: primary red "Get Tickets"
+
+   Card 2 — Vol. 2 (past, 50% opacity):
+   - Tag: "Sold Out" — muted style
+   - Date: "January 2026"
+   - Title: "AFTR Vol. 2"
+   - Copy: "Another sold-out night. The energy was 
+     unmatched — catch the highlights."
+   - Genre tags: Amapiano, House, R&B
+   - Button: ghost "Watch Recap ▶"
+
+   Card 3 — Vol. 1 (past, 50% opacity):
+   - Tag: "Sold Out" — muted style
+   - Date: "September 2025"
+   - Title: "AFTR Vol. 1"
+   - Copy: "Where it all began. The night that proved 
+     Mauritius was ready for something different."
+   - Genre tags: Afrobeats, Hip-Hop, Drill
+   - Button: ghost "Watch Recap ▶"
+
+8. Community CTA — centered, max-width 640px:
+   - hero-pattern utility class on section background
+   - Red radial glow behind content
+   - Section tag: "Community" centered
+   - Heading: "JOIN THE" line 1, "MOVEMENT." line 2
+   - Body in DM Sans 300 muted:
+     "Be the first to know about upcoming events, exclusive 
+     drops, and behind-the-scenes content. The AFTR family 
+     lives on WhatsApp."
+   - Two buttons centered: primary red "Join WhatsApp Group" 
+     with pulse-glow + ghost "Contact Us"
+
+9. Get In Touch — two column grid, gap large, align start:
+   Left column:
+   - Section tag: "Get in Touch"
+   - Heading: "LET'S" line 1, "TALK." line 2
+   - Body in DM Sans 300 muted:
+     "Questions about upcoming events? Want to collaborate 
+     or perform? We're always open to connecting with 
+     the community."
+   - Contact list, each row has border-bottom border-border:
+     WhatsApp · +230 XXX XXXX
+     Email · hello@afterdarksocial.com
+     Instagram · @aftr_official
+     Location · Mauritius
+   - Labels in text-primary font-mono uppercase, min-width 80px
+   - Values in text-muted-foreground font-mono
+   Right column:
+   - Form fields: Name, Email, Message
+   - Each field: mono uppercase label above, wide letter-spacing
+   - Inputs: bg-background, border-border, on focus border 
+     shifts to text-primary red
+   - Message textarea min-height 130px, resize vertical
+   - "Send Message" button: bg-primary, font-mono uppercase, 
+     aligned left
+
+10. Footer — logo left, nav links center, copyright right, 
+    all muted colors
+
+EFFECTS & INTERACTIONS:
+- Smooth scroll on all anchor links
+- Hero content animates in with animate-fade-up, 
+  staggered animation-delay on each element
+- Card hover: background lightens + red top border 
+  scaleX reveal, transition-all duration-200
+- pulse-glow on primary CTA buttons
+- Countdown: useEffect + setInterval every 1000ms, 
+  clearInterval on unmount
+
+MOBILE (under 768px):
+- All grids collapse to single column
+- Hide nav links, show hamburger menu
+- Reduce section padding to px-6
+- Hero heading scales down with responsive Tailwind text sizes
+- Events grid stacks to single column

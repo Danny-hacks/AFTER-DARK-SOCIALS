@@ -1,17 +1,10 @@
 import { useState } from "react";
-import { Phone, Mail, Users } from "lucide-react";
+import { Phone, Mail } from "lucide-react";
 import { SiWhatsapp, SiInstagram } from "react-icons/si";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ContactSection() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    message: ''
-  });
+  const [formData, setFormData] = useState({ name: '', email: '', message: '' });
   const { toast } = useToast();
 
   const openWhatsApp = () => {
@@ -21,188 +14,169 @@ export default function ContactSection() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Create email with form data
     const subject = encodeURIComponent("AFTR Events - Inquiry");
     const body = encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`);
-    
-    // Open default email client (which should be Outlook on your MacBook)
-    const mailtoUrl = `mailto:afterdarksocials@gmail.com?subject=${subject}&body=${body}`;
-    
-    // Open email client
-    window.open(mailtoUrl, '_blank');
-    
-    // Show success toast
-    toast({
-      title: "Message Prepared",
-      description: "Your email client should open with the pre-filled message.",
-    });
-    
-    // Reset form
+    window.open(`mailto:afterdarksocials@gmail.com?subject=${subject}&body=${body}`, '_blank');
+    toast({ title: "Message Prepared", description: "Your email client should open with the pre-filled message." });
     setFormData({ name: '', email: '', message: '' });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   return (
-    <section id="contact" className="py-20 bg-gradient-to-bl from-card via-background to-card relative">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold gradient-text mb-6" data-testid="contact-title">
-            GET IN TOUCH
-          </h2>
-          <p className="text-xl text-muted-foreground" data-testid="contact-description">
-            Questions about upcoming events? We're here to help!
-          </p>
-        </div>
-        
-        {/* Community Section */}
-        <div className="mb-12 bg-card rounded-2xl p-8 border border-border text-center" data-testid="community-section">
-          <div className="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4">
-            <Users className="text-white text-2xl" />
-          </div>
-          <h3 className="text-2xl font-bold gradient-text mb-4" data-testid="community-title">Join the AFTR Community</h3>
-          <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-            Be the first to know about upcoming events, exclusive announcements, and connect with fellow ravers!
-          </p>
-          <a 
-            href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO" 
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 px-8 py-4 gradient-bg text-white font-bold rounded-full hover:scale-105 transition-transform text-lg"
-            data-testid="join-community-button"
-          >
-            <SiWhatsapp className="text-xl" />
-            Join WhatsApp Group
-          </a>
+    <section id="contact" className="bg-black py-28 border-t border-white/10" data-testid="contact-section">
+      <div className="max-w-7xl mx-auto px-6 lg:px-12">
+
+        {/* Section label */}
+        <div className="flex items-center gap-4 mb-16">
+          <span className="section-line" />
+          <span className="text-[#c72d28] text-xs uppercase tracking-[0.3em] font-medium">
+            Contact
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-card rounded-2xl p-8 border border-border" data-testid="contact-info-card">
-            <h3 className="text-xl font-bold text-foreground mb-6" data-testid="contact-info-title">Contact Information</h3>
-            
-            <div className="space-y-6">
-              <div className="flex items-center space-x-4" data-testid="whatsapp-contact">
-                <div className="w-12 h-12 gradient-bg rounded-full flex items-center justify-center">
-                  <SiWhatsapp className="text-white text-xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
+          {/* Left: Heading + info */}
+          <div>
+            <h2
+              className="text-6xl sm:text-7xl font-black text-white leading-none mb-12"
+              style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
+              data-testid="contact-title"
+            >
+              GET<br />IN TOUCH.
+            </h2>
+
+            <p className="text-white/40 text-sm mb-12" data-testid="contact-description">
+              Questions about upcoming events? We're here to help.
+            </p>
+
+            <div className="space-y-6 mb-12">
+              <button
+                onClick={openWhatsApp}
+                className="flex items-center gap-4 group text-white/50 hover:text-white transition-colors"
+                data-testid="whatsapp-contact"
+              >
+                <SiWhatsapp className="w-5 h-5 text-[#25D366] flex-shrink-0" />
+                <div className="text-left">
+                  <div className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-0.5">WhatsApp</div>
+                  <div className="text-sm font-medium" data-testid="whatsapp-link">58205220</div>
                 </div>
+              </button>
+
+              <div className="flex items-center gap-4" data-testid="phone-contact">
+                <Phone className="w-5 h-5 text-[#c72d28] flex-shrink-0" />
                 <div>
-                  <div className="font-semibold text-foreground">WhatsApp</div>
-                  <button 
-                    onClick={openWhatsApp}
-                    className="text-accent hover:text-accent/80"
-                    data-testid="whatsapp-link"
-                  >
-                    58205220
-                  </button>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-4" data-testid="phone-contact">
-                <div className="w-12 h-12 gradient-bg rounded-full flex items-center justify-center">
-                  <Phone className="text-white text-xl" />
-                </div>
-                <div>
-                  <div className="font-semibold text-foreground">Phone</div>
-                  <a 
-                    href="tel:+23058205220" 
-                    className="text-accent hover:text-accent/80"
-                    data-testid="phone-link"
-                  >
+                  <div className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-0.5">Phone</div>
+                  <a href="tel:+23058205220" className="text-sm font-medium text-white/50 hover:text-white transition-colors" data-testid="phone-link">
                     58205220
                   </a>
                 </div>
               </div>
-              
-              <div className="flex items-center space-x-4" data-testid="email-contact">
-                <div className="w-12 h-12 gradient-bg rounded-full flex items-center justify-center">
-                  <Mail className="text-white text-xl" />
-                </div>
+
+              <div className="flex items-center gap-4" data-testid="email-contact">
+                <Mail className="w-5 h-5 text-[#c72d28] flex-shrink-0" />
                 <div>
-                  <div className="font-semibold text-foreground">Email</div>
-                  <a 
-                    href="mailto:afterdarksocials@gmail.com" 
-                    className="text-accent hover:text-accent/80"
-                    data-testid="email-link"
-                  >
+                  <div className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-0.5">Email</div>
+                  <a href="mailto:afterdarksocials@gmail.com" className="text-sm font-medium text-white/50 hover:text-white transition-colors" data-testid="email-link">
                     afterdarksocials@gmail.com
                   </a>
                 </div>
               </div>
             </div>
-            
-            <div className="mt-8 pt-6 border-t border-border">
-              <h4 className="font-bold text-foreground mb-4" data-testid="social-media-title">Follow Us</h4>
-              <div className="flex space-x-4">
-                <a 
-                  href="https://www.instagram.com/afterdarksocials.mu?igsh=M3FxdDR1bzd6MjJy&utm_source=qr" 
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 bg-muted rounded-full flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
-                  data-testid="instagram-link"
-                >
-                  <SiInstagram />
-                </a>
-              </div>
+
+            {/* Community CTA */}
+            <div className="border border-white/10 p-6" data-testid="community-section">
+              <p className="text-xs text-white/30 uppercase tracking-[0.2em] mb-4" data-testid="community-title">
+                Join the Community
+              </p>
+              <p className="text-white/50 text-sm mb-6">
+                Be the first to know about upcoming events and connect with fellow ravers.
+              </p>
+              <a
+                href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-3 bg-[#25D366] text-white text-xs uppercase tracking-[0.15em] font-bold px-6 py-3 hover:bg-[#1da851] transition-colors"
+                data-testid="join-community-button"
+              >
+                <SiWhatsapp className="w-4 h-4" />
+                Join WhatsApp Group
+              </a>
             </div>
           </div>
-          
-          <div className="bg-card rounded-2xl p-8 border border-border" data-testid="contact-form-card">
-            <h3 className="text-xl font-bold text-foreground mb-6" data-testid="contact-form-title">Quick Message</h3>
-            
+
+          {/* Right: Form */}
+          <div data-testid="contact-form-card">
             <form onSubmit={handleSubmit} className="space-y-6" data-testid="contact-form">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Name</label>
-                <Input
+                <label className="block text-[10px] text-white/30 uppercase tracking-[0.2em] mb-3">Name</label>
+                <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="Your full name"
                   required
+                  className="w-full bg-transparent border border-white/15 text-white placeholder:text-white/20 text-sm px-4 py-3 focus:outline-none focus:border-white/40 transition-colors"
                   data-testid="contact-name-input"
                 />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Email</label>
-                <Input
+                <label className="block text-[10px] text-white/30 uppercase tracking-[0.2em] mb-3">Email</label>
+                <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="your@email.com"
                   required
+                  className="w-full bg-transparent border border-white/15 text-white placeholder:text-white/20 text-sm px-4 py-3 focus:outline-none focus:border-white/40 transition-colors"
                   data-testid="contact-email-input"
                 />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Message</label>
-                <Textarea
+                <label className="block text-[10px] text-white/30 uppercase tracking-[0.2em] mb-3">Message</label>
+                <textarea
                   name="message"
                   value={formData.message}
                   onChange={handleInputChange}
-                  rows={4}
+                  rows={6}
                   placeholder="How can we help you?"
                   required
+                  className="w-full bg-transparent border border-white/15 text-white placeholder:text-white/20 text-sm px-4 py-3 focus:outline-none focus:border-white/40 transition-colors resize-none"
                   data-testid="contact-message-input"
                 />
               </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full gradient-bg text-white font-bold py-3 px-6 rounded-lg hover:scale-105 transition-transform"
+
+              <button
+                type="submit"
+                className="w-full bg-white text-black text-xs uppercase tracking-[0.2em] font-bold py-4 hover:bg-[#c72d28] hover:text-white transition-colors"
                 data-testid="contact-submit-button"
               >
                 Send Message
-              </Button>
+              </button>
             </form>
+
+            {/* Social links */}
+            <div className="mt-10 pt-8 border-t border-white/10">
+              <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-4" data-testid="social-media-title">
+                Follow Us
+              </p>
+              <a
+                href="https://www.instagram.com/afterdarksocials.mu?igsh=M3FxdDR1bzd6MjJy&utm_source=qr"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-white/30 hover:text-white text-xs transition-colors"
+                data-testid="instagram-link"
+              >
+                <SiInstagram className="w-4 h-4" />
+                @afterdarksocials.mu
+              </a>
+            </div>
           </div>
         </div>
       </div>

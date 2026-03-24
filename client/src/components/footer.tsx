@@ -1,115 +1,92 @@
-import { SiInstagram } from "react-icons/si";
+import { SiInstagram, SiWhatsapp } from "react-icons/si";
 import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
 export default function Footer() {
   const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
-    <footer className="bg-black border-t border-white/10 py-12">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="md:col-span-2" data-testid="footer-brand">
-            <div className="mb-4">
-              <img 
-                src={logoImage} 
-                alt="After Dark Socials" 
-                className="h-20 w-auto"
-                data-testid="footer-brand-name"
-              />
-            </div>
-            <p className="text-muted-foreground mb-4" data-testid="footer-description">
-              An unforgettable night of music and energy with unmatched vibes 
-              and non-stop dancing until dawn.
+    <footer className="bg-black border-t border-white/10 py-16" data-testid="footer">
+      <div className="max-w-7xl mx-auto px-6 lg:px-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-0">
+          {/* Brand */}
+          <div data-testid="footer-brand">
+            <img
+              src={logoImage}
+              alt="After Dark Socials"
+              className="h-14 w-auto mb-6 opacity-80"
+              data-testid="footer-brand-name"
+            />
+            <p className="text-white/30 text-sm leading-relaxed max-w-xs" data-testid="footer-description">
+              An unforgettable night of music and energy with unmatched vibes and non-stop dancing until dawn.
             </p>
-            <div className="flex space-x-4" data-testid="footer-social-links">
-              <a 
-                href="https://www.instagram.com/afterdarksocials.mu?igsh=M3FxdDR1bzd6MjJy&utm_source=qr" 
+            <div className="flex gap-4 mt-6" data-testid="footer-social-links">
+              <a
+                href="https://www.instagram.com/afterdarksocials.mu?igsh=M3FxdDR1bzd6MjJy&utm_source=qr"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="text-white/30 hover:text-white transition-colors"
                 data-testid="footer-instagram"
               >
-                <SiInstagram className="text-xl" />
+                <SiInstagram className="w-4 h-4" />
+              </a>
+              <a
+                href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/30 hover:text-white transition-colors"
+              >
+                <SiWhatsapp className="w-4 h-4" />
               </a>
             </div>
           </div>
-          
+
+          {/* Quick Links */}
           <div data-testid="footer-quick-links">
-            <h4 className="font-bold text-foreground mb-4">Quick Links</h4>
-            <ul className="space-y-2 text-muted-foreground">
-              <li>
-                <button 
-                  onClick={() => scrollToSection('event')} 
-                  className="hover:text-foreground transition-colors"
-                  data-testid="footer-link-event"
-                >
-                  Event Info
-                </button>
-              </li>
-              <li>
-                <button 
-                  onClick={() => scrollToSection('tickets')} 
-                  className="hover:text-foreground transition-colors"
-                  data-testid="footer-link-tickets"
-                >
-                  Tickets
-                </button>
-              </li>
-              <li>
-                <button 
-                  onClick={() => scrollToSection('location')} 
-                  className="hover:text-foreground transition-colors"
-                  data-testid="footer-link-location"
-                >
-                  Location
-                </button>
-              </li>
-              <li>
-                <button 
-                  onClick={() => scrollToSection('contact')} 
-                  className="hover:text-foreground transition-colors"
-                  data-testid="footer-link-contact"
-                >
-                  Contact
-                </button>
-              </li>
+            <p className="text-[10px] text-white/30 uppercase tracking-[0.25em] mb-6">Navigate</p>
+            <ul className="space-y-3">
+              {[
+                { label: 'About', id: 'about' },
+                { label: 'Next Event', id: 'coming-soon' },
+                { label: 'Past Events', id: 'past-events' },
+                { label: 'Contact', id: 'contact' },
+              ].map((link) => (
+                <li key={link.id}>
+                  <button
+                    onClick={() => scrollToSection(link.id)}
+                    className="text-white/30 hover:text-white text-sm transition-colors"
+                  >
+                    {link.label}
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
-          
+
+          {/* Legal */}
           <div data-testid="footer-legal-links">
-            <h4 className="font-bold text-foreground mb-4">Legal</h4>
-            <ul className="space-y-2 text-muted-foreground">
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors" data-testid="footer-terms">
-                  Terms & Conditions
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors" data-testid="footer-privacy">
-                  Privacy Policy
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors" data-testid="footer-refund">
-                  Refund Policy
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors" data-testid="footer-age">
-                  Age Requirements
-                </a>
-              </li>
+            <p className="text-[10px] text-white/30 uppercase tracking-[0.25em] mb-6">Legal</p>
+            <ul className="space-y-3">
+              {['Terms & Conditions', 'Privacy Policy', 'Refund Policy', 'Age Requirements'].map((item) => (
+                <li key={item}>
+                  <a href="#" className="text-white/30 hover:text-white text-sm transition-colors">
+                    {item}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
-        
-        <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground" data-testid="footer-copyright">
-          <p>&copy; 2025 AFTR. All rights reserved. The rave that keeps the city awake.</p>
+
+        {/* Bottom bar */}
+        <div className="border-t border-white/10 mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4" data-testid="footer-copyright">
+          <p className="text-white/20 text-xs uppercase tracking-[0.2em]">
+            &copy; 2025 AFTR. All rights reserved.
+          </p>
+          <p className="text-white/20 text-xs uppercase tracking-[0.2em]">
+            The rave that keeps the city awake.
+          </p>
         </div>
       </div>
     </footer>

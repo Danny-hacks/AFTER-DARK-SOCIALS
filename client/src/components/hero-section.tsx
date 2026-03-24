@@ -13,67 +13,42 @@ export default function HeroSection() {
     queryKey: ['/api/hero-slides'],
   });
 
-  // Process slides - replace local asset paths with imported images
   const processedSlides = (data?.slides || []).map(slide => {
     let processedUrl = slide.url;
-    if (slide.url.includes('/assets/stock_images/')) {
-      processedUrl = heroImage;
-    } else if (slide.url.includes('AFTR_black_white')) {
-      processedUrl = aftr2Image;
-    }
+    if (slide.url.includes('/assets/stock_images/')) processedUrl = heroImage;
+    else if (slide.url.includes('AFTR_black_white')) processedUrl = aftr2Image;
     return { ...slide, url: processedUrl };
   });
-  
+
   const hasSlides = processedSlides.length > 0;
 
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
+  useEffect(() => { setIsVisible(true); }, []);
 
   useEffect(() => {
     if (processedSlides.length <= 1) return;
-
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % processedSlides.length);
     }, 8000);
-
     return () => clearInterval(interval);
   }, [processedSlides.length]);
 
   const scrollToAbout = () => {
-    const element = document.getElementById('about');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+    document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const goToSlide = (index: number) => {
-    setCurrentSlide(index);
-  };
-
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % processedSlides.length);
-  };
-
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + processedSlides.length) % processedSlides.length);
-  };
-
-  const currentSlideData = hasSlides ? processedSlides[currentSlide] : null;
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % processedSlides.length);
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + processedSlides.length) % processedSlides.length);
 
   return (
-    <section className="relative h-screen flex items-center justify-center overflow-hidden">
-      {/* Background slides */}
+    <section className="relative h-screen flex items-end justify-start overflow-hidden">
+      {/* Background */}
       <div className="absolute inset-0">
-        {/* Always show default image as base layer */}
         <img
           src={heroImage}
-          alt="Nightclub rave with crowd silhouettes and colorful lights"
-          className="w-full h-full object-cover scale-105"
+          alt="Nightclub rave"
+          className="w-full h-full object-cover"
           data-testid="hero-background-image"
         />
-        
-        {/* Overlay slides on top when loaded */}
         {hasSlides && !isLoading && processedSlides.map((slide, index) => (
           <div
             key={slide.id}
@@ -85,110 +60,97 @@ export default function HeroSection() {
               <video
                 src={slide.url}
                 className="w-full h-full object-cover"
-                autoPlay
-                muted
-                loop
-                playsInline
+                autoPlay muted loop playsInline
                 data-testid={`hero-video-${index}`}
               />
             ) : (
               <img
                 src={slide.url}
                 alt={slide.title || 'Hero background'}
-                className="w-full h-full object-cover scale-105"
+                className="w-full h-full object-cover"
                 data-testid={`hero-image-${index}`}
               />
             )}
           </div>
         ))}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black"></div>
+        {/* Heavy dark overlay - bottom-heavy for text */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30" />
+        <div className="absolute inset-0 bg-black/20" />
       </div>
 
-      {/* Animated glow effects - only show on first slide */}
-      <div className={`absolute inset-0 overflow-hidden pointer-events-none transition-opacity duration-700 ${
-        currentSlide === 0 ? 'opacity-100' : 'opacity-0'
-      }`}>
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#c72d28]/20 rounded-full blur-[100px] animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#c72d28]/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }}></div>
-      </div>
-
-      {/* Slide navigation arrows */}
+      {/* Slide arrows */}
       {hasSlides && processedSlides.length > 1 && (
         <>
           <button
             onClick={prevSlide}
-            className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-20 p-3 bg-black/30 backdrop-blur-sm rounded-full border border-white/20 text-white/80 hover:text-white hover:bg-black/50 transition-all"
+            className="absolute left-6 top-1/2 -translate-y-1/2 z-20 p-3 border border-white/20 text-white/60 hover:text-white hover:border-white/60 transition-all"
             data-testid="prev-slide-button"
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={nextSlide}
-            className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-20 p-3 bg-black/30 backdrop-blur-sm rounded-full border border-white/20 text-white/80 hover:text-white hover:bg-black/50 transition-all"
+            className="absolute right-6 top-1/2 -translate-y-1/2 z-20 p-3 border border-white/20 text-white/60 hover:text-white hover:border-white/60 transition-all"
             data-testid="next-slide-button"
           >
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight className="w-5 h-5" />
           </button>
         </>
       )}
-      
-      {/* Main content - only show on first slide */}
-      <div className={`relative z-10 text-center px-4 transition-all duration-700 ${
-        isVisible && currentSlide === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
+
+      {/* Main content — bottom-left editorial layout */}
+      <div className={`relative z-10 px-6 sm:px-12 lg:px-20 pb-20 sm:pb-28 w-full transition-all duration-1000 ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}>
-        <h1 
-          className="text-8xl sm:text-9xl md:text-[12rem] font-black tracking-tight mb-4"
-          style={{
-            background: 'linear-gradient(135deg, #fff 0%, #c72d28 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            textShadow: '0 0 80px rgba(199, 45, 40, 0.5)',
-          }}
+        {/* Red accent line */}
+        <div className="w-10 h-0.5 bg-[#c72d28] mb-6" />
+
+        <h1
+          className="font-display text-[min(22vw,180px)] leading-none tracking-tight text-white mb-4"
+          style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
           data-testid="brand-title"
         >
           AFTR
         </h1>
-        
-        <p 
-          className="text-xl sm:text-2xl md:text-3xl text-white/80 font-light tracking-wide mb-12"
+
+        <p
+          className="text-sm sm:text-base text-white/50 font-light tracking-[0.3em] uppercase mb-8 max-w-sm"
           data-testid="brand-tagline"
         >
           The Rave That Keeps The City Awake
         </p>
 
-        {/* Location badge */}
-        <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 mb-16">
-          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-          <span className="text-white/90 text-sm sm:text-base">Mauritius</span>
+        <div className="flex items-center gap-6">
+          <div className="inline-flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-[#c72d28] rounded-full animate-pulse" />
+            <span className="text-white/40 text-xs tracking-[0.2em] uppercase">Mauritius</span>
+          </div>
+
+          {hasSlides && processedSlides.length > 1 && (
+            <div className="flex gap-2" data-testid="slide-indicators">
+              {processedSlides.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSlide(index)}
+                  className={`w-6 h-px transition-all duration-300 ${
+                    index === currentSlide ? 'bg-[#c72d28]' : 'bg-white/30 hover:bg-white/60'
+                  }`}
+                  data-testid={`slide-indicator-${index}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Slide radio indicators */}
-      {hasSlides && processedSlides.length > 1 && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 flex gap-4" data-testid="slide-indicators">
-          {processedSlides.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ${
-                index === currentSlide 
-                  ? 'border-[#c72d28] bg-[#c72d28]' 
-                  : 'border-white/60 bg-transparent hover:border-white'
-              }`}
-              data-testid={`slide-indicator-${index}`}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Scroll indicator */}
-      <button 
+      {/* Scroll cue */}
+      <button
         onClick={scrollToAbout}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white/60 hover:text-white transition-colors cursor-pointer group"
+        className="absolute bottom-8 right-8 z-10 flex flex-col items-center gap-2 text-white/30 hover:text-white/70 transition-colors"
         data-testid="scroll-indicator"
       >
-        <span className="text-xs tracking-widest uppercase">Discover</span>
-        <ChevronDown className="w-6 h-6 animate-bounce" />
+        <span className="text-[10px] tracking-[0.3em] uppercase rotate-90 mb-2">Scroll</span>
+        <ChevronDown className="w-4 h-4 animate-bounce" />
       </button>
     </section>
   );
