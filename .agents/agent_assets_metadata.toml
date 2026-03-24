@@ -6,3 +6,9 @@ id = "0_raxRSEQ0TFF2kiacW71"
 uri = "file://aftr-project-export.tar.gz"
 type = "unspecified"
 title = "AFTR Project – Full Source Code"
+
+[[outputs]]
+id = "IPnZVdMoJZ17jhykdqIai"
+uri = "file://aftr-project-export.zip"
+type = "unspecified"
+title = "AFTR Project – Full Source Code (.zip)"
