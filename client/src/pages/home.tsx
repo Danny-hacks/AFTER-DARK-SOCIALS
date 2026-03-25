@@ -3,6 +3,7 @@ import HeroSection from "@/components/hero-section";
 import ComingSoonBanner from "@/components/coming-soon-banner";
 import AboutSection from "@/components/about-section";
 import PastEvents from "@/components/past-events";
+import GalleryPreview from "@/components/gallery-preview";
 import ContactSection from "@/components/contact-section";
 import Footer from "@/components/footer";
 
@@ -40,6 +41,7 @@ export default function Home() {
       <AboutSection />
       <ComingSoonBanner />
       <PastEvents />
+      <GalleryPreview />
       <ContactSection />
       <Footer />
     </div>
