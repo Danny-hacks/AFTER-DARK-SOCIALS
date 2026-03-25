@@ -5,7 +5,6 @@ import { Link } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import comingSoonImage from "@assets/IMG_6112_1774435245159.jpg";
 import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
 const eventNavLinks = [
@@ -449,11 +448,8 @@ export default function EventPage() {
       </header>
 
       {/* Hero */}
-      <section className="relative h-screen min-h-[600px]">
-        <img src={comingSoonImage} alt="AFTR Vol. 3" className="absolute inset-0 w-full h-full object-cover" data-testid="event-hero-image" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black" />
-
-        <div className="relative h-full flex flex-col justify-end pb-20 px-6 lg:px-12 max-w-7xl mx-auto">
+      <section className="relative h-screen min-h-[600px] bg-black">
+        <div className="h-full flex flex-col justify-end pb-20 px-6 lg:px-12 max-w-7xl mx-auto">
           <div>
             <div className="flex items-center gap-4 mb-4">
               <span className="section-line" />

@@ -1,16 +1,16 @@
 import { Link } from "wouter";
-import aftrEventImage from "@assets/AFTR-1_1757155940525.jpg";
-import aftrVol2Image from "@assets/IMG_6112_1774435245159.jpg";
-import djAlvinImage from "@assets/DJ ALVIN_1757156832389.jpg";
-import djSwayImage from "@assets/DJ SWAY_1757156832390.jpg";
-import djAfrokeyzImage from "@assets/DJ AFROKEYZ_1757156832386.jpg";
+import vol2_1 from "@assets/vol2_4T7A9200.jpg";
+import vol2_2 from "@assets/vol2_4T7A9259.jpg";
+import vol2_3 from "@assets/vol2_4T7A9366.jpg";
+import vol2_4 from "@assets/vol2_4T7A9396.jpg";
+import vol2_5 from "@assets/vol2_4T7A9422.jpg";
 
 const previewPhotos = [
-  { src: aftrEventImage, vol: "VOL. 1", date: "Sept 2025", alt: "AFTR Vol. 1 — The Dancefloor", key: "p1" },
-  { src: aftrVol2Image, vol: "VOL. 2", date: "Jan 2026", alt: "AFTR Vol. 2 — The Night", key: "p2" },
-  { src: djAlvinImage, vol: "VOL. 1", date: "Sept 2025", alt: "DJ ALVIN", key: "p3" },
-  { src: djSwayImage, vol: "VOL. 1", date: "Sept 2025", alt: "DJ SWAY", key: "p4" },
-  { src: djAfrokeyzImage, vol: "VOL. 1", date: "Sept 2025", alt: "DJ AFROKEYZ", key: "p5" },
+  { src: vol2_1, vol: "VOL. 2", date: "Jan 2026", alt: "AFTR Vol. 2 — The Crowd",      key: "p1" },
+  { src: vol2_2, vol: "VOL. 2", date: "Jan 2026", alt: "AFTR Vol. 2 — On Stage",       key: "p2" },
+  { src: vol2_3, vol: "VOL. 2", date: "Jan 2026", alt: "AFTR Vol. 2 — The Night",      key: "p3" },
+  { src: vol2_4, vol: "VOL. 2", date: "Jan 2026", alt: "AFTR Vol. 2 — The Energy",     key: "p4" },
+  { src: vol2_5, vol: "VOL. 2", date: "Jan 2026", alt: "AFTR Vol. 2 — The Moment",     key: "p5" },
 ];
 
 function PhotoItem({ photo, className, style }: {
@@ -24,6 +24,7 @@ function PhotoItem({ photo, className, style }: {
         src={photo.src}
         alt={photo.alt}
         className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500"
+        loading="lazy"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       <div className="absolute bottom-0 left-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -74,31 +75,30 @@ export default function GalleryPreview() {
           style={{ gridTemplateColumns: "2fr 1fr 1fr", gridTemplateRows: "280px 200px" }}
           data-testid="gallery-preview-grid"
         >
-          <PhotoItem photo={previewPhotos[0]} style={{ gridRow: "1 / 3" }} data-testid="gallery-preview-item-0" />
+          <PhotoItem photo={previewPhotos[0]} style={{ gridRow: "1 / 3" }} />
           {previewPhotos.slice(1).map((photo) => (
             <PhotoItem key={photo.key} photo={photo} />
           ))}
         </div>
 
-        {/* Mobile grid — 2 col with featured at top */}
+        {/* Mobile grid */}
         <div className="sm:hidden space-y-1" data-testid="gallery-preview-grid-mobile">
-          {/* Featured full-width */}
           <div className="relative overflow-hidden bg-[#0a0a0a] aspect-[4/3]">
             <img
               src={previewPhotos[0].src}
               alt={previewPhotos[0].alt}
               className="w-full h-full object-cover grayscale"
+              loading="lazy"
             />
             <div className="absolute bottom-0 left-0 p-4">
               <span className="text-[#c72d28] text-[9px] uppercase tracking-[0.25em] font-bold block">{previewPhotos[0].vol}</span>
               <span className="text-white/50 text-[10px] uppercase tracking-wider">{previewPhotos[0].date}</span>
             </div>
           </div>
-          {/* 2×2 grid of remaining */}
           <div className="grid grid-cols-2 gap-1">
             {previewPhotos.slice(1).map((photo) => (
               <div key={photo.key} className="relative overflow-hidden bg-[#0a0a0a] aspect-square">
-                <img src={photo.src} alt={photo.alt} className="w-full h-full object-cover grayscale" />
+                <img src={photo.src} alt={photo.alt} className="w-full h-full object-cover grayscale" loading="lazy" />
               </div>
             ))}
           </div>
