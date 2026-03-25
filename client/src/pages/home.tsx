@@ -9,8 +9,8 @@ import Footer from "@/components/footer";
 function MarqueeTicker() {
   const items = [
     "AFTR", "THE RAVE THAT KEEPS THE CITY AWAKE", "MAURITIUS",
-    "AFTR VOL.2", "SHOTZ · FLIC EN FLAC", "30 JANUARY 2026",
-    "AFTR", "10PM — 4AM", "AFTER DARK SOCIAL",
+    "AFTR VOL.3", "FULL CAPACITY", "18 APRIL 2026",
+    "AFTR", "SHOTZ · FLIC EN FLAC", "AFTER DARK SOCIAL",
   ];
   const repeated = [...items, ...items];
 

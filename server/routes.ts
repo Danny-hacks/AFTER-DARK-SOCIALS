@@ -430,10 +430,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create multiple tickets based on quantity (each with unique reference/QR code)
       for (let i = 0; i < quantity; i++) {
         const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const referenceCode = `VOL2-${randomPart}`;
+        const referenceCode = `VOL3-${randomPart}`;
         
         const ticket = await storage.createTicket({
-          eventId: purchase.eventId || "aftr-vol-2",
+          eventId: purchase.eventId || "aftr-vol-3",
           purchaseId: purchase.id,
           referenceCode,
           customerName: purchase.customerName,
@@ -460,7 +460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             deliveryMethod: purchase.deliveryMethod,
             referenceCode: referenceCode,
             qrCode: ticket.qrCode,
-            eventId: purchase.eventId || "aftr-vol-2",
+            eventId: purchase.eventId || "aftr-vol-3",
             status: "verified"
           });
         } catch (sheetError) {

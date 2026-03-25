@@ -118,13 +118,13 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       const pdfBlob = pdf.output('blob');
       const pdfUrl = URL.createObjectURL(pdfBlob);
       
-      const message = `🎉 Your AFTR Volume 2 Ticket is Ready! 🎉\n\n` +
+      const message = `🎉 Your AFTR Vol. 3: Full Capacity Ticket is Ready! 🎉\n\n` +
         `📧 Customer: ${ticket.customerName}\n` +
         `🎫 Reference: ${ticket.referenceCode}\n` +
         `💰 Price: ${ticket.price}\n` +
-        `📅 Date: 30th January 2026\n` +
+        `📅 Date: 18th April 2026\n` +
         `📍 Venue: Shotz, Flic en Flac\n` +
-        `🕙 Doors: 10:00 PM - 4:00 AM\n\n` +
+        `🕙 Doors: 10:00 PM\n\n` +
         `Your digital ticket PDF will be downloaded automatically.\n\n` +
         `See you on the dance floor! 🎵🔥`;
       
@@ -205,19 +205,19 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       const pdfBlob = pdf.output('blob');
       const pdfUrl = URL.createObjectURL(pdfBlob);
       
-      const subject = `🎵 Your AFTR Volume 2 Ticket is Ready - ${ticket.referenceCode}`;
-      const body = `🔥 AFTR VOLUME 2 - THE RAVE EXPERIENCE 🔥
+      const subject = `🎵 Your AFTR Vol. 3 Ticket is Ready - ${ticket.referenceCode}`;
+      const body = `🔥 AFTR VOL. 3 - FULL CAPACITY 🔥
 
 Hello ${ticket.customerName}! 👋
 
-Your ticket for AFTR Volume 2 is ready! Get excited for the night of your life! 🎉
+Your ticket for AFTR Vol. 3: Full Capacity is ready! Get excited for the biggest night yet! 🎉
 
 🎵 EVENT DETAILS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📅 Date:        30th January 2026
+📅 Date:        18th April 2026
 📍 Venue:       Shotz, Flic en Flac
-🕙 Time:        10:00 PM - 4:00 AM
-⚡ Duration:    6 Hours Non-Stop Energy
+🕙 Time:        10:00 PM
+⚡ Theme:       FULL CAPACITY
 
 🎫 YOUR TICKET REFERENCE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -317,8 +317,8 @@ Follow us on: https://www.instagram.com/afterdarksocials.mu/
         
         if (navigator.share && navigator.canShare({ files: [new File([blob], `AFTR-Ticket-${ticket.referenceCode}.png`, { type: 'image/png' })] })) {
           await navigator.share({
-            title: `AFTR Volume 2 Ticket - ${ticket.customerName}`,
-            text: `Your ticket for AFTR Volume 2 on 30th January 2026!`,
+            title: `AFTR Vol. 3 Ticket - ${ticket.customerName}`,
+            text: `Your ticket for AFTR Vol. 3: Full Capacity on 18th April 2026!`,
             files: [new File([blob], `AFTR-Ticket-${ticket.referenceCode}.png`, { type: 'image/png' })]
           });
         } else {
@@ -363,8 +363,8 @@ Follow us on: https://www.instagram.com/afterdarksocials.mu/
         {/* Header */}
         <div className="relative z-10 text-center mb-6">
           <h1 className="text-5xl font-black text-white mb-1 tracking-tight">AFTR</h1>
-          <p className="text-xl font-bold text-white tracking-widest">VOLUME 2</p>
-          <p className="text-sm text-gray-400 mt-2">30th January 2026 • Shotz, Flic en Flac</p>
+          <p className="text-xl font-bold text-white tracking-widest">VOL. 3 — FULL CAPACITY</p>
+          <p className="text-sm text-gray-400 mt-2">18th April 2026 • Shotz, Flic en Flac</p>
         </div>
 
         {/* Main Content */}

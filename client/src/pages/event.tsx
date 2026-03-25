@@ -109,7 +109,7 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         paymentMethod: data.paymentMethod,
         deliveryMethod: data.deliveryMethod,
         quantity: data.quantity,
-        eventId: 'aftr-vol-2',
+        eventId: 'aftr-vol-3',
         ticketType: 'Early Bird',
         price: `Rs ${totalPrice}`,
       });
@@ -453,7 +453,7 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
               </div>
               
               <a
-                href={`https://wa.me/23058205220?text=${encodeURIComponent(`Hi! I just submitted a purchase for AFTR Volume 2.\n\nName: ${formData.customerName}\nPhone: ${fullPhoneNumber}\nPayment Method: ${formData.paymentMethod}\n\nI will send my payment proof now.`)}`}
+                href={`https://wa.me/23058205220?text=${encodeURIComponent(`Hi! I just submitted a purchase for AFTR Vol. 3: Full Capacity.\n\nName: ${formData.customerName}\nPhone: ${fullPhoneNumber}\nPayment Method: ${formData.paymentMethod}\n\nI will send my payment proof now.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 bg-[#25D366] text-white font-bold py-4 px-6 rounded-lg hover:bg-[#1da851] transition-colors w-full"
@@ -478,7 +478,7 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 }
 
 export default function EventPage() {
-  const eventDate = new Date('2026-01-30T22:00:00+04:00');
+  const eventDate = new Date('2026-04-18T22:00:00+04:00');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
@@ -591,7 +591,7 @@ export default function EventPage() {
         <div className="relative h-[60vh] sm:h-[70vh]">
           <img 
             src={comingSoonImage} 
-            alt="AFTR Volume 2" 
+            alt="AFTR Vol. 3" 
             className="w-full h-full object-cover"
             data-testid="event-hero-image"
           />
@@ -600,12 +600,12 @@ export default function EventPage() {
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center px-4">
               <span className="inline-block bg-primary text-white px-6 py-2 rounded-full text-sm font-bold mb-6" data-testid="event-badge">
-                30 JANUARY 2026
+                18 APRIL 2026
               </span>
               <h1 className="text-5xl sm:text-7xl md:text-8xl font-black gradient-text mb-4" data-testid="event-title">
-                AFTR Volume 2
+                AFTR Vol. 3
               </h1>
-              <p className="text-xl sm:text-2xl text-white/80 mb-8">The Rave That Keeps The City Awake</p>
+              <p className="text-xl sm:text-2xl text-white/80 mb-8">FULL CAPACITY</p>
             </div>
           </div>
         </div>
@@ -614,7 +614,7 @@ export default function EventPage() {
       {/* Countdown Section */}
       <section className="py-16 bg-gradient-to-b from-background to-card">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-8">Countdown to the Rave</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-8">Countdown to Vol. 3</h2>
           <CountdownTimer targetDate={eventDate} />
         </div>
       </section>
@@ -630,7 +630,7 @@ export default function EventPage() {
             <div className="bg-muted rounded-xl p-6 text-center" data-testid="event-date-card">
               <Calendar className="w-10 h-10 text-primary mx-auto mb-4" />
               <h3 className="font-bold text-lg text-white mb-2">Date</h3>
-              <p className="text-muted-foreground">Friday, 30th January 2026</p>
+              <p className="text-muted-foreground">Saturday, 18th April 2026</p>
             </div>
             <div className="bg-muted rounded-xl p-6 text-center" data-testid="event-time-card">
               <Clock className="w-10 h-10 text-primary mx-auto mb-4" />
@@ -651,9 +651,9 @@ export default function EventPage() {
 
           <div className="bg-muted rounded-xl p-8" data-testid="event-description">
             <p className="text-lg text-muted-foreground text-center max-w-3xl mx-auto">
-              The rave returns — bigger, louder, unstoppable. AFTR Volume 2 promises to be an unforgettable night 
-              of music and energy, bringing together the best DJs for 6 hours of non-stop vibes. 
-              Get ready for the next edition of the rave that keeps the city awake.
+              AFTR Vol. 3: Full Capacity. The biggest night yet — every corner packed, every moment electric. 
+              We're turning it up to maximum and not stopping until the city wakes up around us. 
+              This is the rave that keeps the city awake, at full strength.
             </p>
           </div>
         </div>
@@ -726,7 +726,7 @@ export default function EventPage() {
             Get Your Digital Tickets
           </h2>
           <p className="text-xl text-muted-foreground mb-12">
-            Secure your spot at AFTR Volume 2 - The rave that keeps the city awake!
+            Secure your spot at AFTR Vol. 3: Full Capacity - The rave that keeps the city awake!
           </p>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">

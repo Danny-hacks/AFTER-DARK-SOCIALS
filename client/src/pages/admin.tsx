@@ -70,11 +70,11 @@ export default function AdminPanel() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'used' | 'available'>('all');
   const [filterEventId, setFilterEventId] = useState<string>('all');
-  const [vol2SearchQuery, setVol2SearchQuery] = useState('');
-  const [vol2FilterStatus, setVol2FilterStatus] = useState<'all' | 'used' | 'available'>('all');
+  const [vol3SearchQuery, setVol3SearchQuery] = useState('');
+  const [vol3FilterStatus, setVol3FilterStatus] = useState<'all' | 'used' | 'available'>('all');
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   // Purchases sub-tab state
-  const [purchasesSubTab, setPurchasesSubTab] = useState<'all' | 'ready' | 'vol2'>('all');
+  const [purchasesSubTab, setPurchasesSubTab] = useState<'all' | 'ready' | 'vol3'>('all');
   // Search and filter for All Purchases tab
   const [allPurchasesSearch, setAllPurchasesSearch] = useState('');
   const [allPurchasesFilter, setAllPurchasesFilter] = useState<'all' | 'pending' | 'verified' | 'rejected'>('all');
@@ -207,23 +207,23 @@ export default function AdminPanel() {
   const pastEvents = allEvents.filter(e => e.isPast);
   const upcomingEvents = allEvents.filter(e => !e.isPast);
 
-  // Vol.2 tickets (those with VOL2- prefix)
-  const vol2Tickets = allTickets.filter(t => t.referenceCode.startsWith('VOL2-'));
+  // Vol.3 tickets (those with VOL3- prefix)
+  const vol2Tickets = allTickets.filter(t => t.referenceCode.startsWith('VOL3-'));
   const vol2UsedTickets = vol2Tickets.filter(t => t.isUsed);
   const vol2AvailableTickets = vol2Tickets.filter(t => !t.isUsed);
   
-  // Filter Vol.2 tickets based on search and status
+  // Filter Vol.3 tickets based on search and status
   const filteredVol2Tickets = vol2Tickets.filter(ticket => {
-    const searchLower = vol2SearchQuery.toLowerCase();
-    const matchesSearch = vol2SearchQuery === '' || 
+    const searchLower = vol3SearchQuery.toLowerCase();
+    const matchesSearch = vol3SearchQuery === '' || 
       ticket.customerName.toLowerCase().includes(searchLower) ||
       ticket.referenceCode.toLowerCase().includes(searchLower) ||
       (ticket.customerEmail ?? '').toLowerCase().includes(searchLower) ||
       (ticket.customerPhone ?? '').toLowerCase().includes(searchLower);
     
-    const matchesStatus = vol2FilterStatus === 'all' ||
-      (vol2FilterStatus === 'used' && ticket.isUsed) ||
-      (vol2FilterStatus === 'available' && !ticket.isUsed);
+    const matchesStatus = vol3FilterStatus === 'all' ||
+      (vol3FilterStatus === 'used' && ticket.isUsed) ||
+      (vol3FilterStatus === 'available' && !ticket.isUsed);
     
     return matchesSearch && matchesStatus;
   });
@@ -518,8 +518,8 @@ export default function AdminPanel() {
     },
   });
 
-  // Legacy tickets (exclude Vol.2 which are managed in Purchases tab)
-  const legacyTickets = allTickets.filter(t => !t.referenceCode.startsWith('VOL2-'));
+  // Legacy tickets (exclude Vol.2 and Vol.3 which are managed in Purchases tab)
+  const legacyTickets = allTickets.filter(t => !t.referenceCode.startsWith('VOL2-') && !t.referenceCode.startsWith('VOL3-'));
 
   // Filter legacy tickets
   const filteredTickets = legacyTickets.filter((ticket) => {
@@ -886,15 +886,15 @@ export default function AdminPanel() {
                 <span className="ml-1 sm:ml-2 text-xs bg-green-100 text-green-700 px-1.5 sm:px-2 py-0.5 rounded">{readyToDeliverTickets.length}</span>
               </button>
               <button
-                onClick={() => setPurchasesSubTab('vol2')}
+                onClick={() => setPurchasesSubTab('vol3')}
                 className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-t-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-                  purchasesSubTab === 'vol2'
+                  purchasesSubTab === 'vol3'
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-muted'
                 }`}
-                data-testid="purchases-subtab-vol2"
+                data-testid="purchases-subtab-vol3"
               >
-                Vol.2
+                Vol.3
                 <span className="ml-1 sm:ml-2 text-xs bg-primary/10 text-primary px-1.5 sm:px-2 py-0.5 rounded">{vol2Tickets.length}</span>
               </button>
             </div>
@@ -1115,7 +1115,7 @@ export default function AdminPanel() {
                                   {isSent ? (
                                     <Button
                                       onClick={() => {
-                                        const whatsappUrl = `https://wa.me/${(ticket.customerPhone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Vol.2 Rave Ticket is Ready! 🎉\n\n📧 Customer: ${ticket.customerName}\n🎫 Reference: ${ticket.referenceCode}\n💰 Price: ${ticket.price}\n📅 Date: 30th January 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10:00 PM\n\nYour digital ticket PDF will be downloaded automatically.\n\nSee you on the dance floor! 🎵🔥`)}`;
+                                        const whatsappUrl = `https://wa.me/${(ticket.customerPhone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Vol. 3: Full Capacity Ticket is Ready! 🎉\n\n📧 Customer: ${ticket.customerName}\n🎫 Reference: ${ticket.referenceCode}\n💰 Price: ${ticket.price}\n📅 Date: 18th April 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10:00 PM\n\nYour digital ticket PDF will be downloaded automatically.\n\nSee you on the dance floor! 🎵🔥`)}`;
                                         window.open(whatsappUrl, '_blank');
                                       }}
                                       size="sm"
@@ -1129,7 +1129,7 @@ export default function AdminPanel() {
                                     <Button
                                       onClick={() => {
                                         markDeliveredMutation.mutate(ticket.id);
-                                        const whatsappUrl = `https://wa.me/${(ticket.customerPhone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Vol.2 Rave Ticket is Ready! 🎉\n\n📧 Customer: ${ticket.customerName}\n🎫 Reference: ${ticket.referenceCode}\n💰 Price: ${ticket.price}\n📅 Date: 30th January 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10:00 PM\n\nYour digital ticket PDF will be downloaded automatically.\n\nSee you on the dance floor! 🎵🔥`)}`;
+                                        const whatsappUrl = `https://wa.me/${(ticket.customerPhone ?? '').replace(/\D/g, '')}?text=${encodeURIComponent(`🎉 Your AFTR Vol. 3: Full Capacity Ticket is Ready! 🎉\n\n📧 Customer: ${ticket.customerName}\n🎫 Reference: ${ticket.referenceCode}\n💰 Price: ${ticket.price}\n📅 Date: 18th April 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10:00 PM\n\nYour digital ticket PDF will be downloaded automatically.\n\nSee you on the dance floor! 🎵🔥`)}`;
                                         window.open(whatsappUrl, '_blank');
                                       }}
                                       disabled={markDeliveredMutation.isPending}
@@ -1170,16 +1170,16 @@ export default function AdminPanel() {
               </div>
             )}
 
-            {/* VOL.2 TICKETS SUB-TAB */}
-            {purchasesSubTab === 'vol2' && (
+            {/* VOL.3 TICKETS SUB-TAB */}
+            {purchasesSubTab === 'vol3' && (
               <div className="space-y-6">
-                {/* Vol.2 Stats */}
+                {/* Vol.3 Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Card>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm text-muted-foreground">Total Vol.2 Tickets</p>
+                          <p className="text-sm text-muted-foreground">Total Vol.3 Tickets</p>
                           <p className="text-2xl font-bold">{vol2Tickets.length}</p>
                         </div>
                         <Users className="h-8 w-8 text-primary" />
@@ -1210,20 +1210,20 @@ export default function AdminPanel() {
                   </Card>
                 </div>
 
-                {/* Vol.2 Search and Filter */}
+                {/* Vol.3 Search and Filter */}
                 <div className="flex flex-wrap gap-4">
                   <div className="flex-1 min-w-[200px] relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search by name, email, phone, or reference..."
-                      value={vol2SearchQuery}
-                      onChange={(e) => setVol2SearchQuery(e.target.value)}
+                      value={vol3SearchQuery}
+                      onChange={(e) => setVol3SearchQuery(e.target.value)}
                       className="pl-10"
-                      data-testid="input-search-vol2-tickets"
+                      data-testid="input-search-vol3-tickets"
                     />
                   </div>
-                  <Select value={vol2FilterStatus} onValueChange={(v: 'all' | 'used' | 'available') => setVol2FilterStatus(v)}>
-                    <SelectTrigger className="w-40" data-testid="select-filter-vol2-status">
+                  <Select value={vol3FilterStatus} onValueChange={(v: 'all' | 'used' | 'available') => setVol3FilterStatus(v)}>
+                    <SelectTrigger className="w-40" data-testid="select-filter-vol3-status">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1234,7 +1234,7 @@ export default function AdminPanel() {
                   </Select>
                 </div>
 
-                {/* Vol.2 Tickets List */}
+                {/* Vol.3 Tickets List */}
                 <Card>
                   <CardContent className="p-4">
                     {ticketsLoading ? (
@@ -1242,7 +1242,7 @@ export default function AdminPanel() {
                     ) : filteredVol2Tickets.length === 0 ? (
                       <p className="text-center py-8 text-muted-foreground">
                         {vol2Tickets.length === 0 
-                          ? "No Vol.2 tickets yet. Verify purchases to create tickets." 
+                          ? "No Vol.3 tickets yet. Verify purchases to create tickets." 
                           : "No tickets match your search criteria"}
                       </p>
                     ) : (
@@ -1279,7 +1279,7 @@ export default function AdminPanel() {
                               </div>
                               <Dialog>
                                 <DialogTrigger asChild>
-                                  <Button size="sm" variant="ghost" data-testid={`button-view-vol2-ticket-${ticket.id}`}>
+                                  <Button size="sm" variant="ghost" data-testid={`button-view-vol3-ticket-${ticket.id}`}>
                                     <Eye className="w-4 h-4" />
                                   </Button>
                                 </DialogTrigger>
@@ -1296,7 +1296,7 @@ export default function AdminPanel() {
                                   variant="outline"
                                   onClick={() => markUsedMutation.mutate(ticket.id)}
                                   disabled={markUsedMutation.isPending}
-                                  data-testid={`button-mark-vol2-used-${ticket.id}`}
+                                  data-testid={`button-mark-vol3-used-${ticket.id}`}
                                 >
                                   <CheckCircle className="w-4 h-4" />
                                 </Button>
@@ -1309,7 +1309,7 @@ export default function AdminPanel() {
                                     deleteTicketMutation.mutate(ticket.id);
                                   }
                                 }}
-                                data-testid={`button-delete-vol2-ticket-${ticket.id}`}
+                                data-testid={`button-delete-vol3-ticket-${ticket.id}`}
                               >
                                 <Trash className="w-4 h-4 text-destructive" />
                               </Button>
@@ -1488,7 +1488,7 @@ export default function AdminPanel() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-3xl font-bold mb-2">Legacy Tickets</h2>
-                <p className="text-muted-foreground">Tickets from previous editions (Vol.2 tickets are managed in Purchases tab)</p>
+                <p className="text-muted-foreground">Tickets from previous editions (Vol.3 tickets are managed in the Purchases tab)</p>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setShowQRScanner(!showQRScanner)} data-testid="button-qr-scanner">
