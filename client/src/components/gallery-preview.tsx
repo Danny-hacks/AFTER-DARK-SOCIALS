@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import aftrEventImage from "@assets/AFTR-1_1757155940525.jpg";
-import aftrVol2Image from "@assets/AFTR_black_white_1766249732057.jpg";
+import aftrVol2Image from "@assets/IMG_6112_1774435245159.JPG";
 import djAlvinImage from "@assets/DJ ALVIN_1757156832389.jpg";
 import djSwayImage from "@assets/DJ SWAY_1757156832390.jpg";
 import djAfrokeyzImage from "@assets/DJ AFROKEYZ_1757156832386.jpg";

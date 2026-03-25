@@ -5,7 +5,7 @@ import { Link } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import comingSoonImage from "@assets/AFTR_black_white_1766249732057.jpg";
+import comingSoonImage from "@assets/IMG_6112_1774435245159.JPG";
 import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
 const eventNavLinks = [

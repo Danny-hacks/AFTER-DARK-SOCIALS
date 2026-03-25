@@ -1,7 +1,7 @@
 import { Calendar, MapPin, Clock, Play } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import aftrEventImage from "@assets/AFTR-1_1757155940525.jpg";
-import aftrVol2Image from "@assets/AFTR_black_white_1766249732057.jpg";
+import aftrVol2Image from "@assets/IMG_6112_1774435245159.JPG";
 import djAlvinImage from "@assets/DJ ALVIN_1757156832389.jpg";
 import djLuvleshImage from "@assets/DJ LUVLESH_1757156832389.jpg";
 import djStevoImage from "@assets/STEVOTHEDJ_1757156832391.jpg";
@@ -250,3 +250,4 @@ export default function PastEvents() {
     </section>
   );
 }
+  

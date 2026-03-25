@@ -45,3 +45,6 @@ integrations = ["javascript_object_storage:1.0.0", "javascript_sendgrid:1.0.0", 
 
 [userenv.shared]
 GOOGLE_SHEET_ID = "16xy77DW8BiNYzbpwkoQeNO5jU2mmnpWO4PQL1dvvTI8"
+
+[objectStorage]
+defaultBucketID = "replit-objstore-3508c614-6d3a-4bd7-ae53-824b205a59e5"
