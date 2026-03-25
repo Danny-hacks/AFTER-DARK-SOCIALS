@@ -5,7 +5,7 @@ import { Link } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import comingSoonImage from "@assets/IMG_6112_1774435245159.JPG";
+import comingSoonImage from "@assets/IMG_6112_1774435245159.jpg";
 import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
 const eventNavLinks = [
@@ -15,73 +15,52 @@ const eventNavLinks = [
 ];
 
 function CountdownTimer({ targetDate }: { targetDate: Date }) {
-  const [timeLeft, setTimeLeft] = useState({
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0
-  });
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    
-    const calculateTimeLeft = () => {
-      const now = new Date().getTime();
-      const target = targetDate.getTime();
-      const difference = target - now;
-
-      if (difference > 0) {
+    const calculate = () => {
+      const diff = targetDate.getTime() - Date.now();
+      if (diff > 0) {
         setTimeLeft({
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-          minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
-          seconds: Math.floor((difference % (1000 * 60)) / 1000)
+          days: Math.floor(diff / 86400000),
+          hours: Math.floor((diff % 86400000) / 3600000),
+          minutes: Math.floor((diff % 3600000) / 60000),
+          seconds: Math.floor((diff % 60000) / 1000),
         });
       } else {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         clearInterval(timer);
       }
     };
-
-    calculateTimeLeft();
-    timer = setInterval(calculateTimeLeft, 1000);
+    calculate();
+    timer = setInterval(calculate, 1000);
     return () => clearInterval(timer);
   }, [targetDate]);
 
+  const units = [
+    { label: "Days", value: timeLeft.days },
+    { label: "Hrs", value: timeLeft.hours },
+    { label: "Min", value: timeLeft.minutes },
+    { label: "Sec", value: timeLeft.seconds },
+  ];
+
   return (
-    <div className="flex justify-center gap-4 sm:gap-8" data-testid="countdown-timer">
-      <div className="flex flex-col items-center">
-        <div className="bg-black/50 backdrop-blur-sm border border-[#c72d28]/50 rounded-xl px-6 sm:px-8 py-4 sm:py-6 min-w-[80px] sm:min-w-[100px]">
-          <span className="text-4xl sm:text-6xl font-bold text-white" data-testid="countdown-days">
-            {String(timeLeft.days).padStart(2, '0')}
-          </span>
+    <div className="flex justify-center gap-3 sm:gap-6" data-testid="countdown-timer">
+      {units.map(({ label, value }) => (
+        <div key={label} className="flex flex-col items-center">
+          <div className="border border-white/20 px-4 sm:px-7 py-4 sm:py-6 min-w-[64px] sm:min-w-[96px] text-center">
+            <span
+              className="text-4xl sm:text-6xl font-black text-white block leading-none"
+              style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
+              data-testid={`countdown-${label.toLowerCase()}`}
+            >
+              {String(value).padStart(2, '0')}
+            </span>
+          </div>
+          <span className="text-[9px] text-white/30 uppercase tracking-[0.25em] mt-2">{label}</span>
         </div>
-        <span className="text-sm sm:text-base text-muted-foreground mt-3 uppercase tracking-wider">Days</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <div className="bg-black/50 backdrop-blur-sm border border-[#c72d28]/50 rounded-xl px-6 sm:px-8 py-4 sm:py-6 min-w-[80px] sm:min-w-[100px]">
-          <span className="text-4xl sm:text-6xl font-bold text-white" data-testid="countdown-hours">
-            {String(timeLeft.hours).padStart(2, '0')}
-          </span>
-        </div>
-        <span className="text-sm sm:text-base text-muted-foreground mt-3 uppercase tracking-wider">Hours</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <div className="bg-black/50 backdrop-blur-sm border border-[#c72d28]/50 rounded-xl px-6 sm:px-8 py-4 sm:py-6 min-w-[80px] sm:min-w-[100px]">
-          <span className="text-4xl sm:text-6xl font-bold text-white" data-testid="countdown-minutes">
-            {String(timeLeft.minutes).padStart(2, '0')}
-          </span>
-        </div>
-        <span className="text-sm sm:text-base text-muted-foreground mt-3 uppercase tracking-wider">Mins</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <div className="bg-black/50 backdrop-blur-sm border border-[#c72d28]/50 rounded-xl px-6 sm:px-8 py-4 sm:py-6 min-w-[80px] sm:min-w-[100px]">
-          <span className="text-4xl sm:text-6xl font-bold text-white" data-testid="countdown-seconds">
-            {String(timeLeft.seconds).padStart(2, '0')}
-          </span>
-        </div>
-        <span className="text-sm sm:text-base text-muted-foreground mt-3 uppercase tracking-wider">Secs</span>
-      </div>
+      ))}
     </div>
   );
 }
@@ -118,16 +97,12 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
     onSuccess: () => {
       toast({
         title: "Purchase Request Submitted!",
-        description: "Please complete payment and send proof via WhatsApp. Your ticket will be sent within 24 hours after verification.",
+        description: "Please complete payment and send proof via WhatsApp. Your ticket will be sent within 24 hours.",
       });
       setStep(3);
     },
     onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to submit purchase request. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to submit. Please try again.", variant: "destructive" });
     },
   });
 
@@ -138,10 +113,6 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         toast({ title: "Error", description: "Please fill in all required fields", variant: "destructive" });
         return;
       }
-      if (formData.deliveryMethod === 'email' && !formData.customerEmail) {
-        toast({ title: "Error", description: "Email is required for email delivery", variant: "destructive" });
-        return;
-      }
       setStep(2);
     } else if (step === 2) {
       purchaseMutation.mutate(formData);
@@ -149,15 +120,7 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   };
 
   const resetAndClose = () => {
-    setFormData({
-      customerName: '',
-      customerEmail: '',
-      countryCode: '+230',
-      customerPhone: '',
-      paymentMethod: 'MCB Bank',
-      deliveryMethod: 'whatsapp',
-      quantity: 1,
-    });
+    setFormData({ customerName: '', customerEmail: '', countryCode: '+230', customerPhone: '', paymentMethod: 'MCB Bank', deliveryMethod: 'whatsapp', quantity: 1 });
     setStep(1);
     onClose();
   };
@@ -166,113 +129,101 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 
   if (!isOpen) return null;
 
+  const inputCls = "w-full bg-transparent border border-white/15 text-white placeholder:text-white/25 text-sm px-4 py-3 focus:outline-none focus:border-white/40 transition-colors";
+  const labelCls = "block text-[10px] text-white/30 uppercase tracking-[0.2em] mb-2";
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={resetAndClose}>
-      <div className="bg-card border border-border rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold gradient-text">Buy Ticket</h2>
-            <button onClick={resetAndClose} className="text-muted-foreground hover:text-white" data-testid="close-purchase-modal">
-              <X className="w-6 h-6" />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm" onClick={resetAndClose}>
+      <div className="bg-[#0a0a0a] border border-white/10 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6 sm:p-8">
+          {/* Modal header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <p className="text-[10px] text-[#c72d28] uppercase tracking-[0.3em] mb-1">Vol. 3 — Full Capacity</p>
+              <h2 className="text-2xl font-black text-white" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>
+                {step === 3 ? "ORDER CONFIRMED" : "BUY TICKET"}
+              </h2>
+            </div>
+            <button onClick={resetAndClose} className="text-white/30 hover:text-white transition-colors" data-testid="close-purchase-modal">
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          {step === 1 && (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 mb-6">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-white font-semibold">AFTR Early Bird</span>
-                  <span className="text-primary font-bold text-xl">Rs 350 each</span>
+          {/* Step indicator */}
+          {step < 3 && (
+            <div className="flex items-center gap-2 mb-8">
+              {[1, 2].map((s) => (
+                <div key={s} className="flex items-center gap-2">
+                  <div className={`w-6 h-6 flex items-center justify-center text-[10px] font-bold border transition-colors ${step >= s ? 'border-[#c72d28] bg-[#c72d28] text-white' : 'border-white/20 text-white/30'}`}>
+                    {s}
+                  </div>
+                  {s < 2 && <div className={`flex-1 h-px w-8 ${step > s ? 'bg-[#c72d28]' : 'bg-white/15'}`} />}
                 </div>
-                <div className="flex items-center justify-between pt-3 border-t border-primary/20">
-                  <span className="text-muted-foreground text-sm">Quantity</span>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, quantity: Math.max(1, prev.quantity - 1) }))}
-                      className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center text-white hover:border-primary transition-colors"
-                      data-testid="btn-decrease-quantity"
-                    >
-                      -
-                    </button>
-                    <span className="text-white font-bold text-lg w-8 text-center" data-testid="quantity-display">{formData.quantity}</span>
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, quantity: Math.min(10, prev.quantity + 1) }))}
-                      className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center text-white hover:border-primary transition-colors"
-                      data-testid="btn-increase-quantity"
-                    >
-                      +
-                    </button>
+              ))}
+              <span className="text-[10px] text-white/30 uppercase tracking-[0.2em] ml-2">
+                {step === 1 ? 'Your details' : 'Payment'}
+              </span>
+            </div>
+          )}
+
+          {step === 1 && (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Ticket summary */}
+              <div className="border border-white/10 p-4 mb-6">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-xs text-white/50 uppercase tracking-[0.15em]">AFTR Early Bird</span>
+                  <span className="text-[#c72d28] font-bold">Rs 350 each</span>
+                </div>
+                <div className="flex items-center justify-between pt-3 border-t border-white/10">
+                  <span className="text-xs text-white/30 uppercase tracking-[0.15em]">Quantity</span>
+                  <div className="flex items-center gap-4">
+                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, quantity: Math.max(1, prev.quantity - 1) }))} className="w-7 h-7 border border-white/20 flex items-center justify-center text-white hover:border-[#c72d28] transition-colors" data-testid="btn-decrease-quantity">−</button>
+                    <span className="text-white font-bold w-4 text-center" data-testid="quantity-display">{formData.quantity}</span>
+                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, quantity: Math.min(10, prev.quantity + 1) }))} className="w-7 h-7 border border-white/20 flex items-center justify-center text-white hover:border-[#c72d28] transition-colors" data-testid="btn-increase-quantity">+</button>
                   </div>
                 </div>
-                <div className="flex justify-between items-center mt-3 pt-3 border-t border-primary/20">
-                  <span className="text-white font-semibold">Total</span>
-                  <span className="text-primary font-bold text-2xl" data-testid="total-price">Rs {350 * formData.quantity}</span>
+                <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/10">
+                  <span className="text-xs text-white/30 uppercase tracking-[0.15em]">Total</span>
+                  <span className="text-[#c72d28] font-bold text-xl" data-testid="total-price">Rs {350 * formData.quantity}</span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">Full Name *</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={formData.customerName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                    className="w-full bg-background border border-border rounded-lg py-3 pl-11 pr-4 text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-                    placeholder="Enter your full name"
-                    required
-                    data-testid="input-customer-name"
-                  />
-                </div>
+                <label className={labelCls}>Full Name *</label>
+                <input type="text" value={formData.customerName} onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))} className={inputCls} placeholder="Enter your full name" required data-testid="input-customer-name" />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">Phone Number *</label>
+                <label className={labelCls}>Phone Number *</label>
                 <div className="flex gap-2">
-                  <select
-                    value={formData.countryCode}
-                    onChange={(e) => setFormData(prev => ({ ...prev, countryCode: e.target.value }))}
-                    className="bg-background border border-border rounded-lg py-3 px-3 text-white focus:outline-none focus:border-primary w-[130px]"
-                    data-testid="select-country-code"
-                  >
+                  <select value={formData.countryCode} onChange={(e) => setFormData(prev => ({ ...prev, countryCode: e.target.value }))} className="bg-transparent border border-white/15 text-white text-sm py-3 px-3 focus:outline-none focus:border-white/40 w-[130px]" data-testid="select-country-code">
                     <optgroup label="── Default ──">
                       <option value="+230">+230 Mauritius</option>
                     </optgroup>
                     <optgroup label="── Africa ──">
                       <option value="+213">+213 Algeria</option>
                       <option value="+267">+267 Botswana</option>
-                      <option value="+257">+257 Burundi</option>
                       <option value="+237">+237 Cameroon</option>
                       <option value="+269">+269 Comoros</option>
                       <option value="+20">+20 Egypt</option>
-                      <option value="+268">+268 Eswatini</option>
                       <option value="+251">+251 Ethiopia</option>
                       <option value="+233">+233 Ghana</option>
-                      <option value="+225">+225 Ivory Coast</option>
                       <option value="+254">+254 Kenya</option>
-                      <option value="+266">+266 Lesotho</option>
                       <option value="+261">+261 Madagascar</option>
-                      <option value="+265">+265 Malawi</option>
                       <option value="+212">+212 Morocco</option>
                       <option value="+258">+258 Mozambique</option>
-                      <option value="+264">+264 Namibia</option>
                       <option value="+234">+234 Nigeria</option>
                       <option value="+262">+262 Réunion</option>
                       <option value="+250">+250 Rwanda</option>
-                      <option value="+221">+221 Senegal</option>
                       <option value="+248">+248 Seychelles</option>
                       <option value="+27">+27 South Africa</option>
                       <option value="+255">+255 Tanzania</option>
-                      <option value="+216">+216 Tunisia</option>
                       <option value="+256">+256 Uganda</option>
                       <option value="+260">+260 Zambia</option>
                       <option value="+263">+263 Zimbabwe</option>
                     </optgroup>
-                    <optgroup label="── Tourist Countries ──">
+                    <optgroup label="── Other ──">
                       <option value="+61">+61 Australia</option>
-                      <option value="+86">+86 China</option>
                       <option value="+33">+33 France</option>
                       <option value="+49">+49 Germany</option>
                       <option value="+91">+91 India</option>
@@ -282,50 +233,21 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                       <option value="+44">+44 UK</option>
                     </optgroup>
                   </select>
-                  <div className="relative flex-1">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      type="tel"
-                      value={formData.customerPhone}
-                      onChange={(e) => setFormData(prev => ({ ...prev, customerPhone: e.target.value.replace(/\D/g, '') }))}
-                      className="w-full bg-background border border-border rounded-lg py-3 pl-11 pr-4 text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-                      placeholder="58205220"
-                      required
-                      data-testid="input-customer-phone"
-                    />
-                  </div>
+                  <input type="tel" value={formData.customerPhone} onChange={(e) => setFormData(prev => ({ ...prev, customerPhone: e.target.value.replace(/\D/g, '') }))} className={`flex-1 ${inputCls}`} placeholder="58205220" required data-testid="input-customer-phone" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">Email {formData.deliveryMethod === 'email' ? '*' : '(optional)'}</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
-                    type="email"
-                    value={formData.customerEmail}
-                    onChange={(e) => setFormData(prev => ({ ...prev, customerEmail: e.target.value }))}
-                    className="w-full bg-background border border-border rounded-lg py-3 pl-11 pr-4 text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-                    placeholder="your@email.com"
-                    required={formData.deliveryMethod === 'email'}
-                    data-testid="input-customer-email"
-                  />
-                </div>
+                <label className={labelCls}>Email (optional)</label>
+                <input type="email" value={formData.customerEmail} onChange={(e) => setFormData(prev => ({ ...prev, customerEmail: e.target.value }))} className={inputCls} placeholder="your@email.com" data-testid="input-customer-email" />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">Payment Method</label>
+                <label className={labelCls}>Payment Method</label>
                 <div className="grid grid-cols-3 gap-2">
                   {['MCB Bank', 'Juice', 'Cash'].map((method) => (
-                    <button
-                      key={method}
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, paymentMethod: method }))}
-                      className={`py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                        formData.paymentMethod === method
-                          ? 'bg-primary text-white'
-                          : 'bg-background border border-border text-muted-foreground hover:border-primary'
-                      }`}
+                    <button key={method} type="button" onClick={() => setFormData(prev => ({ ...prev, paymentMethod: method }))}
+                      className={`py-3 text-xs uppercase tracking-[0.1em] font-bold border transition-colors ${formData.paymentMethod === method ? 'border-[#c72d28] bg-[#c72d28] text-white' : 'border-white/15 text-white/40 hover:border-white/40'}`}
                       data-testid={`payment-method-${method.toLowerCase().replace(' ', '-')}`}
                     >
                       {method}
@@ -334,139 +256,105 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">Ticket Delivery</label>
-                <div className="bg-[#25D366]/10 border border-[#25D366]/30 rounded-lg py-3 px-4 flex items-center gap-2">
-                  <SiWhatsapp className="w-5 h-5 text-[#25D366]" />
-                  <span className="text-white text-sm">Your ticket will be sent via WhatsApp</span>
-                </div>
+              <div className="border border-[#25D366]/30 p-4 flex items-center gap-3">
+                <SiWhatsapp className="w-5 h-5 text-[#25D366] flex-shrink-0" />
+                <span className="text-white/60 text-xs">Your ticket will be delivered via WhatsApp</span>
               </div>
 
-              <button
-                type="submit"
-                className="w-full gradient-bg text-white font-bold py-4 rounded-lg hover:opacity-90 transition-opacity mt-6"
-                data-testid="continue-to-payment"
-              >
+              <button type="submit" className="w-full bg-white text-black text-xs uppercase tracking-[0.2em] font-bold py-4 hover:bg-[#c72d28] hover:text-white transition-colors mt-2" data-testid="continue-to-payment">
                 Continue to Payment
               </button>
             </form>
           )}
 
           {step === 2 && (
-            <div className="space-y-6">
-              <div className="bg-muted rounded-xl p-4">
-                <h3 className="font-bold text-white mb-3">Order Summary</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Name:</span>
-                    <span className="text-white">{formData.customerName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Phone:</span>
-                    <span className="text-white">{fullPhoneNumber}</span>
-                  </div>
-                  {formData.customerEmail && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Email:</span>
-                      <span className="text-white">{formData.customerEmail}</span>
+            <div className="space-y-5">
+              {/* Order summary */}
+              <div className="border border-white/10 p-5">
+                <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-4">Order Summary</p>
+                <div className="space-y-3 text-sm">
+                  {[
+                    { label: 'Name', value: formData.customerName },
+                    { label: 'Phone', value: fullPhoneNumber },
+                    ...(formData.customerEmail ? [{ label: 'Email', value: formData.customerEmail }] : []),
+                    { label: 'Payment', value: formData.paymentMethod },
+                    { label: 'Qty', value: `${formData.quantity} ticket${formData.quantity > 1 ? 's' : ''}` },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex justify-between">
+                      <span className="text-white/30">{label}</span>
+                      <span className="text-white">{value}</span>
                     </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Payment:</span>
-                    <span className="text-white">{formData.paymentMethod}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Delivery:</span>
-                    <span className="text-white capitalize">{formData.deliveryMethod}</span>
-                  </div>
-                  <div className="border-t border-border pt-2 mt-2 flex justify-between font-bold">
-                    <span className="text-white">Total:</span>
-                    <span className="text-primary">Rs 350</span>
+                  ))}
+                  <div className="border-t border-white/10 pt-3 flex justify-between font-bold">
+                    <span className="text-white/50 text-xs uppercase tracking-[0.15em]">Total</span>
+                    <span className="text-[#c72d28] text-lg">Rs {350 * formData.quantity}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-card border border-border rounded-xl p-4">
-                <h4 className="font-bold text-white mb-3">Payment Details</h4>
+              {/* Payment details */}
+              <div className="border border-white/10 p-5">
+                <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-4">Send Payment To</p>
                 {formData.paymentMethod === 'MCB Bank' && (
-                  <div className="space-y-2">
-                    <div className="text-sm text-muted-foreground">Bank Account:</div>
-                    <div className="font-mono text-lg font-bold text-primary bg-background p-3 rounded-lg">000453915337</div>
-                    <div className="text-xs text-muted-foreground">MCB - AFTR Account</div>
+                  <div>
+                    <div className="text-[10px] text-white/30 uppercase tracking-[0.15em] mb-2">MCB Bank Account</div>
+                    <div className="font-mono text-2xl font-black text-white tracking-widest">000453915337</div>
+                    <div className="text-[10px] text-white/20 mt-1">MCB — AFTR Account</div>
                   </div>
                 )}
                 {formData.paymentMethod === 'Juice' && (
-                  <div className="space-y-2">
-                    <div className="text-sm text-muted-foreground">Juice Number:</div>
-                    <div className="font-mono text-lg font-bold text-primary bg-background p-3 rounded-lg">58205220</div>
+                  <div>
+                    <div className="text-[10px] text-white/30 uppercase tracking-[0.15em] mb-2">Juice Mobile</div>
+                    <div className="font-mono text-2xl font-black text-white tracking-widest">58205220</div>
                   </div>
                 )}
                 {formData.paymentMethod === 'Cash' && (
-                  <div className="space-y-2">
-                    <div className="text-sm text-muted-foreground">Contact for Cash Pickup:</div>
-                    <div className="font-mono text-lg font-bold text-primary bg-background p-3 rounded-lg">58205220</div>
+                  <div>
+                    <div className="text-[10px] text-white/30 uppercase tracking-[0.15em] mb-2">Contact for Cash Pickup</div>
+                    <div className="font-mono text-2xl font-black text-white tracking-widest">58205220</div>
                   </div>
                 )}
-                <div className="mt-3 p-3 bg-primary/10 border border-primary/30 rounded-lg">
-                  <div className="text-sm text-primary font-medium">Reference: AFTR-2-{formData.customerName.toUpperCase().replace(/\s+/g, '-')}</div>
+                <div className="mt-4 border border-[#c72d28]/30 p-3">
+                  <div className="text-[10px] text-[#c72d28] uppercase tracking-[0.15em]">Reference: AFTR-3-{formData.customerName.toUpperCase().replace(/\s+/g, '-')}</div>
                 </div>
               </div>
 
               <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="flex-1 bg-background border border-border text-white font-semibold py-3 rounded-lg hover:bg-muted transition-colors"
-                >
+                <button type="button" onClick={() => setStep(1)} className="flex-1 border border-white/15 text-white/60 text-xs uppercase tracking-[0.15em] font-bold py-4 hover:border-white/40 hover:text-white transition-colors">
                   Back
                 </button>
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={purchaseMutation.isPending}
-                  className="flex-1 gradient-bg text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                <button type="button" onClick={handleSubmit} disabled={purchaseMutation.isPending}
+                  className="flex-1 bg-[#c72d28] text-white text-xs uppercase tracking-[0.15em] font-bold py-4 hover:bg-[#a82421] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   data-testid="confirm-purchase"
                 >
-                  {purchaseMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    'Confirm Purchase'
-                  )}
+                  {purchaseMutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin" />Processing...</> : 'Confirm Purchase'}
                 </button>
               </div>
             </div>
           )}
 
           {step === 3 && (
-            <div className="text-center space-y-6">
-              <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle className="w-10 h-10 text-green-500" />
+            <div className="text-center space-y-8 py-4">
+              <div className="w-16 h-16 border border-[#25D366] flex items-center justify-center mx-auto">
+                <CheckCircle className="w-8 h-8 text-[#25D366]" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white mb-2">Purchase Request Submitted!</h3>
-                <p className="text-muted-foreground">
-                  Please complete your payment and send proof via WhatsApp. Your ticket will be sent within 24 hours after we verify your payment.
+                <h3 className="text-2xl font-black text-white mb-3" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>REQUEST SUBMITTED</h3>
+                <p className="text-white/40 text-sm leading-relaxed">
+                  Complete your payment and send proof via WhatsApp. Your ticket will be sent within 24 hours after verification.
                 </p>
               </div>
-              
               <a
-                href={`https://wa.me/23058205220?text=${encodeURIComponent(`Hi! I just submitted a purchase for AFTR Vol. 3: Full Capacity.\n\nName: ${formData.customerName}\nPhone: ${fullPhoneNumber}\nPayment Method: ${formData.paymentMethod}\n\nI will send my payment proof now.`)}`}
+                href={`https://wa.me/23058205220?text=${encodeURIComponent(`Hi! I just submitted a purchase for AFTR Vol. 3: Full Capacity.\n\nName: ${formData.customerName}\nPhone: ${fullPhoneNumber}\nPayment Method: ${formData.paymentMethod}\n\nSending payment proof now.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-[#25D366] text-white font-bold py-4 px-6 rounded-lg hover:bg-[#1da851] transition-colors w-full"
+                className="flex items-center justify-center gap-3 bg-[#25D366] text-white text-xs uppercase tracking-[0.2em] font-bold py-4 px-6 hover:bg-[#1da851] transition-colors w-full"
                 data-testid="send-whatsapp-proof"
               >
-                <SiWhatsapp className="w-5 h-5" />
+                <SiWhatsapp className="w-4 h-4" />
                 Send Payment Proof via WhatsApp
               </a>
-
-              <button
-                onClick={resetAndClose}
-                className="text-muted-foreground hover:text-white transition-colors"
-              >
+              <button onClick={resetAndClose} className="text-white/30 hover:text-white text-xs uppercase tracking-[0.2em] transition-colors">
                 Close
               </button>
             </div>
@@ -484,496 +372,389 @@ export default function EventPage() {
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-    
+    const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const scrollToSection = (href: string) => {
-    const element = document.querySelector(href);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+    document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
     setMobileMenuOpen(false);
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        isScrolled ? 'bg-black/70 backdrop-blur-sm' : 'bg-gradient-to-b from-black/50 to-transparent'
-      }`}>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20 sm:h-24">
-            {/* Logo */}
-            <Link href="/" className="flex items-center">
-              <img src={logoImage} alt="After Dark Socials" className="h-14 sm:h-16 w-auto" />
+    <div className="min-h-screen bg-black">
+      <TicketPurchaseModal isOpen={purchaseModalOpen} onClose={() => setPurchaseModalOpen(false)} />
+
+      {/* Navbar */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-black border-b border-white/10' : 'bg-transparent'}`}>
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="flex items-center justify-between h-20">
+            <Link href="/">
+              <img src={logoImage} alt="After Dark Socials" className="h-12 w-auto" />
             </Link>
-            
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-6">
-              <Link 
-                href="/" 
-                className="flex items-center gap-2 text-white/80 hover:text-white transition-colors text-sm uppercase tracking-wider font-medium"
-              >
-                <ArrowLeft className="w-4 h-4" />
+
+            {/* Desktop nav */}
+            <nav className="hidden md:flex items-center gap-8">
+              <Link href="/" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors text-[11px] uppercase tracking-[0.2em]">
+                <ArrowLeft className="w-3 h-3" />
                 Home
               </Link>
               {eventNavLinks.map((link) => (
-                <button
-                  key={link.name}
-                  onClick={() => scrollToSection(link.href)}
-                  className="text-white/80 hover:text-white transition-colors text-sm uppercase tracking-wider font-medium relative py-1"
+                <button key={link.name} onClick={() => scrollToSection(link.href)}
+                  className="text-white/40 hover:text-white transition-colors text-[11px] uppercase tracking-[0.2em]"
                   data-testid={`nav-${link.name.toLowerCase()}`}
                 >
                   {link.name}
                 </button>
               ))}
-              <a 
-                href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-5 py-2 bg-[#c72d28] text-white text-sm uppercase tracking-wider font-medium rounded-full hover:bg-[#a82421] transition-colors"
+              <button
+                onClick={() => setPurchaseModalOpen(true)}
+                className="bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.2em] font-bold px-6 py-3 hover:bg-[#a82421] transition-colors"
               >
-                Join Us
-              </a>
-            </div>
+                Buy Tickets
+              </button>
+            </nav>
 
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden text-white p-2"
-              data-testid="mobile-menu-toggle"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {/* Mobile menu button */}
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden text-white" data-testid="mobile-menu-toggle">
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
 
-          {/* Mobile Navigation */}
+          {/* Mobile nav */}
           {mobileMenuOpen && (
-            <div className="md:hidden bg-black/95 backdrop-blur-md border-t border-white/10 py-4">
-              <Link 
-                href="/" 
-                className="flex items-center gap-2 px-4 py-3 text-white/80 hover:text-white hover:bg-white/5 transition-colors text-sm uppercase tracking-wider"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <ArrowLeft className="w-4 h-4" />
+            <div className="md:hidden bg-black border-t border-white/10 py-4">
+              <Link href="/" className="flex items-center gap-3 px-0 py-3 text-white/40 hover:text-white transition-colors text-[11px] uppercase tracking-[0.2em]" onClick={() => setMobileMenuOpen(false)}>
+                <ArrowLeft className="w-3 h-3" />
                 Back to Home
               </Link>
               {eventNavLinks.map((link) => (
-                <button
-                  key={link.name}
-                  onClick={() => scrollToSection(link.href)}
-                  className="block w-full text-left px-4 py-3 text-white/80 hover:text-white hover:bg-white/5 transition-colors text-sm uppercase tracking-wider"
+                <button key={link.name} onClick={() => scrollToSection(link.href)}
+                  className="block w-full text-left py-3 text-white/40 hover:text-white transition-colors text-[11px] uppercase tracking-[0.2em]"
                   data-testid={`mobile-nav-${link.name.toLowerCase()}`}
                 >
                   {link.name}
                 </button>
               ))}
-              <a 
-                href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block mx-4 mt-4 px-5 py-3 bg-[#c72d28] text-white text-sm uppercase tracking-wider font-medium rounded-full text-center hover:bg-[#a82421] transition-colors"
+              <button
+                onClick={() => { setPurchaseModalOpen(true); setMobileMenuOpen(false); }}
+                className="mt-4 w-full bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.2em] font-bold py-4 hover:bg-[#a82421] transition-colors"
               >
-                Join Us
-              </a>
+                Buy Tickets
+              </button>
             </div>
           )}
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative pt-20">
-        <div className="relative h-[60vh] sm:h-[70vh]">
-          <img 
-            src={comingSoonImage} 
-            alt="AFTR Vol. 3" 
-            className="w-full h-full object-cover"
-            data-testid="event-hero-image"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-background"></div>
-          
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center px-4">
-              <span className="inline-block bg-primary text-white px-6 py-2 rounded-full text-sm font-bold mb-6" data-testid="event-badge">
-                18 APRIL 2026
-              </span>
-              <h1 className="text-5xl sm:text-7xl md:text-8xl font-black gradient-text mb-4" data-testid="event-title">
-                AFTR Vol. 3
-              </h1>
-              <p className="text-xl sm:text-2xl text-white/80 mb-8">FULL CAPACITY</p>
+      {/* Hero */}
+      <section className="relative h-screen min-h-[600px]">
+        <img src={comingSoonImage} alt="AFTR Vol. 3" className="absolute inset-0 w-full h-full object-cover" data-testid="event-hero-image" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black" />
+
+        <div className="relative h-full flex flex-col justify-end pb-20 px-6 lg:px-12 max-w-7xl mx-auto">
+          <div>
+            <div className="flex items-center gap-4 mb-4">
+              <span className="section-line" />
+              <span className="text-[#c72d28] text-xs uppercase tracking-[0.3em]">18 April 2026 — Shotz, Flic en Flac</span>
             </div>
+            <h1
+              className="text-[clamp(4rem,15vw,10rem)] font-black text-white leading-none"
+              style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
+              data-testid="event-title"
+            >
+              AFTR<br />VOL. 3
+            </h1>
+            <p className="text-white/50 text-sm uppercase tracking-[0.4em] mt-3 mb-8" data-testid="event-subtitle">Full Capacity</p>
+            <button
+              onClick={() => setPurchaseModalOpen(true)}
+              className="inline-flex items-center gap-4 bg-[#c72d28] text-white text-xs uppercase tracking-[0.2em] font-bold px-8 py-4 hover:bg-[#a82421] transition-colors"
+              data-testid="hero-buy-tickets"
+            >
+              Buy Tickets
+              <span className="w-6 h-px bg-white/60" />
+            </button>
           </div>
         </div>
       </section>
 
-      {/* Countdown Section */}
-      <section className="py-16 bg-gradient-to-b from-background to-card">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-8">Countdown to Vol. 3</h2>
+      {/* Countdown */}
+      <section className="bg-black border-b border-white/10 py-20">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 text-center">
+          <div className="flex items-center justify-center gap-4 mb-10">
+            <span className="section-line" />
+            <span className="text-[#c72d28] text-xs uppercase tracking-[0.3em]">Countdown</span>
+            <span className="section-line" />
+          </div>
+          <p
+            className="text-3xl sm:text-5xl font-black text-white mb-10"
+            style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
+          >
+            THE NIGHT BEGINS IN
+          </p>
           <CountdownTimer targetDate={eventDate} />
         </div>
       </section>
 
       {/* Event Details */}
-      <section id="details" className="py-16 bg-card">
-        <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-3xl sm:text-4xl font-bold gradient-text text-center mb-12" data-testid="event-details-title">
-            Event Details
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            <div className="bg-muted rounded-xl p-6 text-center" data-testid="event-date-card">
-              <Calendar className="w-10 h-10 text-primary mx-auto mb-4" />
-              <h3 className="font-bold text-lg text-white mb-2">Date</h3>
-              <p className="text-muted-foreground">Saturday, 18th April 2026</p>
+      <section id="details" className="bg-black py-24 sm:py-32 border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="flex items-center gap-4 mb-16">
+            <span className="section-line" />
+            <span className="text-[#c72d28] text-xs uppercase tracking-[0.3em]">Event Details</span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
+            <div>
+              <h2
+                className="text-6xl sm:text-8xl font-black text-white leading-none mb-8"
+                style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
+                data-testid="event-details-title"
+              >
+                THE<br />BIGGEST<br />NIGHT.
+              </h2>
+              <p className="text-white/40 text-sm leading-relaxed">
+                AFTR Vol. 3: Full Capacity. Every corner packed, every moment electric. We're turning it up to maximum and not stopping until the city wakes up around us.
+              </p>
             </div>
-            <div className="bg-muted rounded-xl p-6 text-center" data-testid="event-time-card">
-              <Clock className="w-10 h-10 text-primary mx-auto mb-4" />
-              <h3 className="font-bold text-lg text-white mb-2">Time</h3>
-              <p className="text-muted-foreground">10PM - 4AM</p>
-            </div>
-            <div className="bg-muted rounded-xl p-6 text-center" data-testid="event-venue-card">
-              <MapPin className="w-10 h-10 text-primary mx-auto mb-4" />
-              <h3 className="font-bold text-lg text-white mb-2">Venue</h3>
-              <p className="text-muted-foreground">Shotz, Flic en Flac</p>
-            </div>
-            <div className="bg-muted rounded-xl p-6 text-center" data-testid="event-duration-card">
-              <Users className="w-10 h-10 text-primary mx-auto mb-4" />
-              <h3 className="font-bold text-lg text-white mb-2">Duration</h3>
-              <p className="text-muted-foreground">6 Hours Non-Stop</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-0">
+              {[
+                { icon: <Calendar className="w-5 h-5 text-[#c72d28]" />, label: "Date", value: "Saturday, 18 April 2026" },
+                { icon: <Clock className="w-5 h-5 text-[#c72d28]" />, label: "Time", value: "10PM — 4AM" },
+                { icon: <MapPin className="w-5 h-5 text-[#c72d28]" />, label: "Venue", value: "Shotz, Flic en Flac" },
+                { icon: <Users className="w-5 h-5 text-[#c72d28]" />, label: "Duration", value: "6 Hours Non-Stop" },
+              ].map(({ icon, label, value }) => (
+                <div key={label} className="border border-white/10 p-6 hover:border-white/20 transition-colors" data-testid={`event-${label.toLowerCase()}-card`}>
+                  <div className="mb-3">{icon}</div>
+                  <div className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-1">{label}</div>
+                  <div className="text-white text-sm font-medium">{value}</div>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="bg-muted rounded-xl p-8" data-testid="event-description">
-            <p className="text-lg text-muted-foreground text-center max-w-3xl mx-auto">
-              AFTR Vol. 3: Full Capacity. The biggest night yet — every corner packed, every moment electric. 
-              We're turning it up to maximum and not stopping until the city wakes up around us. 
-              This is the rave that keeps the city awake, at full strength.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* What to Expect */}
-      <section className="py-16 bg-gradient-to-b from-card to-background">
-        <div className="max-w-4xl mx-auto px-4">
-          <h2 className="text-3xl sm:text-4xl font-bold gradient-text text-center mb-12" data-testid="expect-title">
-            What to Expect
-          </h2>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="flex items-start space-x-4 bg-card rounded-xl p-6 border border-border">
-              <Music className="w-8 h-8 text-primary flex-shrink-0" />
-              <div>
-                <h3 className="font-bold text-white mb-2">Top DJs</h3>
-                <p className="text-muted-foreground">World-class DJs performing back-to-back sets all night long</p>
+          {/* What to expect */}
+          <div className="mt-20 grid grid-cols-2 sm:grid-cols-3 gap-0 border border-white/10" data-testid="expect-title">
+            {[
+              { icon: <Music className="w-5 h-5" />, title: "Top DJs", desc: "Back-to-back sets all night" },
+              { icon: <Volume2 className="w-5 h-5" />, title: "Premium Sound", desc: "State-of-the-art system" },
+              { icon: <Sparkles className="w-5 h-5" />, title: "Epic Lighting", desc: "Immersive visual production" },
+              { icon: <Camera className="w-5 h-5" />, title: "Photo Booth", desc: "Professional photography" },
+              { icon: <Video className="w-5 h-5" />, title: "360° Video", desc: "Share the moment" },
+              { icon: <CheckCircle className="w-5 h-5" />, title: "Safe Environment", desc: "Pro security team" },
+            ].map(({ icon, title, desc }) => (
+              <div key={title} className="border-b border-r border-white/10 p-6 sm:p-8 hover:bg-white/[0.02] transition-colors">
+                <div className="text-[#c72d28] mb-4">{icon}</div>
+                <div className="text-white text-sm font-bold mb-1">{title}</div>
+                <div className="text-white/30 text-xs">{desc}</div>
               </div>
-            </div>
-            <div className="flex items-start space-x-4 bg-card rounded-xl p-6 border border-border">
-              <Volume2 className="w-8 h-8 text-primary flex-shrink-0" />
-              <div>
-                <h3 className="font-bold text-white mb-2">Premium Sound</h3>
-                <p className="text-muted-foreground">State-of-the-art sound system for crystal clear audio</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-4 bg-card rounded-xl p-6 border border-border">
-              <Sparkles className="w-8 h-8 text-primary flex-shrink-0" />
-              <div>
-                <h3 className="font-bold text-white mb-2">Epic Lighting</h3>
-                <p className="text-muted-foreground">Immersive lighting effects and visual production</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-4 bg-card rounded-xl p-6 border border-border">
-              <Camera className="w-8 h-8 text-primary flex-shrink-0" />
-              <div>
-                <h3 className="font-bold text-white mb-2">Photo Booth</h3>
-                <p className="text-muted-foreground">Capture the moment with our professional photo booth</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-4 bg-card rounded-xl p-6 border border-border">
-              <Video className="w-8 h-8 text-primary flex-shrink-0" />
-              <div>
-                <h3 className="font-bold text-white mb-2">360° Video Booth</h3>
-                <p className="text-muted-foreground">Get immersive 360-degree videos to share with friends</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-4 bg-card rounded-xl p-6 border border-border">
-              <CheckCircle className="w-8 h-8 text-primary flex-shrink-0" />
-              <div>
-                <h3 className="font-bold text-white mb-2">Safe Environment</h3>
-                <p className="text-muted-foreground">Professional security and organized event management</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Tickets Section */}
-      <section id="tickets" className="py-20 bg-gradient-to-br from-card via-background to-card relative overflow-hidden">
-        {/* Background accent */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-primary rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
-        </div>
-        
-        <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
-          <h2 className="text-4xl sm:text-5xl font-bold gradient-text mb-6" data-testid="tickets-title">
-            Get Your Digital Tickets
-          </h2>
-          <p className="text-xl text-muted-foreground mb-12">
-            Secure your spot at AFTR Vol. 3: Full Capacity - The rave that keeps the city awake!
-          </p>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
-            {/* Phase 1 */}
-            <div className="bg-card border-2 border-primary rounded-2xl p-8 transition-all hover:scale-105 relative overflow-hidden" data-testid="phase-1-ticket">
-              <div className="absolute top-0 right-0 px-3 py-1 text-sm font-bold bg-primary text-white">
-                EARLY BIRD - ACTIVE
+      {/* Tickets */}
+      <section id="tickets" className="bg-black py-24 sm:py-32 border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="flex items-center gap-4 mb-16">
+            <span className="section-line" />
+            <span className="text-[#c72d28] text-xs uppercase tracking-[0.3em]">Tickets</span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-start">
+            <div>
+              <h2
+                className="text-6xl sm:text-8xl font-black text-white leading-none mb-8"
+                style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
+                data-testid="tickets-title"
+              >
+                GET YOUR<br />TICKET.
+              </h2>
+              <p className="text-white/40 text-sm leading-relaxed mb-10">
+                Secure your spot at Vol. 3: Full Capacity. Pay via MCB, Juice, or Cash — and receive your ticket on WhatsApp within 24 hours.
+              </p>
+
+              {/* Payment details */}
+              <div className="space-y-4" data-testid="payment-instructions">
+                <p className="text-[10px] text-white/30 uppercase tracking-[0.2em]">Payment Accounts</p>
+                {[
+                  { method: "MCB Bank", ref: "000453915337", note: "MCB — AFTR Account" },
+                  { method: "Juice Mobile", ref: "58205220", note: "Use ref: AFTR-3-[YOUR NAME]" },
+                  { method: "Cash", ref: "58205220", note: "Text or call to arrange pickup" },
+                ].map(({ method, ref, note }) => (
+                  <div key={method} className="border border-white/10 p-4">
+                    <div className="text-[10px] text-white/30 uppercase tracking-[0.15em] mb-1">{method}</div>
+                    <div className="font-mono text-white font-bold text-lg tracking-widest">{ref}</div>
+                    <div className="text-[10px] text-white/20 mt-1">{note}</div>
+                  </div>
+                ))}
               </div>
-              <div className="text-center mb-6">
-                <Ticket className="w-12 h-12 text-primary mx-auto mb-4" />
-                <h3 className="text-3xl font-black gradient-text tracking-wider uppercase">AFTR Early Bird</h3>
-                <p className="text-muted-foreground">Phase 1 Pricing</p>
-              </div>
-              <div className="text-center mb-6">
-                <div className="text-4xl font-black gradient-text">Rs 350</div>
-                <div className="text-sm text-muted-foreground">per person</div>
-              </div>
-              <ul className="space-y-3 mb-8 text-left">
-                <li className="flex items-center space-x-3">
-                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
-                  <span>6 hours of non-stop energy</span>
-                </li>
-                <li className="flex items-center space-x-3">
-                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
-                  <span>Top DJs lineup</span>
-                </li>
-                <li className="flex items-center space-x-3">
-                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
-                  <span>Photo Booth & 360° Video</span>
-                </li>
-                <li className="flex items-center space-x-3">
-                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
-                  <span>Bar & refreshments available</span>
-                </li>
-              </ul>
-              <div className="text-center">
-                <button 
+            </div>
+
+            <div className="space-y-4">
+              {/* Early Bird ticket card */}
+              <div className="border border-[#c72d28] p-8 relative" data-testid="phase-1-ticket">
+                <div className="absolute top-4 right-4">
+                  <span className="bg-[#c72d28] text-white text-[9px] uppercase tracking-[0.2em] font-bold px-3 py-1">Active</span>
+                </div>
+                <p className="text-[10px] text-[#c72d28] uppercase tracking-[0.3em] mb-3">Early Bird — Phase 1</p>
+                <h3
+                  className="text-5xl font-black text-white leading-none mb-2"
+                  style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
+                >
+                  AFTR EARLY BIRD
+                </h3>
+                <div className="text-3xl font-black text-white mt-6 mb-6" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>
+                  Rs 350 <span className="text-white/30 text-base font-normal" style={{ fontFamily: "inherit" }}>/ person</span>
+                </div>
+                <ul className="space-y-2 mb-8">
+                  {["6 hours non-stop", "Top DJs lineup", "Photo Booth & 360° Video", "Bar & refreshments available"].map((item) => (
+                    <li key={item} className="flex items-center gap-3 text-white/50 text-sm">
+                      <Check className="w-3 h-3 text-[#c72d28] flex-shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <button
                   onClick={() => setPurchaseModalOpen(true)}
-                  className="w-full gradient-bg text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity mb-3"
+                  className="w-full bg-[#c72d28] text-white text-xs uppercase tracking-[0.2em] font-bold py-4 hover:bg-[#a82421] transition-colors"
                   data-testid="buy-early-bird-btn"
                 >
                   Buy Now
                 </button>
-                <div className="text-sm text-primary font-semibold bg-primary/10 px-4 py-2 rounded-lg">
-                  5th Jan - 25th Jan 2026
-                </div>
               </div>
-            </div>
 
-            {/* Phase 2 */}
-            <div className="bg-card border-2 border-border rounded-2xl p-8 transition-all hover:scale-105 relative overflow-hidden opacity-80" data-testid="phase-2-ticket">
-              <div className="absolute top-0 right-0 px-3 py-1 text-sm font-bold bg-muted text-muted-foreground">
-                PHASE 2 - COMING SOON
-              </div>
-              <div className="text-center mb-6">
-                <Crown className="w-12 h-12 text-primary mx-auto mb-4" />
-                <h3 className="text-3xl font-black gradient-text tracking-wider uppercase">AFTR Standard</h3>
-                <p className="text-muted-foreground">Phase 2 Pricing</p>
-              </div>
-              <div className="text-center mb-6">
-                <div className="text-4xl font-black gradient-text">Coming Soon</div>
-                <div className="text-sm text-muted-foreground">per person</div>
-              </div>
-              <ul className="space-y-3 mb-8 text-left">
-                <li className="flex items-center space-x-3">
-                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
-                  <span>6 hours of non-stop energy</span>
-                </li>
-                <li className="flex items-center space-x-3">
-                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
-                  <span>Top DJs lineup</span>
-                </li>
-                <li className="flex items-center space-x-3">
-                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
-                  <span>Photo Booth & 360° Video</span>
-                </li>
-                <li className="flex items-center space-x-3">
-                  <Check className="text-primary w-5 h-5 flex-shrink-0" />
-                  <span>Bar & refreshments available</span>
-                </li>
-              </ul>
-              <div className="text-center">
-                <div className="text-sm text-muted-foreground font-semibold bg-muted/50 px-4 py-2 rounded-lg">
-                  26th Jan - 30th Jan 2026
+              {/* Phase 2 — coming soon */}
+              <div className="border border-white/10 p-8 relative opacity-50" data-testid="phase-2-ticket">
+                <div className="absolute top-4 right-4">
+                  <span className="border border-white/20 text-white/30 text-[9px] uppercase tracking-[0.2em] px-3 py-1">Coming Soon</span>
+                </div>
+                <p className="text-[10px] text-white/20 uppercase tracking-[0.3em] mb-3">Standard — Phase 2</p>
+                <h3
+                  className="text-5xl font-black text-white leading-none mb-6"
+                  style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
+                >
+                  AFTR STANDARD
+                </h3>
+                <div className="text-2xl font-black text-white/30 mb-8" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>
+                  TBA
+                </div>
+                <div className="border border-white/10 py-4 text-center">
+                  <span className="text-white/20 text-xs uppercase tracking-[0.2em]">Available later</span>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Payment Instructions */}
-          <div id="payment-instructions" className="bg-muted rounded-2xl p-8 border-l-4 border-primary text-left mb-8" data-testid="payment-instructions">
-            <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
-              <CreditCard className="mr-3 text-primary" />
-              How to Purchase Your Ticket
-            </h3>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div>
-                <h4 className="text-lg font-bold text-white mb-4">Payment Account Details</h4>
-                <div className="bg-card rounded-xl p-6 border border-border">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm text-muted-foreground">Bank Transfer</label>
-                      <div className="text-xl font-mono font-bold text-white bg-background px-4 py-2 rounded mt-1">
-                        000453915337
-                      </div>
-                      <div className="text-sm text-muted-foreground mt-1">MCB - AFTR Account</div>
-                    </div>
-                    <div>
-                      <label className="text-sm text-muted-foreground">Juice Mobile</label>
-                      <div className="text-xl font-mono font-bold text-white bg-background px-4 py-2 rounded mt-1">
-                        58205220
-                      </div>
-                      <div className="text-sm text-muted-foreground mt-1">Use reference: AFTR-2-[YOUR NAME]</div>
-                    </div>
-                    <div>
-                      <label className="text-sm text-muted-foreground">Cash Payment</label>
-                      <div className="text-xl font-mono font-bold text-white bg-background px-4 py-2 rounded mt-1">
-                        58205220
-                      </div>
-                      <div className="text-sm text-muted-foreground mt-1">Text or call with your location for cash pickup</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="text-lg font-bold text-white mb-4">Simple 4-Step Process</h4>
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-4">
-                    <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">1</div>
-                    <div>
-                      <div className="font-semibold text-white">Click Buy Now</div>
-                      <div className="text-sm text-muted-foreground">Scroll up or click the button below to start your purchase</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-4">
-                    <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">2</div>
-                    <div>
-                      <div className="font-semibold text-white">Fill Your Details & Pay</div>
-                      <div className="text-sm text-muted-foreground">Enter your info, make payment using the details on the left, and upload your proof</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-4">
-                    <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">3</div>
-                    <div>
-                      <div className="font-semibold text-white">Wait for Verification</div>
-                      <div className="text-sm text-muted-foreground">Our team will verify your payment within 24 hours</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-4">
-                    <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">4</div>
-                    <div>
-                      <div className="font-semibold text-white">Receive Your Ticket</div>
-                      <div className="text-sm text-muted-foreground">Get your digital ticket via Email or WhatsApp</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-8 flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={() => setPurchaseModalOpen(true)}
-                className="flex-1 gradient-bg text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center transition-all hover:scale-105"
-                data-testid="buy-now-payment-section"
-              >
-                <Ticket className="text-xl mr-3" />
-                Buy Now
-              </button>
+              {/* WhatsApp help */}
               <a
-                href="https://wa.me/23058205220?text=Hi!%20I%20have%20a%20question%20about%20AFTR%20Volume%202%20tickets."
+                href="https://wa.me/23058205220?text=Hi!%20I%20have%20a%20question%20about%20AFTR%20Vol.%203%20tickets."
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center transition-colors"
+                className="flex items-center justify-center gap-3 border border-[#25D366]/30 text-[#25D366] text-xs uppercase tracking-[0.2em] font-bold py-4 hover:bg-[#25D366]/10 transition-colors w-full"
                 data-testid="whatsapp-support-button"
               >
-                <SiWhatsapp className="text-xl mr-3" />
-                Need Help? WhatsApp Us
+                <SiWhatsapp className="w-4 h-4" />
+                Questions? WhatsApp Us
               </a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Venue Section */}
-      <section id="venue" className="py-16 bg-card">
-        <div className="max-w-4xl mx-auto px-4">
-          <h2 className="text-3xl sm:text-4xl font-bold gradient-text text-center mb-12" data-testid="venue-title">
-            Venue
-          </h2>
-          
-          <div className="bg-muted rounded-xl overflow-hidden">
-            {/* Google Map Embed */}
-            <div className="w-full h-64 sm:h-80">
+      {/* How to buy */}
+      <section className="bg-black py-20 border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="flex items-center gap-4 mb-14">
+            <span className="section-line" />
+            <span className="text-[#c72d28] text-xs uppercase tracking-[0.3em]">How it works</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0 border border-white/10">
+            {[
+              { step: "01", title: "Click Buy Now", desc: "Select your ticket and fill in your details" },
+              { step: "02", title: "Make Payment", desc: "Pay via MCB, Juice, or cash and note your reference" },
+              { step: "03", title: "Send Proof", desc: "Screenshot your payment and WhatsApp it to us" },
+              { step: "04", title: "Get Your Ticket", desc: "Receive your digital ticket within 24 hours" },
+            ].map(({ step, title, desc }) => (
+              <div key={step} className="border-b sm:border-b-0 border-r border-white/10 p-8">
+                <div className="text-5xl font-black text-white/10 mb-4" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>{step}</div>
+                <div className="text-white text-sm font-bold mb-2">{title}</div>
+                <div className="text-white/30 text-xs leading-relaxed">{desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Venue */}
+      <section id="venue" className="bg-black py-24 sm:py-32">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="flex items-center gap-4 mb-16">
+            <span className="section-line" />
+            <span className="text-[#c72d28] text-xs uppercase tracking-[0.3em]">Venue</span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-start">
+            <div>
+              <h2
+                className="text-6xl sm:text-8xl font-black text-white leading-none mb-6"
+                style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
+                data-testid="venue-title"
+              >
+                SHOTZ<br />FLIC EN FLAC
+              </h2>
+              <p className="text-white/40 text-sm leading-relaxed mb-8">
+                Located in the heart of Flic en Flac, Shotz provides the perfect setting for an epic night of music and dancing. Easy to find and accessible from all parts of the island.
+              </p>
+              <a
+                href="https://www.google.com/maps/dir/?api=1&destination=-20.28325,57.36539"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-4 border border-white/20 text-white text-xs uppercase tracking-[0.2em] font-bold px-7 py-4 hover:border-white/40 transition-colors"
+                data-testid="get-directions-button"
+              >
+                <Navigation className="w-4 h-4" />
+                Get Directions
+              </a>
+            </div>
+
+            <div className="aspect-video border border-white/10" data-testid="venue-map">
               <iframe
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3744.8!2d57.36539!3d-20.28325!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjDCsDE2JzU5LjciUyA1N8KwMjEnNTUuNCJF!5e0!3m2!1sen!2smu!4v1600000000000!5m2!1sen!2smu"
                 width="100%"
                 height="100%"
-                style={{ border: 0 }}
+                style={{ border: 0, filter: 'grayscale(100%) invert(92%) contrast(83%)' }}
                 allowFullScreen
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
                 title="Shotz Flic en Flac Location"
-                data-testid="venue-map"
               />
-            </div>
-            
-            <div className="p-8 text-center">
-              <MapPin className="w-12 h-12 text-primary mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-white mb-2">Shotz</h3>
-              <p className="text-lg text-muted-foreground mb-4">Flic en Flac, Mauritius</p>
-              <p className="text-muted-foreground max-w-xl mx-auto mb-6">
-                Located in the heart of Flic en Flac, Shotz provides the perfect setting for an epic night of music and dancing. 
-                Easy to find and accessible from all parts of the island.
-              </p>
-              
-              <a 
-                href="https://www.google.com/maps/dir/?api=1&destination=-20.28325,57.36539&destination_place_id=Shotz+Flic+en+Flac"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 px-6 py-3 bg-primary text-white font-bold rounded-full hover:scale-105 transition-transform"
-                data-testid="get-directions-button"
-              >
-                <Navigation className="w-5 h-5" />
-                Get Directions
-              </a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 bg-black border-t border-white/10">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <img src={logoImage} alt="After Dark Socials" className="h-20 w-auto mx-auto mb-4" />
-          <p className="text-muted-foreground text-sm">
-            &copy; 2026 AFTR. All rights reserved. The rave that keeps the city awake.
-          </p>
+      {/* Footer CTA */}
+      <div className="bg-black border-t border-white/10 py-16">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div>
+            <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-1">18 April 2026 — Shotz, Flic en Flac</p>
+            <p className="text-white font-black text-2xl" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>AFTR VOL. 3: FULL CAPACITY</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-white/30 hover:text-white text-xs uppercase tracking-[0.2em] transition-colors">
+              ← Home
+            </Link>
+            <button
+              onClick={() => setPurchaseModalOpen(true)}
+              className="bg-[#c72d28] text-white text-xs uppercase tracking-[0.2em] font-bold px-8 py-4 hover:bg-[#a82421] transition-colors"
+              data-testid="buy-now-payment-section"
+            >
+              Buy Tickets
+            </button>
+          </div>
         </div>
-      </footer>
-
-      {/* Purchase Modal */}
-      <TicketPurchaseModal 
-        isOpen={purchaseModalOpen} 
-        onClose={() => setPurchaseModalOpen(false)} 
-      />
+      </div>
     </div>
   );
 }

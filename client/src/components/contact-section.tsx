@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Phone, Mail } from "lucide-react";
-import { SiWhatsapp, SiInstagram } from "react-icons/si";
+import { SiWhatsapp, SiInstagram, SiTiktok } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ContactSection() {
@@ -163,19 +163,31 @@ export default function ContactSection() {
 
             {/* Social links */}
             <div className="mt-10 pt-8 border-t border-white/10">
-              <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-4" data-testid="social-media-title">
+              <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-5" data-testid="social-media-title">
                 Follow Us
               </p>
-              <a
-                href="https://www.instagram.com/afterdarksocials.mu?igsh=M3FxdDR1bzd6MjJy&utm_source=qr"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-white/30 hover:text-white text-xs transition-colors"
-                data-testid="instagram-link"
-              >
-                <SiInstagram className="w-4 h-4" />
-                @afterdarksocials.mu
-              </a>
+              <div className="flex flex-col gap-4">
+                <a
+                  href="https://www.instagram.com/afterdarksocials.mu?igsh=M3FxdDR1bzd6MjJy&utm_source=qr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-3 text-white/30 hover:text-white text-xs transition-colors"
+                  data-testid="instagram-link"
+                >
+                  <SiInstagram className="w-4 h-4" />
+                  @afterdarksocials.mu
+                </a>
+                <a
+                  href="https://www.tiktok.com/@afterdarksocials.mu"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-3 text-white/30 hover:text-white text-xs transition-colors"
+                  data-testid="tiktok-link"
+                >
+                  <SiTiktok className="w-4 h-4" />
+                  @afterdarksocials.mu
+                </a>
+              </div>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { SiInstagram, SiWhatsapp } from "react-icons/si";
+import { SiInstagram, SiWhatsapp, SiTiktok } from "react-icons/si";
 import { Link } from "wouter";
 import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
@@ -33,10 +33,20 @@ export default function Footer() {
                 <SiInstagram className="w-4 h-4" />
               </a>
               <a
+                href="https://www.tiktok.com/@afterdarksocials.mu"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/30 hover:text-white transition-colors"
+                data-testid="footer-tiktok"
+              >
+                <SiTiktok className="w-4 h-4" />
+              </a>
+              <a
                 href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white/30 hover:text-white transition-colors"
+                data-testid="footer-whatsapp"
               >
                 <SiWhatsapp className="w-4 h-4" />
               </a>
@@ -88,7 +98,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-white/10 mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4" data-testid="footer-copyright">
           <p className="text-white/20 text-xs uppercase tracking-[0.2em]">
-            &copy; 2025 AFTR. All rights reserved.
+            &copy; 2026 AFTR. All rights reserved.
           </p>
           <p className="text-white/20 text-xs uppercase tracking-[0.2em]">
             The rave that keeps the city awake.

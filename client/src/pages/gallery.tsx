@@ -5,7 +5,7 @@ import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346
 
 import aftrEventImage from "@assets/AFTR-1_1757155940525.jpg";
 import aftrPromoImage from "@assets/AFTR_1757155849539.jpg";
-import aftrBwImage from "@assets/IMG_6112_1774435245159.JPG";
+import aftrBwImage from "@assets/IMG_6112_1774435245159.jpg";
 import aftrLogoBw from "@assets/after-dark-socials-black-white_(1)_1766388068885.png";
 import screenshotVol1 from "@assets/Screenshot 2025-09-07 at 02.22.32_1757208222734.png";
 import screenshotDec from "@assets/Screenshot_2025-12-22_at_08.17.45_1766387937769.png";

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { HeroSlide } from "@shared/schema";
 import heroImage from "@assets/stock_images/dark_nightclub_rave__d23cebfd.jpg";
-import aftr2Image from "@assets/IMG_6112_1774435245159.JPG";
+import aftr2Image from "@assets/IMG_6112_1774435245159.jpg";
 
 export default function HeroSection() {
   const [isVisible, setIsVisible] = useState(false);
