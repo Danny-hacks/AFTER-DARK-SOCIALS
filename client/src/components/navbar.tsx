@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
+import { Link } from "wouter";
 import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
 export default function Navbar() {
@@ -74,6 +75,13 @@ export default function Navbar() {
                 )}
               </button>
             ))}
+            <Link
+              href="/gallery"
+              className="text-xs uppercase tracking-[0.2em] font-medium text-white/50 hover:text-white transition-colors"
+              data-testid="nav-link-gallery"
+            >
+              Gallery
+            </Link>
             <a
               href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO"
               target="_blank"
@@ -108,6 +116,14 @@ export default function Navbar() {
                 {link.label}
               </button>
             ))}
+            <Link
+              href="/gallery"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block w-full text-left px-0 py-3 text-xs uppercase tracking-[0.2em] font-medium text-white/50 hover:text-white border-b border-white/5 transition-colors"
+              data-testid="mobile-nav-link-gallery"
+            >
+              Gallery
+            </Link>
             <a
               href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO"
               target="_blank"

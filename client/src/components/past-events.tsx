@@ -7,10 +7,21 @@ import djLuvleshImage from "@assets/DJ LUVLESH_1757156832389.jpg";
 import djStevoImage from "@assets/STEVOTHEDJ_1757156832391.jpg";
 import djSwayImage from "@assets/DJ SWAY_1757156832390.jpg";
 import djAfrokeyzImage from "@assets/DJ AFROKEYZ_1757156832386.jpg";
+import screenshotDec from "@assets/Screenshot_2025-12-22_at_08.17.45_1766387937769.png";
+import screenshotJanA from "@assets/Screenshot_2026-01-06_at_05.13.49_1767672933262.png";
+import screenshotJanB from "@assets/Screenshot_2026-01-06_at_05.21.29_1767673299189.png";
 import type { Event } from "@shared/schema";
 import { useState } from "react";
 
 const vol1Artists = [
+  { name: "DJ ALVIN", genre: "Hip Hop", image: djAlvinImage },
+  { name: "DJ LUVLESH", genre: "Amapiano", image: djLuvleshImage },
+  { name: "STEVOTHEDJ", genre: "Afrobeats & Dancehall", image: djStevoImage },
+  { name: "DJ SWAY", genre: "Afrohouse & Amapiano", image: djSwayImage },
+  { name: "DJ AFROKEYZ", genre: "Amapiano & 3 Steps", image: djAfrokeyzImage },
+];
+
+const vol2Artists = [
   { name: "DJ ALVIN", genre: "Hip Hop", image: djAlvinImage },
   { name: "DJ LUVLESH", genre: "Amapiano", image: djLuvleshImage },
   { name: "STEVOTHEDJ", genre: "Afrobeats & Dancehall", image: djStevoImage },
@@ -47,6 +58,8 @@ function PastEventCard({
   image, imageAlt, videoUrl, artists, testIdPrefix,
 }: PastEventCardProps) {
   const [showVideo, setShowVideo] = useState(false);
+
+  const titleLines = title.split('\n');
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-px bg-white/10" data-testid={`${testIdPrefix}-card`}>
@@ -89,7 +102,6 @@ function PastEventCard({
       {/* Info */}
       <div className="bg-black p-8 sm:p-12 flex flex-col justify-between">
         <div>
-          {/* Edition tag */}
           <p className="text-[10px] text-[#c72d28] uppercase tracking-[0.3em] font-bold mb-4">{edition}</p>
 
           <h3
@@ -97,7 +109,12 @@ function PastEventCard({
             style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
             data-testid={`${testIdPrefix}-title`}
           >
-            {title}
+            {titleLines.map((line, i) => (
+              <span key={i}>
+                {line}
+                {i < titleLines.length - 1 && <br />}
+              </span>
+            ))}
           </h3>
 
           <div className="space-y-3 mb-8">
@@ -140,7 +157,7 @@ function PastEventCard({
             </p>
             <div className="grid grid-cols-5 gap-3">
               {artists.map((artist, index) => (
-                <div key={artist.name} className="text-center" data-testid={`artist-card-${index}`}>
+                <div key={artist.name} className="text-center" data-testid={`${testIdPrefix}-artist-${index}`}>
                   <div className="w-full aspect-square mb-2 overflow-hidden">
                     <img
                       src={artist.image}
@@ -148,10 +165,10 @@ function PastEventCard({
                       className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all"
                     />
                   </div>
-                  <p className="text-white text-[9px] font-bold uppercase tracking-wide leading-tight" data-testid={`artist-name-${index}`}>
+                  <p className="text-white text-[9px] font-bold uppercase tracking-wide leading-tight">
                     {artist.name}
                   </p>
-                  <p className="text-white/30 text-[8px] leading-tight mt-0.5" data-testid={`artist-genre-${index}`}>
+                  <p className="text-white/30 text-[8px] leading-tight mt-0.5">
                     {artist.genre}
                   </p>
                 </div>
@@ -170,7 +187,9 @@ export default function PastEvents() {
   });
 
   const pastEvents = eventsData?.events || [];
-  const mainEvent = pastEvents.find(e => e.name?.includes('AFTR'));
+  const vol1Event = pastEvents.find(e => e.name?.toLowerCase().includes('vol 1') || (e.name?.toLowerCase().includes('aftr') && !e.name?.toLowerCase().includes('vol 2')));
+  const vol2Event = pastEvents.find(e => e.name?.toLowerCase().includes('vol 2') || e.name?.toLowerCase().includes('volume 2'));
+  const mainEvent = vol1Event || pastEvents[pastEvents.length - 1];
 
   return (
     <section id="past-events" className="bg-black py-28" data-testid="past-events-section">
@@ -204,7 +223,8 @@ export default function PastEvents() {
             description="The second edition raised the bar — a packed dancefloor, harder-hitting energy, and a night that proved AFTR is only getting started."
             image={aftrVol2Image}
             imageAlt="AFTR Volume 2"
-            videoUrl={null}
+            videoUrl={vol2Event?.videoUrl ?? null}
+            artists={vol2Artists}
             testIdPrefix="vol2-event"
           />
         </div>
@@ -220,7 +240,7 @@ export default function PastEvents() {
             description="An unforgettable night of music and energy. 5 DJs delivered non-stop vibes from 10 PM until 4 AM, making this one of the most epic raves Mauritius has ever seen."
             image={aftrEventImage}
             imageAlt="AFTR Rave September 2025"
-            videoUrl={mainEvent?.videoUrl}
+            videoUrl={mainEvent?.videoUrl ?? null}
             artists={vol1Artists}
             testIdPrefix="past-event"
           />

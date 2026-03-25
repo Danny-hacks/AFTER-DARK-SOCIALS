@@ -1,4 +1,5 @@
 import { SiInstagram, SiWhatsapp } from "react-icons/si";
+import { Link } from "wouter";
 import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
 export default function Footer() {
@@ -61,6 +62,11 @@ export default function Footer() {
                   </button>
                 </li>
               ))}
+              <li>
+                <Link href="/gallery" className="text-white/30 hover:text-white text-sm transition-colors">
+                  Gallery
+                </Link>
+              </li>
             </ul>
           </div>
 
