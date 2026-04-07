@@ -14,7 +14,7 @@ import {
   Ticket, LogIn, LogOut, Plus, Users, CheckCircle, Eye, QrCode,
   Search, Trash, Calendar, Video, Upload, Music, MapPin, Clock,
   LayoutDashboard, PartyPopper, Edit, X, Image, Play, CreditCard,
-  Mail, Phone, XCircle, ExternalLink, Loader2, ChevronDown, ChevronUp
+  Mail, Phone, XCircle, ExternalLink, Loader2, ChevronDown, ChevronUp, Menu
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import type { Ticket as TicketType, Event as EventType, HeroSlide as HeroSlideType, TicketPurchase as TicketPurchaseType } from "@shared/schema";
@@ -95,12 +95,12 @@ function StatBox({ label, value, accent = false }: { label: string; value: numbe
 
 function SectionHeading({ label, title }: { label: string; title: string }) {
   return (
-    <div className="mb-10">
-      <div className="flex items-center gap-4 mb-4">
+    <div className="mb-8 md:mb-10">
+      <div className="flex items-center gap-4 mb-3">
         <span className="block w-6 h-px bg-[#c72d28]" />
         <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.3em]">{label}</span>
       </div>
-      <h2 className="text-5xl font-black text-white leading-none" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>{title}</h2>
+      <h2 className="text-4xl md:text-5xl font-black text-white leading-none" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>{title}</h2>
     </div>
   );
 }
@@ -127,6 +127,7 @@ function StatusBadge({ status }: { status: string }) {
 export default function AdminPanel() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [scannedTicket, setScannedTicket] = useState<TicketType | null>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'purchases' | 'events' | 'tickets' | 'hero'>('dashboard');
@@ -256,13 +257,13 @@ export default function AdminPanel() {
   });
 
   const verifyPurchaseMutation = useMutation({
-    mutationFn: (id: string) => apiRequest('PATCH', `/api/admin/purchases/${id}/verify`),
+    mutationFn: (id: string) => apiRequest('POST', `/api/admin/purchases/${id}/verify`),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['/api/admin/purchases'] }); queryClient.invalidateQueries({ queryKey: ['/api/admin/tickets'] }); toast({ title: "Purchase Verified", description: "Ticket(s) created and ready to deliver." }); },
     onError: (error) => toast({ title: "Verification Failed", description: error.message, variant: "destructive" }),
   });
 
   const rejectPurchaseMutation = useMutation({
-    mutationFn: ({ purchaseId, reason }: { purchaseId: string; reason: string }) => apiRequest('PATCH', `/api/admin/purchases/${purchaseId}/reject`, { reason }),
+    mutationFn: ({ purchaseId, reason }: { purchaseId: string; reason: string }) => apiRequest('POST', `/api/admin/purchases/${purchaseId}/reject`, { reason }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['/api/admin/purchases'] }); toast({ title: "Purchase Rejected" }); },
     onError: () => toast({ title: "Failed to Reject Purchase", variant: "destructive" }),
   });
@@ -369,53 +370,80 @@ export default function AdminPanel() {
     { key: 'hero' as const, label: 'Hero Slider', icon: <Image className="w-4 h-4" />, badge: allHeroSlides.length },
   ];
 
-  return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Sidebar */}
-      <div className="fixed left-0 top-0 h-full w-60 bg-black border-r border-white/10 flex flex-col">
-        <div className="px-6 py-8 border-b border-white/10">
+  const closeSidebar = () => setSidebarOpen(false);
+
+  const SidebarContent = () => (
+    <>
+      <div className="px-6 py-8 border-b border-white/10 flex items-center justify-between">
+        <div>
           <p className="text-[9px] text-[#c72d28] uppercase tracking-[0.3em] mb-1">Brand Manager</p>
           <h1 className="text-2xl font-black text-white" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>AFTR</h1>
         </div>
+        <button className="md:hidden text-white/30 hover:text-white transition-colors" onClick={closeSidebar}>
+          <X className="w-5 h-5" />
+        </button>
+      </div>
 
-        <nav className="flex-1 py-4">
-          {navItems.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => setActiveTab(item.key)}
-              className={`w-full flex items-center gap-3 px-6 py-3.5 text-xs uppercase tracking-[0.15em] font-bold transition-colors relative ${
-                activeTab === item.key
-                  ? 'text-white bg-white/5'
-                  : 'text-white/30 hover:text-white/60 hover:bg-white/[0.02]'
-              }`}
-              data-testid={`nav-${item.key}`}
-            >
-              {activeTab === item.key && <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#c72d28]" />}
-              {item.icon}
-              {item.label}
-              {item.badge !== null && item.badge !== undefined && (
-                <span className={`ml-auto text-[9px] px-2 py-0.5 font-bold border ${item.key === 'purchases' && pendingPurchases.length > 0 ? 'border-orange-500/50 text-orange-400' : 'border-white/15 text-white/30'}`}>
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          ))}
-        </nav>
-
-        <div className="px-6 py-4 border-t border-white/10">
+      <nav className="flex-1 py-4">
+        {navItems.map((item) => (
           <button
-            onClick={() => logoutMutation.mutate()}
-            className="w-full flex items-center gap-3 text-white/30 hover:text-white text-xs uppercase tracking-[0.15em] transition-colors"
-            data-testid="button-logout"
+            key={item.key}
+            onClick={() => { setActiveTab(item.key); closeSidebar(); }}
+            className={`w-full flex items-center gap-3 px-6 py-3.5 text-xs uppercase tracking-[0.15em] font-bold transition-colors relative ${
+              activeTab === item.key
+                ? 'text-white bg-white/5'
+                : 'text-white/30 hover:text-white/60 hover:bg-white/[0.02]'
+            }`}
+            data-testid={`nav-${item.key}`}
           >
-            <LogOut className="w-4 h-4" />
-            Sign Out
+            {activeTab === item.key && <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#c72d28]" />}
+            {item.icon}
+            {item.label}
+            {item.badge !== null && item.badge !== undefined && (
+              <span className={`ml-auto text-[9px] px-2 py-0.5 font-bold border ${item.key === 'purchases' && pendingPurchases.length > 0 ? 'border-orange-500/50 text-orange-400' : 'border-white/15 text-white/30'}`}>
+                {item.badge}
+              </span>
+            )}
           </button>
-        </div>
+        ))}
+      </nav>
+
+      <div className="px-6 py-4 border-t border-white/10">
+        <button
+          onClick={() => logoutMutation.mutate()}
+          className="w-full flex items-center gap-3 text-white/30 hover:text-white text-xs uppercase tracking-[0.15em] transition-colors"
+          data-testid="button-logout"
+        >
+          <LogOut className="w-4 h-4" />
+          Sign Out
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="min-h-screen bg-black text-white">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/70 z-40 md:hidden" onClick={closeSidebar} />
+      )}
+
+      {/* Sidebar — desktop: always visible, mobile: drawer */}
+      <div className={`fixed left-0 top-0 h-full w-60 bg-black border-r border-white/10 flex flex-col z-50 transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+        <SidebarContent />
+      </div>
+
+      {/* Mobile top bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-black border-b border-white/10 flex items-center justify-between px-4 py-3">
+        <button onClick={() => setSidebarOpen(true)} className="text-white/50 hover:text-white transition-colors">
+          <Menu className="w-5 h-5" />
+        </button>
+        <p className="text-[10px] text-white/40 uppercase tracking-[0.3em] font-bold">{navItems.find(n => n.key === activeTab)?.label}</p>
+        <div className="w-5" />
       </div>
 
       {/* Main Content */}
-      <div className="ml-60 p-10 min-h-screen">
+      <div className="md:ml-60 pt-12 md:pt-0 p-4 md:p-10 min-h-screen">
 
         {/* ── DASHBOARD ────────────────────────────────────────────────────── */}
         {activeTab === 'dashboard' && (
@@ -483,14 +511,14 @@ export default function AdminPanel() {
             <SectionHeading label="Finance" title="PURCHASES" />
 
             {/* Sub-tabs */}
-            <div className="flex gap-0 border border-white/10 w-fit mb-8">
+            <div className="flex gap-0 border border-white/10 w-full overflow-x-auto mb-8">
               {[
                 { key: 'all' as const, label: 'All', count: allPurchases.length },
-                { key: 'ready' as const, label: 'Ready to Deliver', count: readyToDeliverTickets.length },
+                { key: 'ready' as const, label: 'Deliver', count: readyToDeliverTickets.length },
                 { key: 'vol3' as const, label: 'Vol. 3', count: vol2Tickets.length },
               ].map(f => (
                 <button key={f.key} onClick={() => setPurchasesSubTab(f.key)}
-                  className={`px-5 py-2.5 text-[10px] uppercase tracking-[0.2em] font-bold border-r border-white/10 last:border-0 transition-colors ${purchasesSubTab === f.key ? 'bg-[#c72d28] text-white' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                  className={`flex-1 px-3 md:px-5 py-2.5 text-[10px] uppercase tracking-[0.2em] font-bold border-r border-white/10 last:border-0 transition-colors whitespace-nowrap ${purchasesSubTab === f.key ? 'bg-[#c72d28] text-white' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
                   data-testid={`purchases-subtab-${f.key}`}
                 >
                   {f.label} <span className="ml-1 opacity-60">{f.count}</span>
@@ -553,14 +581,16 @@ export default function AdminPanel() {
                           <div className="text-white/20 text-xs mt-1">{purchase.createdAt ? new Date(purchase.createdAt).toLocaleDateString() : ''}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <span className="border border-white/10 text-white/30 text-[9px] uppercase tracking-[0.15em] px-2 py-1">{purchase.paymentMethod}</span>
-                        <span className="flex items-center gap-1 text-[#25D366] text-[9px] uppercase tracking-[0.15em]"><SiWhatsapp className="w-3 h-3" />WhatsApp</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="border border-white/10 text-white/30 text-[9px] uppercase tracking-[0.15em] px-2 py-1">{purchase.paymentMethod}</span>
+                          <span className="flex items-center gap-1 text-[#25D366] text-[9px] uppercase tracking-[0.15em]"><SiWhatsapp className="w-3 h-3" />WhatsApp</span>
+                        </div>
                         {purchase.status === 'pending' && (
-                          <div className="flex items-center gap-2 ml-auto">
+                          <div className="flex items-center gap-2 sm:ml-auto">
                             <Btn size="sm" variant="green" onClick={() => verifyPurchaseMutation.mutate(purchase.id)} disabled={verifyPurchaseMutation.isPending} data-testid={`verify-purchase-${purchase.id}`}>
                               {verifyPurchaseMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
-                              Verify {(purchase.quantity ?? 1) > 1 ? `${purchase.quantity} Tickets` : 'Ticket'}
+                              Verify {(purchase.quantity ?? 1) > 1 ? `${purchase.quantity} Tickets` : ''}
                             </Btn>
                             <Btn size="sm" variant="danger" onClick={() => rejectPurchaseMutation.mutate({ purchaseId: purchase.id, reason: 'Payment not verified' })} disabled={rejectPurchaseMutation.isPending} data-testid={`reject-purchase-${purchase.id}`}>
                               <XCircle className="w-3 h-3" /> Reject
