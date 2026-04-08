@@ -21,6 +21,7 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
   const accentColor = isGoldenVIP ? '#C9A84C' : '#c72d28';
   const cardBg = isGoldenVIP ? '#0f0b00' : '#000000';
   const borderColor = isGoldenVIP ? '#C9A84C' : '#ffffff';
+  const displayPrice = isGoldenVIP && ticket.price === 'Rs 350' ? 'Rs 700' : ticket.price;
 
   const downloadTicket = async () => {
     if (ticketRef.current) {
@@ -126,7 +127,7 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       const message = `🎉 Your AFTR Vol. 3: Full Capacity Ticket is Ready! 🎉\n\n` +
         `📧 Customer: ${ticket.customerName}\n` +
         `🎫 Reference: ${ticket.referenceCode}\n` +
-        `💰 Price: ${ticket.price}\n` +
+        `💰 Price: ${displayPrice}\n` +
         `📅 Date: 18th April 2026\n` +
         `📍 Venue: Shotz, Flic en Flac\n` +
         `🕙 Doors: 10:00 PM\n\n` +
@@ -228,7 +229,7 @@ Your ticket for AFTR Vol. 3: Full Capacity is ready! Get excited for the biggest
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Reference Code: ${ticket.referenceCode}
 Ticket Type:    ${ticket.ticketType}
-Price:          ${ticket.price}
+Price:          ${displayPrice}
 
 📋 IMPORTANT NOTES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -393,7 +394,7 @@ Follow us on: https://www.instagram.com/afterdarksocials.mu/
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wider">Price</p>
-                  <p className="text-lg font-bold text-white">{ticket.price}</p>
+                  <p className="text-lg font-bold text-white">{displayPrice}</p>
                 </div>
               </div>
               

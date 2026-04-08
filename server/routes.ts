@@ -80,7 +80,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Ticket management routes (protected)
   app.post("/api/admin/tickets", requireAuth, async (req, res) => {
     try {
-      const ticketData = insertTicketSchema.parse(req.body);
+      const rawData = insertTicketSchema.parse(req.body);
+      // Enforce correct price per ticket type
+      const correctPrice = rawData.ticketType === 'Golden VIP' ? 'Rs 700' : rawData.price;
+      const ticketData = { ...rawData, price: correctPrice };
       
       // Check if reference code already exists
       const existingTicket = await storage.getTicketByReference(ticketData.referenceCode);
@@ -352,7 +355,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public Ticket Purchase routes
   app.post("/api/tickets/purchase", async (req, res) => {
     try {
-      const purchaseData = insertTicketPurchaseSchema.parse(req.body);
+      const rawPurchase = insertTicketPurchaseSchema.parse(req.body);
+      // Enforce correct price per ticket type
+      const expectedTotal = rawPurchase.ticketType === 'Golden VIP' ? 700 * (rawPurchase.quantity ?? 1) : 350 * (rawPurchase.quantity ?? 1);
+      const purchaseData = { ...rawPurchase, price: `Rs ${expectedTotal}` };
       const purchase = await storage.createTicketPurchase(purchaseData);
       res.json({ success: true, purchase, message: "Purchase request submitted. Please complete payment and wait for verification." });
     } catch (error) {
@@ -424,7 +430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.markPurchaseProcessing(req.params.id);
       
       const quantity = purchase.quantity || 1;
-      const pricePerTicket = 350;
+      const pricePerTicket = purchase.ticketType === 'Golden VIP' ? 700 : 350;
       const tickets = [];
       
       // Create multiple tickets based on quantity (each with unique reference/QR code)
