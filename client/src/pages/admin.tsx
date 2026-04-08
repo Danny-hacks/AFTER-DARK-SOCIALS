@@ -635,7 +635,8 @@ export default function AdminPanel() {
                     </div>
                   ) : filteredReadyToDeliver.map((ticket) => {
                     const isSent = ticket.isDelivered ?? false;
-                    const waMsg = encodeURIComponent(`🎉 Your AFTR Vol. 3: Full Capacity Ticket is Ready! 🎉\n\n📧 Customer: ${ticket.customerName}\n🎫 Reference: ${ticket.referenceCode}\n💰 Price: ${ticket.price}\n📅 Date: 18th April 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10:00 PM\n\nSee you on the dance floor! 🎵🔥`);
+                    const ticketDisplayPrice = (ticket.ticketType === 'Golden VIP' && ticket.price === 'Rs 350') ? 'Rs 700' : ticket.price;
+                    const waMsg = encodeURIComponent(`🎉 Your AFTR Vol. 3: Full Capacity Ticket is Ready! 🎉\n\n📧 Customer: ${ticket.customerName}\n🎫 Reference: ${ticket.referenceCode}\n💰 Price: ${ticketDisplayPrice}\n📅 Date: 18th April 2026\n📍 Venue: Shotz, Flic en Flac\n🕙 Door opens: 10:00 PM\n\nSee you on the dance floor! 🎵🔥`);
                     return (
                       <div key={ticket.id} className="flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors">
                         <div>
@@ -724,7 +725,7 @@ export default function AdminPanel() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-white/40 text-xs mr-2">{ticket.price}</span>
+                        <span className="text-white/40 text-xs mr-2">{(ticket.ticketType === 'Golden VIP' && ticket.price === 'Rs 350') ? 'Rs 700' : ticket.price}</span>
                         <StatusBadge status={ticket.isUsed ? 'used' : 'available'} />
                         <Dialog>
                           <DialogTrigger asChild>
@@ -1044,7 +1045,7 @@ export default function AdminPanel() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-white/30 text-xs mr-2">{ticket.price} · {ticket.ticketType}</span>
+                      <span className="text-white/30 text-xs mr-2">{(ticket.ticketType === 'Golden VIP' && ticket.price === 'Rs 350') ? 'Rs 700' : ticket.price} · {ticket.ticketType}</span>
                       <Dialog>
                         <DialogTrigger asChild>
                           <button className="border border-white/15 text-white/40 hover:text-white p-2 transition-colors" data-testid={`button-view-ticket-${ticket.id}`}>

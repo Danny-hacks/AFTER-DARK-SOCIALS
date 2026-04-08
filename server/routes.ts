@@ -7,6 +7,7 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import nodemailer from "nodemailer";
 import { appendTicketToSheet, initializeSheetHeaders } from "./googleSheets";
+import { pool } from "./db";
 
 // Simple admin credentials - in production, use proper authentication
 const ADMIN_USERNAME = "aftr_admin";
@@ -27,6 +28,16 @@ function requireAuth(req: Request, res: Response, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // One-time startup correction: fix Golden VIP tickets that were incorrectly priced
+  try {
+    await pool.query(`
+      UPDATE tickets SET price = 'Rs 700' WHERE ticket_type = 'Golden VIP' AND price = 'Rs 350';
+      UPDATE ticket_purchases SET price = 'Rs 700' WHERE ticket_type = 'Golden VIP' AND price = 'Rs 350';
+    `);
+  } catch (e) {
+    console.error("Price correction failed (non-blocking):", e);
+  }
+
   // Configure PostgreSQL session store for persistence
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
@@ -556,7 +567,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     </td>
                     <td style="padding: 12px 0; text-align: right;">
                       <span style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Price</span><br>
-                      <span style="color: #c72d28; font-size: 20px; font-weight: bold;">${ticket.price}</span>
+                      <span style="color: #c72d28; font-size: 20px; font-weight: bold;">${ticket.ticketType === 'Golden VIP' && ticket.price === 'Rs 350' ? 'Rs 700' : ticket.price}</span>
                     </td>
                   </tr>
                 </table>
