@@ -386,13 +386,14 @@ export default function EventPage() {
   const eventDate = new Date('2026-04-18T22:00:00+04:00');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [selectedTicketType, setSelectedTicketType] = useState<'Early Bird' | 'Golden VIP'>('Early Bird');
-  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+  const [modalTicketType, setModalTicketType] = useState<'Early Bird' | 'Golden VIP' | null>(null);
 
   const openModal = (type: 'Early Bird' | 'Golden VIP' = 'Early Bird') => {
-    setSelectedTicketType(type);
-    setPurchaseModalOpen(true);
+    setModalTicketType(type);
   };
+
+  const purchaseModalOpen = modalTicketType !== null;
+  const selectedTicketType = modalTicketType ?? 'Early Bird';
 
 
   useEffect(() => {
@@ -408,7 +409,7 @@ export default function EventPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <TicketPurchaseModal isOpen={purchaseModalOpen} onClose={() => setPurchaseModalOpen(false)} ticketType={selectedTicketType} />
+      <TicketPurchaseModal isOpen={purchaseModalOpen} onClose={() => setModalTicketType(null)} ticketType={selectedTicketType} />
 
       {/* Navbar */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-black border-b border-white/10' : 'bg-transparent'}`}>
