@@ -44,7 +44,7 @@ const ticketSchema = z.object({
   customerName: z.string().min(1, "Customer name is required"),
   customerEmail: z.string().optional().refine((val) => !val || z.string().email().safeParse(val).success, { message: "Please enter a valid email address" }),
   customerPhone: z.string().optional().refine((val) => !val || /^[\d\s\+\-\(\)]+$/.test(val), { message: "Please enter a valid phone number" }),
-  ticketType: z.string().default("Phase 1"),
+  ticketType: z.string().default("Early Bird"),
   price: z.string().default("Rs 350"),
   paymentMethod: z.string().optional(),
 });
@@ -160,7 +160,7 @@ export default function AdminPanel() {
 
   const loginForm = useForm<LoginFormData>({ resolver: zodResolver(loginSchema), defaultValues: { username: "", password: "" } });
   const eventForm = useForm<EventFormData>({ resolver: zodResolver(eventSchema), defaultValues: { name: "", date: "", time: "", venue: "", description: "", isPast: false } });
-  const ticketForm = useForm<TicketFormData>({ resolver: zodResolver(ticketSchema), defaultValues: { eventId: "", referenceCode: "AFTR-", customerName: "", customerEmail: "", customerPhone: "", ticketType: "Phase 1", price: "Rs 350", paymentMethod: "" } });
+  const ticketForm = useForm<TicketFormData>({ resolver: zodResolver(ticketSchema), defaultValues: { eventId: "", referenceCode: "AFTR-", customerName: "", customerEmail: "", customerPhone: "", ticketType: "Early Bird", price: "Rs 350", paymentMethod: "" } });
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginFormData) => apiRequest('POST', '/api/admin/login', data),
@@ -240,7 +240,7 @@ export default function AdminPanel() {
 
   const createTicketMutation = useMutation({
     mutationFn: (data: TicketFormData) => apiRequest('POST', '/api/admin/tickets', data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['/api/admin/tickets'] }); ticketForm.reset({ referenceCode: 'AFTR-', ticketType: 'Phase 1', price: 'Rs 350', eventId: '', customerName: '', customerEmail: '', customerPhone: '', paymentMethod: '' }); toast({ title: "Ticket Created" }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['/api/admin/tickets'] }); ticketForm.reset({ referenceCode: 'AFTR-', ticketType: 'Early Bird', price: 'Rs 350', eventId: '', customerName: '', customerEmail: '', customerPhone: '', paymentMethod: '' }); toast({ title: "Ticket Created" }); },
     onError: (error) => toast({ title: "Failed to Create Ticket", description: error.message, variant: "destructive" }),
   });
 
@@ -569,6 +569,9 @@ export default function AdminPanel() {
                           <div className="flex items-center gap-3 flex-wrap mb-1">
                             <span className="text-white font-semibold">{purchase.customerName}</span>
                             <StatusBadge status={purchase.status} />
+                            {purchase.ticketType === 'Golden VIP' && (
+                              <span className="text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 font-bold" style={{ border: '1px solid #C9A84C', color: '#C9A84C' }}>★ Golden VIP</span>
+                            )}
                           </div>
                           <div className="flex items-center gap-4 text-white/30 text-xs">
                             <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{purchase.customerPhone}</span>
@@ -970,16 +973,18 @@ export default function AdminPanel() {
                   <FormField control={ticketForm.control} name="ticketType" render={({ field }) => (
                     <FormItem>
                       <FormLabel className={labelCls}>Ticket Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={(val) => { field.onChange(val); if (val === 'Golden VIP') ticketForm.setValue('price', 'Rs 700'); else if (val === 'Early Bird') ticketForm.setValue('price', 'Rs 350'); }} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger className="bg-transparent border-white/15 text-white text-xs rounded-none" data-testid="select-ticket-type">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="bg-[#0a0a0a] border-white/15 text-white rounded-none">
-                          <SelectItem value="Phase 1">Phase 1</SelectItem>
-                          <SelectItem value="Phase 2">Phase 2</SelectItem>
-                          <SelectItem value="VIP">VIP</SelectItem>
+                          <SelectItem value="Early Bird">Early Bird</SelectItem>
+                          <SelectItem value="Golden VIP">Golden VIP</SelectItem>
+                          <SelectItem value="Phase 1">Phase 1 (Legacy)</SelectItem>
+                          <SelectItem value="Phase 2">Phase 2 (Legacy)</SelectItem>
+                          <SelectItem value="VIP">VIP (Legacy)</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage className="text-[#c72d28] text-xs" />

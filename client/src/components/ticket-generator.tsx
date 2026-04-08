@@ -17,6 +17,11 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
   const ticketRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  const isGoldenVIP = ticket.ticketType === 'Golden VIP';
+  const accentColor = isGoldenVIP ? '#C9A84C' : '#c72d28';
+  const cardBg = isGoldenVIP ? '#0f0b00' : '#000000';
+  const borderColor = isGoldenVIP ? '#C9A84C' : '#ffffff';
+
   const downloadTicket = async () => {
     if (ticketRef.current) {
       try {
@@ -347,23 +352,28 @@ Follow us on: https://www.instagram.com/afterdarksocials.mu/
 
   return (
     <div className="space-y-4">
-      {/* Digital Ticket - Black & White Design */}
+      {/* Digital Ticket */}
       <div 
         ref={ticketRef}
-        className="w-full max-w-2xl mx-auto bg-black border-2 border-white rounded-2xl p-8 text-white relative overflow-hidden"
-        style={{ aspectRatio: '4/3' }}
+        className="w-full max-w-2xl mx-auto rounded-2xl p-8 text-white relative overflow-hidden"
+        style={{ aspectRatio: '4/3', backgroundColor: cardBg, border: `2px solid ${borderColor}` }}
       >
-        {/* Background Pattern - Subtle white geometric lines */}
+        {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-0 left-0 w-full h-full" style={{
-            backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 35px, white 35px, white 36px)`,
+            backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 35px, ${borderColor} 35px, ${borderColor} 36px)`,
           }}></div>
         </div>
         
         {/* Header */}
         <div className="relative z-10 text-center mb-6">
           <h1 className="text-5xl font-black text-white mb-1 tracking-tight">AFTR</h1>
-          <p className="text-xl font-bold text-white tracking-widest">VOL. 3 — FULL CAPACITY</p>
+          <p className="text-xl font-bold tracking-widest" style={{ color: isGoldenVIP ? '#C9A84C' : 'white' }}>
+            VOL. 3 — FULL CAPACITY
+          </p>
+          {isGoldenVIP && (
+            <p className="text-xs uppercase tracking-[0.3em] mt-1" style={{ color: '#C9A84C' }}>✦ Golden VIP ✦</p>
+          )}
           <p className="text-sm text-gray-400 mt-2">18th April 2026 • Shotz, Flic en Flac</p>
         </div>
 
@@ -379,7 +389,7 @@ Follow us on: https://www.instagram.com/afterdarksocials.mu/
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wider">Reference</p>
-                  <p className="text-lg font-mono font-bold text-white">{ticket.referenceCode}</p>
+                  <p className="text-lg font-mono font-bold" style={{ color: accentColor }}>{ticket.referenceCode}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wider">Price</p>
@@ -414,17 +424,17 @@ Follow us on: https://www.instagram.com/afterdarksocials.mu/
         </div>
 
         {/* Footer */}
-        <div className="relative z-10 mt-8 pt-4 border-t border-gray-700">
+        <div className="relative z-10 mt-8 pt-4" style={{ borderTop: `1px solid ${isGoldenVIP ? '#C9A84C33' : '#374151'}` }}>
           <div className="flex justify-between items-center text-xs text-gray-500">
             <p className="font-medium">After Dark Socials</p>
-            <p>{ticket.ticketType} • Valid for entry</p>
+            <p style={{ color: isGoldenVIP ? '#C9A84C' : undefined }}>{ticket.ticketType} • Valid for entry</p>
             <p className="font-mono">ID: {ticket.id.slice(-8)}</p>
           </div>
         </div>
 
         {/* Decorative Corner Elements */}
-        <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-white opacity-30"></div>
-        <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-white opacity-30"></div>
+        <div className="absolute top-4 right-4 w-8 h-8 opacity-30" style={{ borderTop: `2px solid ${borderColor}`, borderRight: `2px solid ${borderColor}` }}></div>
+        <div className="absolute bottom-4 left-4 w-8 h-8 opacity-30" style={{ borderBottom: `2px solid ${borderColor}`, borderLeft: `2px solid ${borderColor}` }}></div>
       </div>
 
       {/* Action Buttons */}

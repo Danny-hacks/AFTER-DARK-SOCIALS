@@ -22,11 +22,12 @@ const vol1Artists = [
 ];
 
 const vol2Artists = [
-  { name: "DJ ALVIN", genre: "Hip Hop", image: djAlvinImage },
-  { name: "DJ LUVLESH", genre: "Amapiano", image: djLuvleshImage },
-  { name: "STEVOTHEDJ", genre: "Afrobeats & Dancehall", image: djStevoImage },
-  { name: "DJ SWAY", genre: "Afrohouse & Amapiano", image: djSwayImage },
   { name: "DJ AFROKEYZ", genre: "Amapiano & 3 Steps", image: djAfrokeyzImage },
+  { name: "DJ LUVLESH", genre: "Amapiano", image: djLuvleshImage },
+  { name: "DJ SWAY", genre: "Afrohouse & Amapiano", image: djSwayImage },
+  { name: "DJ SMARTFINGER", genre: "Afrobeats", image: null },
+  { name: "DJ ALVIN", genre: "Hip Hop", image: djAlvinImage },
+  { name: "DJ AVI.S", genre: "Afrohouse", image: null },
 ];
 
 function VideoPlayer({ videoUrl, poster }: { videoUrl: string; poster: string }) {
@@ -155,15 +156,19 @@ function PastEventCard({
             <p className="text-[10px] text-white/30 uppercase tracking-[0.25em] mb-6" data-testid={`${testIdPrefix}-lineup-title`}>
               DJ Lineup
             </p>
-            <div className="grid grid-cols-5 gap-3">
+            <div className={`grid gap-3 ${artists.length <= 5 ? 'grid-cols-5' : 'grid-cols-3 sm:grid-cols-6'}`}>
               {artists.map((artist, index) => (
                 <div key={artist.name} className="text-center" data-testid={`${testIdPrefix}-artist-${index}`}>
-                  <div className="w-full aspect-square mb-2 overflow-hidden">
-                    <img
-                      src={artist.image}
-                      alt={artist.name}
-                      className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all"
-                    />
+                  <div className="w-full aspect-square mb-2 overflow-hidden bg-white/5 flex items-center justify-center">
+                    {artist.image ? (
+                      <img
+                        src={artist.image}
+                        alt={artist.name}
+                        className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all"
+                      />
+                    ) : (
+                      <span className="text-white/20 text-[8px] uppercase tracking-widest text-center px-1 font-bold">{artist.name}</span>
+                    )}
                   </div>
                   <p className="text-white text-[9px] font-bold uppercase tracking-wide leading-tight">
                     {artist.name}

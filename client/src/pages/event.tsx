@@ -64,8 +64,13 @@ function CountdownTimer({ targetDate }: { targetDate: Date }) {
   );
 }
 
-function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function TicketPurchaseModal({ isOpen, onClose, ticketType = 'Early Bird' }: { isOpen: boolean; onClose: () => void; ticketType?: 'Early Bird' | 'Golden VIP' }) {
   const { toast } = useToast();
+  const isGoldenVIP = ticketType === 'Golden VIP';
+  const pricePerTicket = isGoldenVIP ? 700 : 350;
+  const gold = '#C9A84C';
+  const accentColor = isGoldenVIP ? gold : '#c72d28';
+
   const [formData, setFormData] = useState({
     customerName: '',
     customerEmail: '',
@@ -79,7 +84,7 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 
   const purchaseMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const totalPrice = 350 * data.quantity;
+      const totalPrice = pricePerTicket * data.quantity;
       const response = await apiRequest('POST', '/api/tickets/purchase', {
         customerName: data.customerName,
         customerEmail: data.customerEmail,
@@ -88,7 +93,7 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         deliveryMethod: data.deliveryMethod,
         quantity: data.quantity,
         eventId: 'aftr-vol-3',
-        ticketType: 'Early Bird',
+        ticketType: ticketType,
         price: `Rs ${totalPrice}`,
       });
       return response.json();
@@ -124,6 +129,10 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
     onClose();
   };
 
+  const accentStyle = { color: accentColor };
+  const accentBorder = { borderColor: accentColor };
+  const accentBg = { backgroundColor: accentColor };
+
   const fullPhoneNumber = `${formData.countryCode}${formData.customerPhone}`;
 
   if (!isOpen) return null;
@@ -138,9 +147,9 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
           {/* Modal header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <p className="text-[10px] text-[#c72d28] uppercase tracking-[0.3em] mb-1">Vol. 3 — Full Capacity</p>
+              <p className="text-[10px] uppercase tracking-[0.3em] mb-1" style={accentStyle}>Vol. 3 — Full Capacity</p>
               <h2 className="text-2xl font-black text-white" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>
-                {step === 3 ? "ORDER CONFIRMED" : "BUY TICKET"}
+                {step === 3 ? "ORDER CONFIRMED" : isGoldenVIP ? "GET GOLDEN VIP" : "BUY TICKET"}
               </h2>
             </div>
             <button onClick={resetAndClose} className="text-white/30 hover:text-white transition-colors" data-testid="close-purchase-modal">
@@ -153,10 +162,11 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
             <div className="flex items-center gap-2 mb-8">
               {[1, 2].map((s) => (
                 <div key={s} className="flex items-center gap-2">
-                  <div className={`w-6 h-6 flex items-center justify-center text-[10px] font-bold border transition-colors ${step >= s ? 'border-[#c72d28] bg-[#c72d28] text-white' : 'border-white/20 text-white/30'}`}>
+                  <div className={`w-6 h-6 flex items-center justify-center text-[10px] font-bold border transition-colors ${step >= s ? 'text-white' : 'border-white/20 text-white/30'}`}
+                    style={step >= s ? { ...accentBorder, ...accentBg } : {}}>
                     {s}
                   </div>
-                  {s < 2 && <div className={`flex-1 h-px w-8 ${step > s ? 'bg-[#c72d28]' : 'bg-white/15'}`} />}
+                  {s < 2 && <div className="flex-1 h-px w-8" style={{ backgroundColor: step > s ? accentColor : 'rgba(255,255,255,0.15)' }} />}
                 </div>
               ))}
               <span className="text-[10px] text-white/30 uppercase tracking-[0.2em] ml-2">
@@ -168,22 +178,24 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
           {step === 1 && (
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Ticket summary */}
-              <div className="border border-white/10 p-4 mb-6">
+              <div className="border p-4 mb-6" style={accentBorder}>
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-xs text-white/50 uppercase tracking-[0.15em]">AFTR Early Bird</span>
-                  <span className="text-[#c72d28] font-bold">Rs 350 each</span>
+                  <span className="text-xs text-white/50 uppercase tracking-[0.15em]">
+                    {isGoldenVIP ? 'AFTR Golden VIP' : 'AFTR Early Bird'}
+                  </span>
+                  <span className="font-bold" style={accentStyle}>Rs {pricePerTicket} each</span>
                 </div>
                 <div className="flex items-center justify-between pt-3 border-t border-white/10">
                   <span className="text-xs text-white/30 uppercase tracking-[0.15em]">Quantity</span>
                   <div className="flex items-center gap-4">
-                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, quantity: Math.max(1, prev.quantity - 1) }))} className="w-7 h-7 border border-white/20 flex items-center justify-center text-white hover:border-[#c72d28] transition-colors" data-testid="btn-decrease-quantity">−</button>
+                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, quantity: Math.max(1, prev.quantity - 1) }))} className="w-7 h-7 border border-white/20 flex items-center justify-center text-white transition-colors hover:text-white" style={{ '--hover-border': accentColor } as any} onMouseEnter={e => (e.currentTarget.style.borderColor = accentColor)} onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)')} data-testid="btn-decrease-quantity">−</button>
                     <span className="text-white font-bold w-4 text-center" data-testid="quantity-display">{formData.quantity}</span>
-                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, quantity: Math.min(10, prev.quantity + 1) }))} className="w-7 h-7 border border-white/20 flex items-center justify-center text-white hover:border-[#c72d28] transition-colors" data-testid="btn-increase-quantity">+</button>
+                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, quantity: Math.min(10, prev.quantity + 1) }))} className="w-7 h-7 border border-white/20 flex items-center justify-center text-white transition-colors" onMouseEnter={e => (e.currentTarget.style.borderColor = accentColor)} onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)')} data-testid="btn-increase-quantity">+</button>
                   </div>
                 </div>
                 <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/10">
                   <span className="text-xs text-white/30 uppercase tracking-[0.15em]">Total</span>
-                  <span className="text-[#c72d28] font-bold text-xl" data-testid="total-price">Rs {350 * formData.quantity}</span>
+                  <span className="font-bold text-xl" style={accentStyle} data-testid="total-price">Rs {pricePerTicket * formData.quantity}</span>
                 </div>
               </div>
 
@@ -246,7 +258,8 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                 <div className="grid grid-cols-3 gap-2">
                   {['MCB Bank', 'Juice', 'Cash'].map((method) => (
                     <button key={method} type="button" onClick={() => setFormData(prev => ({ ...prev, paymentMethod: method }))}
-                      className={`py-3 text-xs uppercase tracking-[0.1em] font-bold border transition-colors ${formData.paymentMethod === method ? 'border-[#c72d28] bg-[#c72d28] text-white' : 'border-white/15 text-white/40 hover:border-white/40'}`}
+                      className={`py-3 text-xs uppercase tracking-[0.1em] font-bold border transition-colors ${formData.paymentMethod === method ? 'text-white' : 'border-white/15 text-white/40 hover:border-white/40'}`}
+                      style={formData.paymentMethod === method ? { ...accentBorder, ...accentBg } : {}}
                       data-testid={`payment-method-${method.toLowerCase().replace(' ', '-')}`}
                     >
                       {method}
@@ -260,7 +273,11 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                 <span className="text-white/60 text-xs">Your ticket will be delivered via WhatsApp</span>
               </div>
 
-              <button type="submit" className="w-full bg-white text-black text-xs uppercase tracking-[0.2em] font-bold py-4 hover:bg-[#c72d28] hover:text-white transition-colors mt-2" data-testid="continue-to-payment">
+              <button type="submit" className="w-full text-xs uppercase tracking-[0.2em] font-bold py-4 transition-colors mt-2 text-white"
+                style={accentBg}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                data-testid="continue-to-payment">
                 Continue to Payment
               </button>
             </form>
@@ -286,7 +303,7 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                   ))}
                   <div className="border-t border-white/10 pt-3 flex justify-between font-bold">
                     <span className="text-white/50 text-xs uppercase tracking-[0.15em]">Total</span>
-                    <span className="text-[#c72d28] text-lg">Rs {350 * formData.quantity}</span>
+                    <span className="text-lg" style={accentStyle}>Rs {pricePerTicket * formData.quantity}</span>
                   </div>
                 </div>
               </div>
@@ -323,7 +340,8 @@ function TicketPurchaseModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                   Back
                 </button>
                 <button type="button" onClick={handleSubmit} disabled={purchaseMutation.isPending}
-                  className="flex-1 bg-[#c72d28] text-white text-xs uppercase tracking-[0.15em] font-bold py-4 hover:bg-[#a82421] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 text-white text-xs uppercase tracking-[0.15em] font-bold py-4 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={accentBg}
                   data-testid="confirm-purchase"
                 >
                   {purchaseMutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin" />Processing...</> : 'Confirm Purchase'}
@@ -368,7 +386,14 @@ export default function EventPage() {
   const eventDate = new Date('2026-04-18T22:00:00+04:00');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [selectedTicketType, setSelectedTicketType] = useState<'Early Bird' | 'Golden VIP'>('Early Bird');
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+
+  const openModal = (type: 'Early Bird' | 'Golden VIP' = 'Early Bird') => {
+    setSelectedTicketType(type);
+    setPurchaseModalOpen(true);
+  };
+
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -383,7 +408,7 @@ export default function EventPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <TicketPurchaseModal isOpen={purchaseModalOpen} onClose={() => setPurchaseModalOpen(false)} />
+      <TicketPurchaseModal isOpen={purchaseModalOpen} onClose={() => setPurchaseModalOpen(false)} ticketType={selectedTicketType} />
 
       {/* Navbar */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-black border-b border-white/10' : 'bg-transparent'}`}>
@@ -408,7 +433,7 @@ export default function EventPage() {
                 </button>
               ))}
               <button
-                onClick={() => setPurchaseModalOpen(true)}
+                onClick={() => openModal('Early Bird')}
                 className="bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.2em] font-bold px-6 py-3 hover:bg-[#a82421] transition-colors"
               >
                 Buy Tickets
@@ -437,7 +462,7 @@ export default function EventPage() {
                 </button>
               ))}
               <button
-                onClick={() => { setPurchaseModalOpen(true); setMobileMenuOpen(false); }}
+                onClick={() => { openModal('Early Bird'); setMobileMenuOpen(false); }}
                 className="mt-4 w-full bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.2em] font-bold py-4 hover:bg-[#a82421] transition-colors"
               >
                 Buy Tickets
@@ -464,7 +489,7 @@ export default function EventPage() {
             </h1>
             <p className="text-white/50 text-sm uppercase tracking-[0.4em] mt-3 mb-8" data-testid="event-subtitle">Full Capacity</p>
             <button
-              onClick={() => setPurchaseModalOpen(true)}
+              onClick={() => openModal('Early Bird')}
               className="inline-flex items-center gap-4 bg-[#c72d28] text-white text-xs uppercase tracking-[0.2em] font-bold px-8 py-4 hover:bg-[#a82421] transition-colors"
               data-testid="hero-buy-tickets"
             >
@@ -614,7 +639,7 @@ export default function EventPage() {
                   ))}
                 </ul>
                 <button
-                  onClick={() => setPurchaseModalOpen(true)}
+                  onClick={() => openModal('Early Bird')}
                   className="w-full bg-[#c72d28] text-white text-xs uppercase tracking-[0.2em] font-bold py-4 hover:bg-[#a82421] transition-colors"
                   data-testid="buy-early-bird-btn"
                 >
@@ -622,24 +647,42 @@ export default function EventPage() {
                 </button>
               </div>
 
-              {/* Phase 2 — coming soon */}
-              <div className="border border-white/10 p-8 relative opacity-50" data-testid="phase-2-ticket">
+              {/* Golden VIP ticket card */}
+              <div className="border p-8 relative" style={{ borderColor: '#C9A84C' }} data-testid="golden-vip-ticket">
                 <div className="absolute top-4 right-4">
-                  <span className="border border-white/20 text-white/30 text-[9px] uppercase tracking-[0.2em] px-3 py-1">Coming Soon</span>
+                  <span className="text-[9px] uppercase tracking-[0.2em] px-3 py-1 font-bold" style={{ border: '1px solid #C9A84C', color: '#C9A84C' }}>Golden VIP</span>
                 </div>
-                <p className="text-[10px] text-white/20 uppercase tracking-[0.3em] mb-3">Standard — Phase 2</p>
+                <p className="text-[10px] uppercase tracking-[0.3em] mb-3" style={{ color: '#C9A84C' }}>Premium Experience</p>
                 <h3
-                  className="text-5xl font-black text-white leading-none mb-6"
+                  className="text-5xl font-black text-white leading-none mb-2"
                   style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
                 >
-                  AFTR STANDARD
+                  AFTR GOLDEN VIP
                 </h3>
-                <div className="text-2xl font-black text-white/30 mb-8" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>
-                  TBA
+                <div className="flex items-center gap-2 mb-6">
+                  <Crown className="w-4 h-4" style={{ color: '#C9A84C' }} />
+                  <span className="text-xs text-white/40 uppercase tracking-[0.15em]">Limited spots</span>
                 </div>
-                <div className="border border-white/10 py-4 text-center">
-                  <span className="text-white/20 text-xs uppercase tracking-[0.2em]">Available later</span>
+                <div className="text-3xl font-black mb-2" style={{ color: '#C9A84C', fontFamily: "'Bebas Neue', Impact, sans-serif" }}>
+                  Rs 700
                 </div>
+                <p className="text-white/40 text-xs mb-8">Premium access + exclusive perks</p>
+                <ul className="space-y-2 mb-8">
+                  {['Priority entry', 'Dedicated VIP area', 'Exclusive AFTR merch'].map((perk) => (
+                    <li key={perk} className="flex items-center gap-2 text-xs text-white/60">
+                      <Check className="w-3 h-3 flex-shrink-0" style={{ color: '#C9A84C' }} />
+                      {perk}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => openModal('Golden VIP')}
+                  className="w-full py-4 text-black text-xs uppercase tracking-[0.2em] font-bold transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: '#C9A84C' }}
+                  data-testid="golden-vip-buy-btn"
+                >
+                  Get Golden VIP — Rs 700
+                </button>
               </div>
 
               {/* WhatsApp help */}
@@ -742,7 +785,7 @@ export default function EventPage() {
               ← Home
             </Link>
             <button
-              onClick={() => setPurchaseModalOpen(true)}
+              onClick={() => openModal('Early Bird')}
               className="bg-[#c72d28] text-white text-xs uppercase tracking-[0.2em] font-bold px-8 py-4 hover:bg-[#a82421] transition-colors"
               data-testid="buy-now-payment-section"
             >
