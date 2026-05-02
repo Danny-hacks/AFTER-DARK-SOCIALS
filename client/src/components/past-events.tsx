@@ -2,6 +2,7 @@ import { Calendar, MapPin, Clock, Play } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import aftrEventImage from "@assets/AFTR-1_1757155940525.jpg";
 import aftrVol2Image from "@assets/IMG_6112_1774435245159.jpg";
+import aftrVol3Image from "@assets/stock_images/dark_nightclub_rave__d23cebfd.jpg";
 import djAlvinImage from "@assets/DJ ALVIN_1757156832389.jpg";
 import djLuvleshImage from "@assets/DJ LUVLESH_1757156832389.jpg";
 import djStevoImage from "@assets/STEVOTHEDJ_1757156832391.jpg";
@@ -217,7 +218,23 @@ export default function PastEvents() {
           THE NIGHTS<br />SO FAR.
         </h2>
 
-        {/* Vol 2 — most recent first */}
+        {/* Vol 3 — most recent first */}
+        <div className="mb-px">
+          <PastEventCard
+            edition="Volume 3"
+            title={"AFTR\nVOL. 3"}
+            date="18th April 2026"
+            time="10PM — 4AM"
+            venue="Shotz, Flic en Flac"
+            description="Full Capacity delivered. The biggest night yet — every corner packed, every moment electric. Vol. 3 set a new standard for what AFTR means to Mauritius."
+            image={aftrVol3Image}
+            imageAlt="AFTR Volume 3 Full Capacity"
+            videoUrl={null}
+            testIdPrefix="vol3-event"
+          />
+        </div>
+
+        {/* Vol 2 */}
         <div className="mb-px">
           <PastEventCard
             edition="Volume 2"

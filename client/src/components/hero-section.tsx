@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { SiTiktok } from "react-icons/si";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { HeroSlide } from "@shared/schema";
@@ -120,11 +121,22 @@ export default function HeroSection() {
           The Rave That Keeps The City Awake
         </p>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-6 flex-wrap">
           <div className="inline-flex items-center gap-2">
             <span className="w-1.5 h-1.5 bg-[#c72d28] rounded-full animate-pulse" />
             <span className="text-white/40 text-xs tracking-[0.2em] uppercase">Mauritius</span>
           </div>
+
+          <a
+            href="https://www.tiktok.com/@afterdarksocials.mu"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-3 border border-white/20 text-white/50 hover:text-white hover:border-white/40 text-[10px] uppercase tracking-[0.2em] font-bold px-5 py-2.5 transition-colors"
+            data-testid="hero-tiktok-link"
+          >
+            <SiTiktok className="w-3 h-3" />
+            Follow @afterdarksocials.mu
+          </a>
 
           {hasSlides && processedSlides.length > 1 && (
             <div className="flex gap-2" data-testid="slide-indicators">

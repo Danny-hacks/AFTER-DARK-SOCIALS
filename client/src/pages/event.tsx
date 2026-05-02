@@ -1,5 +1,5 @@
-import { Calendar, MapPin, Clock, Users, CheckCircle, ArrowLeft, Music, Sparkles, Volume2, Navigation, Menu, X, Camera, Video, CreditCard, Ticket, Crown, Check, Loader2, Mail, Phone, User } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
+import { Calendar, MapPin, Clock, Users, CheckCircle, ArrowLeft, Music, Sparkles, Volume2, Navigation, Menu, X, Camera, Video, Crown, Check, Loader2, Mail, Phone, User } from "lucide-react";
+import { SiWhatsapp, SiTiktok } from "react-icons/si";
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useMutation } from "@tanstack/react-query";
@@ -9,7 +9,6 @@ import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346
 
 const eventNavLinks = [
   { name: "Details", href: "#details" },
-  { name: "Tickets", href: "#tickets" },
   { name: "Venue", href: "#venue" },
 ];
 
@@ -433,12 +432,15 @@ export default function EventPage() {
                   {link.name}
                 </button>
               ))}
-              <button
-                onClick={() => openModal('Early Bird')}
-                className="bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.2em] font-bold px-6 py-3 hover:bg-[#a82421] transition-colors"
+              <a
+                href="https://www.tiktok.com/@afterdarksocials.mu"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 border border-white/20 text-white/50 hover:text-white text-[10px] uppercase tracking-[0.2em] font-bold px-6 py-3 hover:border-white/40 transition-colors"
               >
-                Buy Tickets
-              </button>
+                <SiTiktok className="w-3 h-3" />
+                Follow AFTR
+              </a>
             </nav>
 
             {/* Mobile menu button */}
@@ -462,12 +464,16 @@ export default function EventPage() {
                   {link.name}
                 </button>
               ))}
-              <button
-                onClick={() => { openModal('Early Bird'); setMobileMenuOpen(false); }}
-                className="mt-4 w-full bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.2em] font-bold py-4 hover:bg-[#a82421] transition-colors"
+              <a
+                href="https://www.tiktok.com/@afterdarksocials.mu"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
+                className="mt-4 w-full flex items-center justify-center gap-2 border border-white/20 text-white/50 text-[10px] uppercase tracking-[0.2em] font-bold py-4 hover:text-white hover:border-white/40 transition-colors"
               >
-                Buy Tickets
-              </button>
+                <SiTiktok className="w-3 h-3" />
+                Follow @afterdarksocials.mu
+              </a>
             </div>
           )}
         </div>
@@ -489,33 +495,38 @@ export default function EventPage() {
               AFTR<br />VOL. 3
             </h1>
             <p className="text-white/50 text-sm uppercase tracking-[0.4em] mt-3 mb-8" data-testid="event-subtitle">Full Capacity</p>
-            <button
-              onClick={() => openModal('Early Bird')}
-              className="inline-flex items-center gap-4 bg-[#c72d28] text-white text-xs uppercase tracking-[0.2em] font-bold px-8 py-4 hover:bg-[#a82421] transition-colors"
-              data-testid="hero-buy-tickets"
+            <a
+              href="https://www.tiktok.com/@afterdarksocials.mu"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-4 border border-white/20 text-white/60 hover:text-white hover:border-white/50 text-xs uppercase tracking-[0.2em] font-bold px-8 py-4 transition-colors"
+              data-testid="hero-tiktok-cta"
             >
-              Buy Tickets
-              <span className="w-6 h-px bg-white/60" />
-            </button>
+              <SiTiktok className="w-4 h-4" />
+              Follow @afterdarksocials.mu
+              <span className="w-6 h-px bg-current opacity-60" />
+            </a>
           </div>
         </div>
       </section>
 
-      {/* Countdown */}
+      {/* Event Passed Banner */}
       <section className="bg-black border-b border-white/10 py-20">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 text-center">
           <div className="flex items-center justify-center gap-4 mb-10">
             <span className="section-line" />
-            <span className="text-[#c72d28] text-xs uppercase tracking-[0.3em]">Countdown</span>
+            <span className="text-[#c72d28] text-xs uppercase tracking-[0.3em]">18 April 2026</span>
             <span className="section-line" />
           </div>
           <p
-            className="text-3xl sm:text-5xl font-black text-white mb-10"
+            className="text-5xl sm:text-8xl font-black text-white mb-6"
             style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
           >
-            THE NIGHT BEGINS IN
+            THE NIGHT<br />HAS PASSED.
           </p>
-          <CountdownTimer targetDate={eventDate} />
+          <p className="text-white/30 text-xs uppercase tracking-[0.3em]">
+            Thank you for making Full Capacity unforgettable.
+          </p>
         </div>
       </section>
 
@@ -577,7 +588,7 @@ export default function EventPage() {
         </div>
       </section>
 
-      {/* Tickets */}
+      {/* Tickets Closed */}
       <section id="tickets" className="bg-black py-24 sm:py-32 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
           <div className="flex items-center gap-4 mb-16">
@@ -585,143 +596,30 @@ export default function EventPage() {
             <span className="text-[#c72d28] text-xs uppercase tracking-[0.3em]">Tickets</span>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-start">
-            <div>
-              <h2
-                className="text-6xl sm:text-8xl font-black text-white leading-none mb-8"
-                style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
-                data-testid="tickets-title"
-              >
-                GET YOUR<br />TICKET.
-              </h2>
-              <p className="text-white/40 text-sm leading-relaxed mb-10">
-                Secure your spot at Vol. 3: Full Capacity. Pay via MCB, Juice, or Cash — and receive your ticket on WhatsApp within 24 hours.
-              </p>
-
-              {/* Payment details */}
-              <div className="space-y-4" data-testid="payment-instructions">
-                <p className="text-[10px] text-white/30 uppercase tracking-[0.2em]">Payment Accounts</p>
-                {[
-                  { method: "MCB Bank", ref: "000453915337", note: "MCB — AFTR Account" },
-                  { method: "Juice Mobile", ref: "58205220", note: "Use ref: AFTR-3-[YOUR NAME]" },
-                  { method: "Cash", ref: "58205220", note: "Text or call to arrange pickup" },
-                ].map(({ method, ref, note }) => (
-                  <div key={method} className="border border-white/10 p-4">
-                    <div className="text-[10px] text-white/30 uppercase tracking-[0.15em] mb-1">{method}</div>
-                    <div className="font-mono text-white font-bold text-lg tracking-widest">{ref}</div>
-                    <div className="text-[10px] text-white/20 mt-1">{note}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {/* Early Bird ticket card */}
-              <div className="border border-[#c72d28] p-8 relative" data-testid="phase-1-ticket">
-                <div className="absolute top-4 right-4">
-                  <span className="bg-[#c72d28] text-white text-[9px] uppercase tracking-[0.2em] font-bold px-3 py-1">Active</span>
-                </div>
-                <p className="text-[10px] text-[#c72d28] uppercase tracking-[0.3em] mb-3">Early Bird — Phase 1</p>
-                <h3
-                  className="text-5xl font-black text-white leading-none mb-2"
-                  style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
-                >
-                  AFTR EARLY BIRD
-                </h3>
-                <div className="text-3xl font-black text-white mt-6 mb-6" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>
-                  Rs 350 <span className="text-white/30 text-base font-normal" style={{ fontFamily: "inherit" }}>/ person</span>
-                </div>
-                <ul className="space-y-2 mb-8">
-                  {["6 hours non-stop", "Top DJs lineup", "Photo Booth & 360° Video", "Bar & refreshments available"].map((item) => (
-                    <li key={item} className="flex items-center gap-3 text-white/50 text-sm">
-                      <Check className="w-3 h-3 text-[#c72d28] flex-shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => openModal('Early Bird')}
-                  className="w-full bg-[#c72d28] text-white text-xs uppercase tracking-[0.2em] font-bold py-4 hover:bg-[#a82421] transition-colors"
-                  data-testid="buy-early-bird-btn"
-                >
-                  Buy Now
-                </button>
-              </div>
-
-              {/* Golden VIP ticket card */}
-              <div className="border p-8 relative" style={{ borderColor: '#C9A84C' }} data-testid="golden-vip-ticket">
-                <div className="absolute top-4 right-4">
-                  <span className="text-[9px] uppercase tracking-[0.2em] px-3 py-1 font-bold" style={{ border: '1px solid #C9A84C', color: '#C9A84C' }}>Golden VIP</span>
-                </div>
-                <p className="text-[10px] uppercase tracking-[0.3em] mb-3" style={{ color: '#C9A84C' }}>Premium Experience</p>
-                <h3
-                  className="text-5xl font-black text-white leading-none mb-2"
-                  style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
-                >
-                  AFTR GOLDEN VIP
-                </h3>
-                <div className="flex items-center gap-2 mb-6">
-                  <Crown className="w-4 h-4" style={{ color: '#C9A84C' }} />
-                  <span className="text-xs text-white/40 uppercase tracking-[0.15em]">Limited spots</span>
-                </div>
-                <div className="text-3xl font-black mb-2" style={{ color: '#C9A84C', fontFamily: "'Bebas Neue', Impact, sans-serif" }}>
-                  Rs 700
-                </div>
-                <p className="text-white/40 text-xs mb-8">Premium access + exclusive perks</p>
-                <ul className="space-y-2 mb-8">
-                  {['Priority entry', 'Dedicated VIP area', 'Exclusive AFTR merch'].map((perk) => (
-                    <li key={perk} className="flex items-center gap-2 text-xs text-white/60">
-                      <Check className="w-3 h-3 flex-shrink-0" style={{ color: '#C9A84C' }} />
-                      {perk}
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => openModal('Golden VIP')}
-                  className="w-full py-4 text-black text-xs uppercase tracking-[0.2em] font-bold transition-opacity hover:opacity-90"
-                  style={{ backgroundColor: '#C9A84C' }}
-                  data-testid="golden-vip-buy-btn"
-                >
-                  Get Golden VIP — Rs 700
-                </button>
-              </div>
-
-              {/* WhatsApp help */}
-              <a
-                href="https://wa.me/23058205220?text=Hi!%20I%20have%20a%20question%20about%20AFTR%20Vol.%203%20tickets."
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-3 border border-[#25D366]/30 text-[#25D366] text-xs uppercase tracking-[0.2em] font-bold py-4 hover:bg-[#25D366]/10 transition-colors w-full"
-                data-testid="whatsapp-support-button"
-              >
-                <SiWhatsapp className="w-4 h-4" />
-                Questions? WhatsApp Us
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How to buy */}
-      <section className="bg-black py-20 border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="flex items-center gap-4 mb-14">
-            <span className="section-line" />
-            <span className="text-[#c72d28] text-xs uppercase tracking-[0.3em]">How it works</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0 border border-white/10">
-            {[
-              { step: "01", title: "Click Buy Now", desc: "Select your ticket and fill in your details" },
-              { step: "02", title: "Make Payment", desc: "Pay via MCB, Juice, or cash and note your reference" },
-              { step: "03", title: "Send Proof", desc: "Screenshot your payment and WhatsApp it to us" },
-              { step: "04", title: "Get Your Ticket", desc: "Receive your digital ticket within 24 hours" },
-            ].map(({ step, title, desc }) => (
-              <div key={step} className="border-b sm:border-b-0 border-r border-white/10 p-8">
-                <div className="text-5xl font-black text-white/10 mb-4" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>{step}</div>
-                <div className="text-white text-sm font-bold mb-2">{title}</div>
-                <div className="text-white/30 text-xs leading-relaxed">{desc}</div>
-              </div>
-            ))}
+          <div className="border border-white/10 p-12 sm:p-20 text-center max-w-2xl mx-auto">
+            <p className="text-[10px] text-white/20 uppercase tracking-[0.3em] mb-6">Vol. 3 — Full Capacity</p>
+            <h2
+              className="text-6xl sm:text-7xl font-black text-white leading-none mb-6"
+              style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
+              data-testid="tickets-title"
+            >
+              TICKETS<br />CLOSED.
+            </h2>
+            <p className="text-white/30 text-sm leading-relaxed mb-10">
+              Vol. 3 is done. Tickets are no longer available.<br />
+              Follow us on TikTok to be first for the next one.
+            </p>
+            <a
+              href="https://www.tiktok.com/@afterdarksocials.mu"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-4 bg-[#c72d28] text-white text-xs uppercase tracking-[0.2em] font-bold px-8 py-4 hover:bg-[#a82421] transition-colors"
+              data-testid="tickets-tiktok-cta"
+            >
+              <SiTiktok className="w-4 h-4" />
+              Follow @afterdarksocials.mu
+              <span className="w-6 h-px bg-white/60" />
+            </a>
           </div>
         </div>
       </section>
@@ -785,13 +683,15 @@ export default function EventPage() {
             <Link href="/" className="text-white/30 hover:text-white text-xs uppercase tracking-[0.2em] transition-colors">
               ← Home
             </Link>
-            <button
-              onClick={() => openModal('Early Bird')}
-              className="bg-[#c72d28] text-white text-xs uppercase tracking-[0.2em] font-bold px-8 py-4 hover:bg-[#a82421] transition-colors"
-              data-testid="buy-now-payment-section"
+            <a
+              href="https://www.tiktok.com/@afterdarksocials.mu"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 border border-white/20 text-white/50 hover:text-white text-xs uppercase tracking-[0.2em] font-bold px-6 py-3 hover:border-white/40 transition-colors"
             >
-              Buy Tickets
-            </button>
+              <SiTiktok className="w-3 h-3" />
+              Follow AFTR
+            </a>
           </div>
         </div>
       </div>
