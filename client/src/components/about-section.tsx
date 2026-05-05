@@ -1,9 +1,9 @@
 import { Music, Users, Zap, Heart } from "lucide-react";
 
 const stats = [
+  { value: "3+", label: "Events" },
   { value: "5+", label: "DJs" },
   { value: "6H", label: "Non-Stop" },
-  { value: "2+", label: "Events" },
   { value: "1", label: "Island" },
 ];
 
