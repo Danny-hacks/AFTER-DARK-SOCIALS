@@ -3,6 +3,12 @@ import { Link } from "wouter";
 import { ArrowLeft, X, ChevronLeft, ChevronRight } from "lucide-react";
 import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
+// Vol 3 — event photos
+import vol3_1 from "@assets/Serge_74_1777968315600.jpg";
+import vol3_2 from "@assets/Serge_75_1777968402515.jpg";
+import vol3_3 from "@assets/Serge_83_1777968402525.jpg";
+import vol3_4 from "@assets/Serge_103_1777968402526.jpg";
+
 // Vol 2 — professional event photos
 import vol2_1 from "@assets/vol2_4T7A9200.jpg";
 import vol2_2 from "@assets/vol2_4T7A9259.jpg";
@@ -24,7 +30,12 @@ import djSwayImage from "@assets/DJ SWAY_1757156832390.jpg";
 import djAfrokeyzImage from "@assets/DJ AFROKEYZ_1757156832386.jpg";
 
 const galleryItems = [
-  // Vol 2 — shown first (most recent)
+  // Vol 3 — most recent first
+  { id: 17, src: vol3_1, alt: "AFTR Vol. 3 — The Stage",      vol: "VOL. 3", date: "Apr 2026" },
+  { id: 18, src: vol3_2, alt: "AFTR Vol. 3 — The Crowd",      vol: "VOL. 3", date: "Apr 2026" },
+  { id: 19, src: vol3_3, alt: "AFTR Vol. 3 — The Green",      vol: "VOL. 3", date: "Apr 2026" },
+  { id: 20, src: vol3_4, alt: "AFTR Vol. 3 — The Vibe",       vol: "VOL. 3", date: "Apr 2026" },
+  // Vol 2
   { id: 1,  src: vol2_1,       alt: "AFTR Vol. 2 — The Crowd",      vol: "VOL. 2", date: "Jan 2026" },
   { id: 2,  src: vol2_2,       alt: "AFTR Vol. 2 — On Stage",       vol: "VOL. 2", date: "Jan 2026" },
   { id: 3,  src: vol2_3,       alt: "AFTR Vol. 2 — The Night",      vol: "VOL. 2", date: "Jan 2026" },
@@ -105,16 +116,19 @@ function Lightbox({ items, index, onClose, onPrev, onNext }: {
 
 export default function GalleryPage() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'vol1' | 'vol2'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'vol1' | 'vol2' | 'vol3'>('all');
 
   const filters = [
     { key: 'all' as const, label: 'All' },
+    { key: 'vol3' as const, label: 'Vol. 3' },
     { key: 'vol2' as const, label: 'Vol. 2' },
     { key: 'vol1' as const, label: 'Vol. 1' },
   ];
 
   const filtered = activeFilter === 'all'
     ? galleryItems
+    : activeFilter === 'vol3'
+    ? galleryItems.filter(i => i.vol === 'VOL. 3')
     : activeFilter === 'vol2'
     ? galleryItems.filter(i => i.vol === 'VOL. 2')
     : galleryItems.filter(i => i.vol === 'VOL. 1');
