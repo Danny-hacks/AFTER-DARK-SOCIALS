@@ -2,7 +2,7 @@ import { Calendar, MapPin, Clock, Play } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import aftrEventImage from "@assets/AFTR-1_1757155940525.jpg";
 import aftrVol2Image from "@assets/IMG_6112_1774435245159.jpg";
-import aftrVol3Image from "@assets/stock_images/dark_nightclub_rave__d23cebfd.jpg";
+import aftrVol3Image from "@assets/Promo_poster_1_1777967218262.png";
 import djAlvinImage from "@assets/DJ ALVIN_1757156832389.jpg";
 import djLuvleshImage from "@assets/DJ LUVLESH_1757156832389.jpg";
 import djStevoImage from "@assets/STEVOTHEDJ_1757156832391.jpg";
