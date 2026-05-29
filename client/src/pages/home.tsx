@@ -1,7 +1,8 @@
 import Navbar from "@/components/navbar";
 import HeroSection from "@/components/hero-section";
-import ComingSoonBanner from "@/components/coming-soon-banner";
 import AboutSection from "@/components/about-section";
+import ServicesSection from "@/components/service-section";
+import AccessSection from "@/components/access-section";
 import PastEvents from "@/components/past-events";
 import GalleryPreview from "@/components/gallery-preview";
 import ContactSection from "@/components/contact-section";
@@ -9,9 +10,15 @@ import Footer from "@/components/footer";
 
 function MarqueeTicker() {
   const items = [
-    "AFTR", "THE RAVE THAT KEEPS THE CITY AWAKE", "MAURITIUS",
-    "AFTR VOL.3", "FULL CAPACITY", "18 APRIL 2026",
-    "AFTR", "SHOTZ · FLIC EN FLAC", "AFTER DARK SOCIAL",
+    "AFTR",
+    "THE RAVE THAT KEEPS THE CITY AWAKE",
+    "MAURITIUS",
+    "PRIVATE BOOKINGS",
+    "CORPORATE EVENTS",
+    "BRAND ACTIVATIONS",
+    "ACCESS",
+    "EXCLUSIVE LOUNGE EXPERIENCE",
+    "AFTER DARK SOCIALS",
   ];
   const repeated = [...items, ...items];
 
@@ -39,7 +46,8 @@ export default function Home() {
       <HeroSection />
       <MarqueeTicker />
       <AboutSection />
-      <ComingSoonBanner />
+      <ServicesSection />
+      <AccessSection />
       <PastEvents />
       <GalleryPreview />
       <ContactSection />

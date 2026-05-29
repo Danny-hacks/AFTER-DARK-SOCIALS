@@ -7,6 +7,7 @@ import Home from "@/pages/home";
 import Admin from "@/pages/admin";
 import EventPage from "@/pages/event";
 import GalleryPage from "@/pages/gallery";
+import LegalPage from "@/pages/legal";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -15,6 +16,10 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/event" component={EventPage} />
       <Route path="/gallery" component={GalleryPage} />
+      <Route path="/terms" component={LegalPage} />
+      <Route path="/privacy" component={LegalPage} />
+      <Route path="/refund" component={LegalPage} />
+      <Route path="/age-requirements" component={LegalPage} />
       <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
