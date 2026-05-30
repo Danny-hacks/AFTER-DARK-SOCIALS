@@ -1,9 +1,9 @@
 import { Music, Users, Zap, Heart } from "lucide-react";
 
 const stats = [
-  { value: "3+", label: "Events" },
-  { value: "5+", label: "DJs" },
-  { value: "6H", label: "Non-Stop" },
+  { value: "3+", label: "Events Hosted" },
+  { value: "10+", label: "DJs Featured" },
+  { value: "500+", label: "Ravers" },
   { value: "1", label: "Island" },
 ];
 
@@ -32,7 +32,7 @@ const pillars = [
 
 export default function AboutSection() {
   const scrollToEvents = () => {
-    document.getElementById('past-events')?.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
@@ -111,7 +111,7 @@ export default function AboutSection() {
             data-testid="view-events-button"
           >
             <span className="w-10 h-px bg-current transition-all group-hover:w-16" />
-            See Our Events
+            See What We Do
           </button>
         </div>
       </div>
