@@ -29,8 +29,12 @@ const details = [
 ];
 
 export default function AccessSection() {
-  const scrollToContact = () => {
+      const scrollToContact = () => {
     document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const goToAccess = () => {
+    window.location.href = "/access";
   };
 
   return (
@@ -112,15 +116,25 @@ export default function AccessSection() {
               ))}
             </div>
 
-            {/* CTA */}
-            <button
-              onClick={scrollToContact}
-              className="group inline-flex items-center gap-4 border border-[#b8860b]/40 text-[#b8860b] text-[10px] uppercase tracking-[0.2em] font-bold px-6 sm:px-8 py-3 sm:py-4 hover:bg-[#b8860b] hover:text-black transition-all duration-300 w-full sm:w-auto justify-center sm:justify-start"
-              data-testid="access-cta"
-            >
-              Request ACCESS
-              <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-            </button>
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={goToAccess}
+                className="group inline-flex items-center justify-center sm:justify-start gap-4 bg-[#b8860b] text-black text-[10px] uppercase tracking-[0.2em] font-bold px-6 sm:px-8 py-3 sm:py-4 hover:bg-[#c9962a] transition-all duration-300 w-full sm:w-auto"
+                data-testid="access-apply-cta"
+              >
+                Apply for ACCESS
+                <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </button>
+              <button
+                onClick={scrollToContact}
+                className="group inline-flex items-center justify-center sm:justify-start gap-4 border border-[#b8860b]/40 text-[#b8860b] text-[10px] uppercase tracking-[0.2em] font-bold px-6 sm:px-8 py-3 sm:py-4 hover:bg-[#b8860b] hover:text-black transition-all duration-300 w-full sm:w-auto"
+                data-testid="access-cta"
+              >
+                Enquire
+                <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </button>
+            </div>
           </div>
 
           {/* ── RIGHT: Experience timeline ── */}

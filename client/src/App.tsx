@@ -8,6 +8,8 @@ import Admin from "@/pages/admin";
 import EventPage from "@/pages/event";
 import GalleryPage from "@/pages/gallery";
 import LegalPage from "@/pages/legal";
+import AccessPage from "@/pages/access";
+import AccessPassportPage from "@/pages/access-passport";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,6 +23,8 @@ function Router() {
       <Route path="/refund" component={LegalPage} />
       <Route path="/age-requirements" component={LegalPage} />
       <Route path="/admin" component={Admin} />
+      <Route path="/access" component={AccessPage} />
+      <Route path="/access-passport" component={AccessPassportPage} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -2,7 +2,12 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { insertTicketSchema, insertEventSchema, insertHeroSlideSchema, insertTicketPurchaseSchema } from "@shared/schema";
+import {
+  insertTicketSchema,
+  insertEventSchema,
+  insertHeroSlideSchema,
+  insertTicketPurchaseSchema,
+} from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import nodemailer from "nodemailer";
@@ -13,7 +18,7 @@ import { pool } from "./db";
 const ADMIN_USERNAME = "aftr_admin";
 
 // Extend session data type
-declare module 'express-session' {
+declare module "express-session" {
   interface SessionData {
     isAdmin?: boolean;
   }
@@ -44,34 +49,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     conString: process.env.DATABASE_URL,
     createTableIfMissing: true, // Creates the session table automatically
     ttl: 24 * 60 * 60 * 1000, // 24 hours
-    tableName: "sessions"
+    tableName: "sessions",
   });
 
   // Configure session middleware
-  app.use(session({
-    secret: 'aftr-admin-session-secret-key-2024', // In production, use environment variable
-    store: sessionStore,
-    resave: false,
-    saveUninitialized: false,
-    rolling: true, // Reset expiry on activity
-    cookie: { 
-      secure: false, // Set to true in production with HTTPS
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax'
-    },
-    name: 'aftr.session.id' // Custom session name
-  }));
+  app.use(
+    session({
+      secret: "aftr-admin-session-secret-key-2024", // In production, use environment variable
+      store: sessionStore,
+      resave: false,
+      saveUninitialized: false,
+      rolling: true, // Reset expiry on activity
+      cookie: {
+        secure: false, // Set to true in production with HTTPS
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        sameSite: "lax",
+      },
+      name: "aftr.session.id", // Custom session name
+    }),
+  );
 
   // Admin authentication routes
   app.post("/api/admin/login", async (req, res) => {
     const { username, password } = req.body;
-    
-    if (username === ADMIN_USERNAME && password === "aftr2025admin") { // Temporary simple password
+
+    if (username === ADMIN_USERNAME && password === "aftr2025admin") {
+      // Temporary simple password
       req.session.isAdmin = true;
       return res.json({ success: true, message: "Logged in successfully" });
     }
-    
+
     return res.status(401).json({ error: "Invalid credentials" });
   });
 
@@ -93,15 +101,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const rawData = insertTicketSchema.parse(req.body);
       // Enforce correct price per ticket type
-      const correctPrice = rawData.ticketType === 'Golden VIP' ? 'Rs 700' : rawData.price;
+      const correctPrice =
+        rawData.ticketType === "Golden VIP" ? "Rs 700" : rawData.price;
       const ticketData = { ...rawData, price: correctPrice };
-      
+
       // Check if reference code already exists
-      const existingTicket = await storage.getTicketByReference(ticketData.referenceCode);
+      const existingTicket = await storage.getTicketByReference(
+        ticketData.referenceCode,
+      );
       if (existingTicket) {
         return res.status(400).json({ error: "Reference code already exists" });
       }
-      
+
       const ticket = await storage.createTicket(ticketData);
       res.json({ success: true, ticket });
     } catch (error) {
@@ -137,12 +148,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/tickets/qr/:qrCode", requireAuth, async (req, res) => {
     try {
       const tickets = await storage.getAllTickets();
-      const ticket = tickets.find(t => t.qrCode === req.params.qrCode);
-      
+      const ticket = tickets.find((t) => t.qrCode === req.params.qrCode);
+
       if (!ticket) {
         return res.status(404).json({ error: "Ticket not found" });
       }
-      
+
       res.json({ success: true, ticket });
     } catch (error) {
       console.error("Error fetching ticket by QR:", error);
@@ -209,7 +220,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/objects/:objectPath(*)", async (req, res) => {
     const objectStorageService = new ObjectStorageService();
     try {
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      const objectFile = await objectStorageService.getObjectEntityFile(
+        req.path,
+      );
       objectStorageService.downloadObject(objectFile, res);
     } catch (error) {
       console.error("Error fetching object:", error);
@@ -225,7 +238,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const objectStorageService = new ObjectStorageService();
       const fileExtension = req.body.fileExtension || undefined;
-      const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadURL(fileExtension);
+      const { uploadURL, objectPath } =
+        await objectStorageService.getObjectEntityUploadURL(fileExtension);
       res.json({ uploadURL, objectPath });
     } catch (error) {
       console.error("Error getting upload URL:", error);
@@ -368,10 +382,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const rawPurchase = insertTicketPurchaseSchema.parse(req.body);
       // Enforce correct price per ticket type
-      const expectedTotal = rawPurchase.ticketType === 'Golden VIP' ? 700 * (rawPurchase.quantity ?? 1) : 350 * (rawPurchase.quantity ?? 1);
+      const expectedTotal =
+        rawPurchase.ticketType === "Golden VIP"
+          ? 700 * (rawPurchase.quantity ?? 1)
+          : 350 * (rawPurchase.quantity ?? 1);
       const purchaseData = { ...rawPurchase, price: `Rs ${expectedTotal}` };
       const purchase = await storage.createTicketPurchase(purchaseData);
-      res.json({ success: true, purchase, message: "Purchase request submitted. Please complete payment and wait for verification." });
+      res.json({
+        success: true,
+        purchase,
+        message:
+          "Purchase request submitted. Please complete payment and wait for verification.",
+      });
     } catch (error) {
       console.error("Error creating ticket purchase:", error);
       res.status(500).json({ error: "Failed to submit purchase request" });
@@ -382,8 +404,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tickets/upload-proof", async (req, res) => {
     try {
       const objectStorageService = new ObjectStorageService();
-      const fileExtension = req.body.fileExtension || 'jpg';
-      const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadURL(fileExtension);
+      const fileExtension = req.body.fileExtension || "jpg";
+      const { uploadURL, objectPath } =
+        await objectStorageService.getObjectEntityUploadURL(fileExtension);
       res.json({ uploadURL, objectPath });
     } catch (error) {
       console.error("Error getting upload URL for proof:", error);
@@ -432,23 +455,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!purchase) {
         return res.status(404).json({ error: "Purchase not found" });
       }
-      
+
       if (purchase.status !== "pending") {
         return res.status(400).json({ error: "Purchase already processed" });
       }
-      
+
       // IMMEDIATELY mark as processing to prevent race condition from double-clicks
       await storage.markPurchaseProcessing(req.params.id);
-      
+
       const quantity = purchase.quantity || 1;
-      const pricePerTicket = purchase.ticketType === 'Golden VIP' ? 700 : 350;
+      const pricePerTicket = purchase.ticketType === "Golden VIP" ? 700 : 350;
       const tickets = [];
-      
+
       // Create multiple tickets based on quantity (each with unique reference/QR code)
       for (let i = 0; i < quantity; i++) {
-        const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const randomPart = Math.random()
+          .toString(36)
+          .substring(2, 8)
+          .toUpperCase();
         const referenceCode = `VOL3-${randomPart}`;
-        
+
         const ticket = await storage.createTicket({
           eventId: purchase.eventId || "aftr-vol-3",
           purchaseId: purchase.id,
@@ -461,9 +487,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           paymentMethod: purchase.paymentMethod,
           deliveryMethod: purchase.deliveryMethod,
         });
-        
+
         tickets.push(ticket);
-        
+
         // Append each ticket to Google Sheet for record keeping
         try {
           await appendTicketToSheet({
@@ -478,21 +504,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             referenceCode: referenceCode,
             qrCode: ticket.qrCode,
             eventId: purchase.eventId || "aftr-vol-3",
-            status: "verified"
+            status: "verified",
           });
         } catch (sheetError) {
-          console.error("Failed to append to Google Sheet (non-blocking):", sheetError);
+          console.error(
+            "Failed to append to Google Sheet (non-blocking):",
+            sheetError,
+          );
         }
       }
-      
+
       // Update purchase with first ticket ID (for backwards compatibility)
       await storage.verifyTicketPurchase(purchase.id, tickets[0].id);
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         tickets,
         ticketCount: tickets.length,
-        message: `${tickets.length} ticket${tickets.length > 1 ? 's' : ''} created successfully. Ready for delivery.`,
+        message: `${tickets.length} ticket${tickets.length > 1 ? "s" : ""} created successfully. Ready for delivery.`,
         deliveryMethod: purchase.deliveryMethod,
       });
     } catch (error) {
@@ -502,37 +531,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send ticket via email using Gmail SMTP
-  app.post("/api/admin/tickets/:id/send-email", requireAuth, async (req, res) => {
-    try {
-      const ticket = await storage.getTicket(req.params.id);
-      if (!ticket) {
-        return res.status(404).json({ error: "Ticket not found" });
-      }
-      
-      if (!ticket.customerEmail) {
-        return res.status(400).json({ error: "No email address for this ticket" });
-      }
-      
-      const gmailUser = process.env.GMAIL_USER || 'afterdarksocials@gmail.com';
-      const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
-      
-      if (!gmailAppPassword) {
-        return res.status(400).json({ error: "Gmail app password not configured. Please add GMAIL_APP_PASSWORD secret." });
-      }
-      
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: gmailUser,
-          pass: gmailAppPassword,
-        },
-      });
-      
-      const mailOptions = {
-        from: `"AFTR" <${gmailUser}>`,
-        to: ticket.customerEmail,
-        subject: '🔥 VOL.2 | Your AFTR Ticket is Ready!',
-        html: `
+  app.post(
+    "/api/admin/tickets/:id/send-email",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const ticket = await storage.getTicket(req.params.id);
+        if (!ticket) {
+          return res.status(404).json({ error: "Ticket not found" });
+        }
+
+        if (!ticket.customerEmail) {
+          return res
+            .status(400)
+            .json({ error: "No email address for this ticket" });
+        }
+
+        const gmailUser =
+          process.env.GMAIL_USER || "afterdarksocials@gmail.com";
+        const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+
+        if (!gmailAppPassword) {
+          return res.status(400).json({
+            error:
+              "Gmail app password not configured. Please add GMAIL_APP_PASSWORD secret.",
+          });
+        }
+
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: gmailUser,
+            pass: gmailAppPassword,
+          },
+        });
+
+        const mailOptions = {
+          from: `"AFTR" <${gmailUser}>`,
+          to: ticket.customerEmail,
+          subject: "🔥 VOL.2 | Your AFTR Ticket is Ready!",
+          html: `
           <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(180deg, #0a0a0a 0%, #1a0808 100%); color: #ffffff; padding: 0;">
             <!-- Header Banner -->
             <div style="background: linear-gradient(135deg, #c72d28 0%, #8b1f1b 50%, #0a0a0a 100%); padding: 30px; text-align: center; border-bottom: 3px solid #c72d28;">
@@ -567,7 +605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     </td>
                     <td style="padding: 12px 0; text-align: right;">
                       <span style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Price</span><br>
-                      <span style="color: #c72d28; font-size: 20px; font-weight: bold;">${ticket.ticketType === 'Golden VIP' && ticket.price === 'Rs 350' ? 'Rs 700' : ticket.price}</span>
+                      <span style="color: #c72d28; font-size: 20px; font-weight: bold;">${ticket.ticketType === "Golden VIP" && ticket.price === "Rs 350" ? "Rs 700" : ticket.price}</span>
                     </td>
                   </tr>
                 </table>
@@ -603,23 +641,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
             </div>
           </div>
         `,
-      };
-      
-      await transporter.sendMail(mailOptions);
-      await storage.markTicketAsDelivered(ticket.id);
-      
-      res.json({ success: true, message: "Ticket sent via email successfully" });
-    } catch (error) {
-      console.error("Error sending ticket email:", error);
-      res.status(500).json({ error: "Failed to send ticket email" });
-    }
-  });
+        };
+
+        await transporter.sendMail(mailOptions);
+        await storage.markTicketAsDelivered(ticket.id);
+
+        res.json({
+          success: true,
+          message: "Ticket sent via email successfully",
+        });
+      } catch (error) {
+        console.error("Error sending ticket email:", error);
+        res.status(500).json({ error: "Failed to send ticket email" });
+      }
+    },
+  );
 
   // Reject purchase
   app.post("/api/admin/purchases/:id/reject", requireAuth, async (req, res) => {
     try {
       const { reason } = req.body;
-      const purchase = await storage.rejectTicketPurchase(req.params.id, reason || "Payment not verified");
+      const purchase = await storage.rejectTicketPurchase(
+        req.params.id,
+        reason || "Payment not verified",
+      );
       if (!purchase) {
         return res.status(404).json({ error: "Purchase not found" });
       }
@@ -637,15 +682,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!ticket) {
         return res.status(404).json({ error: "Invalid ticket", valid: false });
       }
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         valid: true,
         ticket,
         alreadyUsed: ticket.isUsed,
-        message: ticket.isUsed 
-          ? `Ticket already used at ${ticket.usedAt?.toLocaleString()}` 
-          : "Valid ticket - ready for check-in"
+        message: ticket.isUsed
+          ? `Ticket already used at ${ticket.usedAt?.toLocaleString()}`
+          : "Valid ticket - ready for check-in",
       });
     } catch (error) {
       console.error("Error scanning ticket:", error);
@@ -657,3 +702,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   return httpServer;
 }
+
+const accessCounts: Record<string, number> = {
+  "General Entry": 100,
+  Table: 0,
+  VIP: 0,
+};
+
+// GET /api/access-capacity — returns current counts
+app.get("/api/access-capacity", (_req, res) => {
+  res.json(accessCounts);
+});
+
+// POST /api/access-capacity — increments count for a pass type
+app.post("/api/access-capacity", async (req, res) => {
+  const { type } = req.body;
+  if (!type || !(type in accessCounts)) {
+    return res.status(400).json({ error: "Invalid pass type" });
+  }
+  accessCounts[type] = (accessCounts[type] || 0) + 1;
+  res.json({ success: true, counts: accessCounts });
+});

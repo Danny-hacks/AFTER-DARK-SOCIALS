@@ -1,0 +1,55 @@
+You are a senior frontend developer doing a full QA audit of this website. 
+
+Go through every page and component in the codebase and do the following:
+
+1. READ every component file in client/src/components/ and client/src/pages/
+2. FLAG any errors, bugs, or issues you find
+3. FIX them directly — do not just report them
+
+Specifically check for:
+
+FUNCTIONALITY
+- Broken imports (components or assets that are imported but don't exist)
+- Missing dependencies or packages that are used but not installed
+- TypeScript errors or type mismatches
+- Any component that references a hook, context, or utility that doesn't exist
+- API calls that reference endpoints that don't exist on the server
+- Routes in App.tsx that reference page components that don't exist
+
+LAYOUT & RESPONSIVENESS
+- Any section where content overflows or clips on mobile (< 640px)
+- Any grid or flex layout that breaks at tablet (768px) or desktop (1024px)
+- Inconsistent padding — the site uses px-5 sm:px-6 lg:px-12 as the standard outer padding, flag anything that deviates
+- Any text using fixed font sizes instead of clamp() for headings
+- Any border that doesn't terminate cleanly (dangling borders, missing last:border-0 etc.)
+
+DESIGN CONSISTENCY
+- Every section must follow this border system: border-t border-white/10 connecting sections top to bottom
+- Section labels must all follow this pattern: red line + red uppercase text in 10px tracking-[0.3em]
+- All primary CTAs must use bg-[#c72d28] (red) — flag any that use a different color as primary
+- The ACCESS section CTAs use gold (#b8860b) — this is intentional, do not change it
+- All headings must use font-family Bebas Neue
+- Body text must be white/40 to white/60 range — flag anything using plain white for body copy
+- No emoji in any component (the site is premium and dark)
+
+NAVIGATION
+- Navbar links must match the actual sections on the homepage: About, Services, ACCESS, Past Events, Contact, Gallery
+- All footer links must work — legal pages (/terms /privacy /refund /age-requirements) must have corresponding routes
+- The Instagram icon in the navbar must link to https://www.instagram.com/afterdarksocials.mu
+
+SPECIFIC COMPONENTS TO CHECK
+- hero-section.tsx: Check the CTA button links and video/image assets load correctly
+- about-section.tsx: Stats must show 3 Events, 8+ DJs, 3 Venues, Est. 2025
+- services-section.tsx: All 4 service tiles must render, red tile must be tile 01 (AFTR Events)
+- access-section.tsx: Must have two buttons — "Apply for ACCESS" (gold filled) and "Enquire" (gold outlined). "Apply for ACCESS" must link to /access
+- past-events.tsx: All 3 events must render with correct images, dates and DJ lineups
+- gallery-preview.tsx: Must show mosaic grid on desktop, stacked on mobile. "View All Photos" must link to /gallery
+- contact-section.tsx: Form must have Enquiry Type dropdown, Name, Phone, Event Date, Number of Guests, Message. Submit button must be red and open WhatsApp to wa.me/23058205220
+- footer.tsx: Logo must be visible (use filter: brightness(0) invert(1) if on dark bg). All nav and legal links must work
+- access-passport.tsx (component): Passport card must render with gold ACCESS title, cream paper background, globe watermark, photo upload, 4 fields (Name, Place of Access, Edition, Date), Pass ID and Signature in footer
+- access.tsx (page): Must use Navbar and Footer components. Must call GET /api/access-capacity on mount
+
+AFTER AUDITING
+- List every issue found with the file name and line number
+- Fix each one
+- Confirm what was fixed
