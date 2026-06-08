@@ -43,6 +43,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error("Price correction failed (non-blocking):", e);
   }
 
+  // Ensure capacity_settings table exists and has default rows
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS capacity_settings (
+        pass_type TEXT PRIMARY KEY,
+        max_capacity INTEGER NOT NULL
+      );
+      INSERT INTO capacity_settings (pass_type, max_capacity) VALUES
+        ('General Entry', 100), ('Table', 20), ('VIP', 10)
+      ON CONFLICT (pass_type) DO NOTHING;
+    `);
+  } catch (e) {
+    console.error("Capacity settings init failed (non-blocking):", e);
+  }
+
   // Configure PostgreSQL session store for persistence
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
@@ -700,7 +715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const VALID_PASS_TYPES = new Set(["General Entry", "Table", "VIP"]);
 
-  const CAPACITY_LIMITS: Record<string, number> = {
+  const DEFAULT_CAPACITY_LIMITS: Record<string, number> = {
     "General Entry": 100,
     Table: 20,
     VIP: 10,
@@ -709,12 +724,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/access-capacity — returns counts, max capacity, remaining, and status per pass type
   app.get("/api/access-capacity", async (_req, res) => {
     try {
-      const counts = await storage.getAccessCounts();
+      const [counts, dbLimits] = await Promise.all([
+        storage.getAccessCounts(),
+        storage.getCapacityLimits(),
+      ]);
+      const limits = { ...DEFAULT_CAPACITY_LIMITS, ...dbLimits };
       const result: Record<
         string,
         { count: number; max: number; remaining: number; status: string }
       > = {};
-      for (const [type, max] of Object.entries(CAPACITY_LIMITS)) {
+      for (const [type, max] of Object.entries(limits)) {
         const count = counts[type] || 0;
         const remaining = Math.max(0, max - count);
         let status: string;
@@ -746,6 +765,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error incrementing access count:", error);
       res.status(500).json({ error: "Failed to increment access count" });
+    }
+  });
+
+  // GET /api/admin/capacity-settings — returns current capacity limits (protected)
+  app.get("/api/admin/capacity-settings", requireAuth, async (_req, res) => {
+    try {
+      const dbLimits = await storage.getCapacityLimits();
+      const limits = { ...DEFAULT_CAPACITY_LIMITS, ...dbLimits };
+      res.json({ success: true, limits });
+    } catch (error) {
+      console.error("Error fetching capacity settings:", error);
+      res.status(500).json({ error: "Failed to fetch capacity settings" });
+    }
+  });
+
+  // PUT /api/admin/capacity-settings — updates a pass type capacity limit (protected)
+  app.put("/api/admin/capacity-settings", requireAuth, async (req, res) => {
+    const { passType, maxCapacity } = req.body;
+    if (!passType || !VALID_PASS_TYPES.has(passType)) {
+      return res.status(400).json({ error: "Invalid pass type" });
+    }
+    const parsed = parseInt(maxCapacity, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      return res.status(400).json({ error: "maxCapacity must be a non-negative integer" });
+    }
+    try {
+      await storage.setCapacityLimit(passType, parsed);
+      const dbLimits = await storage.getCapacityLimits();
+      const limits = { ...DEFAULT_CAPACITY_LIMITS, ...dbLimits };
+      res.json({ success: true, limits });
+    } catch (error) {
+      console.error("Error updating capacity settings:", error);
+      res.status(500).json({ error: "Failed to update capacity settings" });
     }
   });
 

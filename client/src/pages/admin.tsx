@@ -14,7 +14,7 @@ import {
   Ticket, LogIn, LogOut, Plus, Users, CheckCircle, Eye, QrCode,
   Search, Trash, Calendar, Video, Upload, Music, MapPin, Clock,
   LayoutDashboard, PartyPopper, Edit, X, Image, Play, CreditCard,
-  Mail, Phone, XCircle, ExternalLink, Loader2, ChevronDown, ChevronUp, Menu
+  Mail, Phone, XCircle, ExternalLink, Loader2, ChevronDown, ChevronUp, Menu, Settings
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import type { Ticket as TicketType, Event as EventType, HeroSlide as HeroSlideType, TicketPurchase as TicketPurchaseType } from "@shared/schema";
@@ -130,7 +130,7 @@ export default function AdminPanel() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [scannedTicket, setScannedTicket] = useState<TicketType | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'purchases' | 'events' | 'tickets' | 'hero'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'purchases' | 'events' | 'tickets' | 'hero' | 'capacity'>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'used' | 'available'>('all');
   const [filterEventId, setFilterEventId] = useState<string>('all');
@@ -177,6 +177,7 @@ export default function AdminPanel() {
   const { data: ticketsData, isLoading: ticketsLoading } = useQuery<{ tickets: TicketType[] }>({ queryKey: ['/api/admin/tickets'], enabled: isAuthenticated });
   const { data: heroSlidesData, isLoading: heroSlidesLoading } = useQuery<{ slides: HeroSlideType[] }>({ queryKey: ['/api/admin/hero-slides'], enabled: isAuthenticated });
   const { data: purchasesData, isLoading: purchasesLoading } = useQuery<{ purchases: TicketPurchaseType[] }>({ queryKey: ['/api/admin/purchases'], enabled: isAuthenticated });
+  const { data: capacityData, isLoading: capacityLoading } = useQuery<{ success: boolean; limits: Record<string, number> }>({ queryKey: ['/api/admin/capacity-settings'], enabled: isAuthenticated });
 
   const allEvents: EventType[] = Array.isArray(eventsData?.events) ? eventsData.events : [];
   const allTickets: TicketType[] = Array.isArray(ticketsData?.tickets) ? ticketsData.tickets : [];
@@ -292,6 +293,17 @@ export default function AdminPanel() {
     onError: () => toast({ title: "Failed to Delete Slide", variant: "destructive" }),
   });
 
+  const updateCapacityMutation = useMutation({
+    mutationFn: ({ passType, maxCapacity }: { passType: string; maxCapacity: number }) =>
+      apiRequest('PUT', '/api/admin/capacity-settings', { passType, maxCapacity }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/capacity-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/access-capacity'] });
+      toast({ title: "Capacity Updated" });
+    },
+    onError: () => toast({ title: "Failed to Update Capacity", variant: "destructive" }),
+  });
+
   const handleManualScan = async (code: string) => {
     try {
       const response = await apiRequest('GET', `/api/tickets/verify/${code}`);
@@ -368,6 +380,7 @@ export default function AdminPanel() {
     { key: 'events' as const, label: 'Events', icon: <PartyPopper className="w-4 h-4" />, badge: allEvents.length },
     { key: 'tickets' as const, label: 'Legacy Tickets', icon: <Ticket className="w-4 h-4" />, badge: legacyTickets.length },
     { key: 'hero' as const, label: 'Hero Slider', icon: <Image className="w-4 h-4" />, badge: allHeroSlides.length },
+    { key: 'capacity' as const, label: 'Capacity', icon: <Settings className="w-4 h-4" />, badge: null },
   ];
 
   const closeSidebar = () => setSidebarOpen(false);
@@ -1135,6 +1148,100 @@ export default function AdminPanel() {
               )}
             </div>
           </div>
+        )}
+
+        {/* ── CAPACITY SETTINGS ────────────────────────────────────────────── */}
+        {activeTab === 'capacity' && (
+          <div>
+            <SectionHeading label="Configuration" title="CAPACITY SETTINGS" />
+            <p className="text-white/40 text-sm mb-8">
+              Set the maximum number of passes available for each ACCESS pass type. Changes take effect immediately for the public capacity bar.
+            </p>
+            {capacityLoading ? (
+              <div className="border border-white/10 p-10 text-white/20 text-xs uppercase tracking-widest text-center">Loading...</div>
+            ) : (
+              <div className="space-y-1">
+                {(['General Entry', 'Table', 'VIP'] as const).map((passType) => (
+                  <CapacityRow
+                    key={passType}
+                    passType={passType}
+                    currentMax={capacityData?.limits?.[passType] ?? (passType === 'General Entry' ? 100 : passType === 'Table' ? 20 : 10)}
+                    onSave={(newMax) => updateCapacityMutation.mutate({ passType, maxCapacity: newMax })}
+                    isSaving={updateCapacityMutation.isPending}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Capacity Row ─────────────────────────────────────────────────────────────
+function CapacityRow({ passType, currentMax, onSave, isSaving }: {
+  passType: string;
+  currentMax: number;
+  onSave: (newMax: number) => void;
+  isSaving: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(currentMax));
+
+  const handleSave = () => {
+    const parsed = parseInt(draft, 10);
+    if (isNaN(parsed) || parsed < 0) return;
+    onSave(parsed);
+    setEditing(false);
+  };
+
+  const handleCancel = () => {
+    setDraft(String(currentMax));
+    setEditing(false);
+  };
+
+  return (
+    <div className="border border-white/10 hover:border-white/20 transition-colors p-6 flex items-center justify-between gap-6" data-testid={`capacity-row-${passType.replace(/\s+/g, '-').toLowerCase()}`}>
+      <div>
+        <p className="text-white font-bold">{passType}</p>
+        <p className="text-white/30 text-xs mt-0.5 uppercase tracking-[0.15em]">Max Capacity</p>
+      </div>
+      <div className="flex items-center gap-3">
+        {editing ? (
+          <>
+            <input
+              type="number"
+              min={0}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              className="w-28 bg-transparent border border-white/25 text-white text-sm px-3 py-2 focus:outline-none focus:border-white/50 text-right"
+              autoFocus
+              data-testid={`input-capacity-${passType.replace(/\s+/g, '-').toLowerCase()}`}
+            />
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-[#c72d28] text-white text-xs uppercase tracking-[0.15em] font-bold px-4 py-2 hover:bg-[#a82421] transition-colors disabled:opacity-40"
+              data-testid={`save-capacity-${passType.replace(/\s+/g, '-').toLowerCase()}`}
+            >
+              {isSaving ? <Loader2 className="w-3 h-3 animate-spin inline" /> : 'Save'}
+            </button>
+            <button onClick={handleCancel} className="text-white/30 hover:text-white text-xs uppercase tracking-[0.15em] font-bold px-3 py-2 border border-white/15 hover:border-white/40 transition-colors">
+              Cancel
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="text-3xl font-black text-white" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>{currentMax}</span>
+            <button
+              onClick={() => { setDraft(String(currentMax)); setEditing(true); }}
+              className="border border-white/15 text-white/40 hover:text-white p-2 transition-colors hover:border-white/40"
+              data-testid={`edit-capacity-${passType.replace(/\s+/g, '-').toLowerCase()}`}
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+          </>
         )}
       </div>
     </div>

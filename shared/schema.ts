@@ -117,6 +117,13 @@ export const accessCounts = pgTable("access_counts", {
 
 export const insertAccessCountSchema = createInsertSchema(accessCounts);
 
+export const capacitySettings = pgTable("capacity_settings", {
+  passType: text("pass_type").primaryKey(),
+  maxCapacity: integer("max_capacity").notNull(),
+});
+
+export const insertCapacitySettingsSchema = createInsertSchema(capacitySettings);
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertTicketPurchase = z.infer<typeof insertTicketPurchaseSchema>;
@@ -128,3 +135,4 @@ export type Event = typeof events.$inferSelect;
 export type InsertHeroSlide = z.infer<typeof insertHeroSlideSchema>;
 export type HeroSlide = typeof heroSlides.$inferSelect;
 export type AccessCount = typeof accessCounts.$inferSelect;
+export type CapacitySettings = typeof capacitySettings.$inferSelect;

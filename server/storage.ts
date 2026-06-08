@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Ticket, type InsertTicket, type TicketPurchase, type InsertTicketPurchase, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, type AccessCount, users, tickets, ticketPurchases, events, heroSlides, accessCounts } from "@shared/schema";
+import { type User, type InsertUser, type Ticket, type InsertTicket, type TicketPurchase, type InsertTicketPurchase, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, type AccessCount, type CapacitySettings, users, tickets, ticketPurchases, events, heroSlides, accessCounts, capacitySettings } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -49,6 +49,10 @@ export interface IStorage {
   // Access count operations
   getAccessCounts(): Promise<Record<string, number>>;
   incrementAccessCount(passType: string): Promise<Record<string, number>>;
+
+  // Capacity settings operations
+  getCapacityLimits(): Promise<Record<string, number>>;
+  setCapacityLimit(passType: string, maxCapacity: number): Promise<CapacitySettings>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -286,6 +290,28 @@ export class DatabaseStorage implements IStorage {
         set: { count: sql`${accessCounts.count} + 1` },
       });
     return this.getAccessCounts();
+  }
+
+  // Capacity settings operations
+  async getCapacityLimits(): Promise<Record<string, number>> {
+    const rows = await db.select().from(capacitySettings);
+    const result: Record<string, number> = {};
+    for (const row of rows) {
+      result[row.passType] = row.maxCapacity;
+    }
+    return result;
+  }
+
+  async setCapacityLimit(passType: string, maxCapacity: number): Promise<CapacitySettings> {
+    const [row] = await db
+      .insert(capacitySettings)
+      .values({ passType, maxCapacity })
+      .onConflictDoUpdate({
+        target: capacitySettings.passType,
+        set: { maxCapacity },
+      })
+      .returning();
+    return row;
   }
 }
 
