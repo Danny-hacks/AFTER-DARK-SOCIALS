@@ -698,25 +698,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const accessCounts: Record<string, number> = {
-    "General Entry": 0,
-    Table: 0,
-    VIP: 0,
-  };
+  const VALID_PASS_TYPES = new Set(["General Entry", "Table", "VIP"]);
 
   // GET /api/access-capacity — returns current counts
-  app.get("/api/access-capacity", (_req, res) => {
-    res.json(accessCounts);
+  app.get("/api/access-capacity", async (_req, res) => {
+    try {
+      const counts = await storage.getAccessCounts();
+      res.json(counts);
+    } catch (error) {
+      console.error("Error fetching access counts:", error);
+      res.status(500).json({ error: "Failed to fetch access counts" });
+    }
   });
 
   // POST /api/access-capacity — increments count for a pass type
   app.post("/api/access-capacity", async (req, res) => {
     const { type } = req.body;
-    if (!type || !(type in accessCounts)) {
+    if (!type || !VALID_PASS_TYPES.has(type)) {
       return res.status(400).json({ error: "Invalid pass type" });
     }
-    accessCounts[type] = (accessCounts[type] || 0) + 1;
-    res.json({ success: true, counts: accessCounts });
+    try {
+      const counts = await storage.incrementAccessCount(type);
+      res.json({ success: true, counts });
+    } catch (error) {
+      console.error("Error incrementing access count:", error);
+      res.status(500).json({ error: "Failed to increment access count" });
+    }
   });
 
   const httpServer = createServer(app);

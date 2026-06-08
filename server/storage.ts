@@ -1,6 +1,6 @@
-import { type User, type InsertUser, type Ticket, type InsertTicket, type TicketPurchase, type InsertTicketPurchase, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, users, tickets, ticketPurchases, events, heroSlides } from "@shared/schema";
+import { type User, type InsertUser, type Ticket, type InsertTicket, type TicketPurchase, type InsertTicketPurchase, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, type AccessCount, users, tickets, ticketPurchases, events, heroSlides, accessCounts } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -45,6 +45,10 @@ export interface IStorage {
   createHeroSlide(slide: InsertHeroSlide): Promise<HeroSlide>;
   updateHeroSlide(id: string, slide: Partial<InsertHeroSlide>): Promise<HeroSlide | undefined>;
   deleteHeroSlide(id: string): Promise<boolean>;
+
+  // Access count operations
+  getAccessCounts(): Promise<Record<string, number>>;
+  incrementAccessCount(passType: string): Promise<Record<string, number>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -257,6 +261,31 @@ export class DatabaseStorage implements IStorage {
       .delete(heroSlides)
       .where(eq(heroSlides.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // Access count operations
+  async getAccessCounts(): Promise<Record<string, number>> {
+    const rows = await db.select().from(accessCounts);
+    const result: Record<string, number> = {
+      "General Entry": 0,
+      Table: 0,
+      VIP: 0,
+    };
+    for (const row of rows) {
+      result[row.passType] = row.count;
+    }
+    return result;
+  }
+
+  async incrementAccessCount(passType: string): Promise<Record<string, number>> {
+    await db
+      .insert(accessCounts)
+      .values({ passType, count: 1 })
+      .onConflictDoUpdate({
+        target: accessCounts.passType,
+        set: { count: sql`${accessCounts.count} + 1` },
+      });
+    return this.getAccessCounts();
   }
 }
 
