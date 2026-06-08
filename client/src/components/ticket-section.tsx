@@ -78,11 +78,11 @@ export default function TicketSection() {
             <div className="text-center space-y-2">
               {!isPhase2 ? (
                 <div className="text-sm text-destructive font-semibold bg-destructive/10 px-4 py-2 rounded-lg">
-                  ⏰ Early Bird ends September 26th
+                  Early Bird ends September 26th
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground font-semibold bg-muted/10 px-4 py-2 rounded-lg">
-                  ❌ Early Bird has expired
+                  Early Bird has expired
                 </div>
               )}
             </div>
@@ -127,11 +127,11 @@ export default function TicketSection() {
             <div className="text-center space-y-2">
               {isPhase2 ? (
                 <div className="text-sm text-accent font-semibold bg-accent/10 px-4 py-2 rounded-lg">
-                  ✅ Phase 2 now available
+                  Phase 2 now available
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground font-semibold bg-muted/10 px-4 py-2 rounded-lg">
-                  📅 Available from September 26th
+                  Available from September 26th
                 </div>
               )}
             </div>

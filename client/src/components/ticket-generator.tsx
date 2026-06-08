@@ -124,15 +124,15 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       const pdfBlob = pdf.output('blob');
       const pdfUrl = URL.createObjectURL(pdfBlob);
       
-      const message = `🎉 Your AFTR Vol. 3: Full Capacity Ticket is Ready! 🎉\n\n` +
-        `📧 Customer: ${ticket.customerName}\n` +
-        `🎫 Reference: ${ticket.referenceCode}\n` +
-        `💰 Price: ${displayPrice}\n` +
-        `📅 Date: 18th April 2026\n` +
-        `📍 Venue: Shotz, Flic en Flac\n` +
-        `🕙 Doors: 10:00 PM\n\n` +
+      const message = `Your AFTR Vol. 3: Full Capacity Ticket is Ready!\n\n` +
+        `Customer: ${ticket.customerName}\n` +
+        `Reference: ${ticket.referenceCode}\n` +
+        `Price: ${displayPrice}\n` +
+        `Date: 18th April 2026\n` +
+        `Venue: Shotz, Flic en Flac\n` +
+        `Doors: 10:00 PM\n\n` +
         `Your digital ticket PDF will be downloaded automatically.\n\n` +
-        `See you on the dance floor! 🎵🔥`;
+        `See you on the dance floor!`;
       
       // Always download the PDF first
       const link = document.createElement('a');
@@ -211,46 +211,39 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       const pdfBlob = pdf.output('blob');
       const pdfUrl = URL.createObjectURL(pdfBlob);
       
-      const subject = `🎵 Your AFTR Vol. 3 Ticket is Ready - ${ticket.referenceCode}`;
-      const body = `🔥 AFTR VOL. 3 - FULL CAPACITY 🔥
+      const subject = `Your AFTR Vol. 3 Ticket is Ready - ${ticket.referenceCode}`;
+      const body = `AFTR VOL. 3 — FULL CAPACITY
 
-Hello ${ticket.customerName}! 👋
+Hello ${ticket.customerName},
 
-Your ticket for AFTR Vol. 3: Full Capacity is ready! Get excited for the biggest night yet! 🎉
+Your ticket for AFTR Vol. 3: Full Capacity is ready.
 
-🎵 EVENT DETAILS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📅 Date:        18th April 2026
-📍 Venue:       Shotz, Flic en Flac
-🕙 Time:        10:00 PM
-⚡ Theme:       FULL CAPACITY
+EVENT DETAILS
+Date:   18th April 2026
+Venue:  Shotz, Flic en Flac
+Time:   10:00 PM
+Theme:  FULL CAPACITY
 
-🎫 YOUR TICKET REFERENCE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+YOUR TICKET REFERENCE
 Reference Code: ${ticket.referenceCode}
 Ticket Type:    ${ticket.ticketType}
 Price:          ${displayPrice}
 
-📋 IMPORTANT NOTES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✓ Keep your ticket PDF safe - this is your entry pass
-✓ Arrive early to avoid queues at the entrance
-✓ No outside drinks or food allowed
-✓ Security checks at entrance
-✓ Event continues rain or shine
-✓ Digital tickets must be shown on mobile device
-✓ Follow us on: https://www.instagram.com/afterdarksocials.mu/
+IMPORTANT NOTES
+- Keep your ticket PDF safe — this is your entry pass
+- Arrive early to avoid queues at the entrance
+- No outside drinks or food allowed
+- Security checks at entrance
+- Event continues rain or shine
+- Digital tickets must be shown on mobile device
+- Follow us on: https://www.instagram.com/afterdarksocials.mu/
 
-🔥 READY TO RAVE?
+An unforgettable night of music and energy with unmatched vibes and non-stop dancing until dawn awaits you.
 
-An unforgettable night of music and energy with unmatched vibes and non-stop dancing until dawn awaits you!
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 After Dark Socials Team
-Follow us on: https://www.instagram.com/afterdarksocials.mu/
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+https://www.instagram.com/afterdarksocials.mu/
 
-**IMPORTANT:** Please find your ticket PDF attached to this email. This PDF is your entry pass to the event!`;
+IMPORTANT: Please find your ticket PDF attached to this email. This PDF is your entry pass to the event.`;
       
       // Always download the PDF first
       const link = document.createElement('a');
@@ -373,7 +366,7 @@ Follow us on: https://www.instagram.com/afterdarksocials.mu/
             VOL. 3 — FULL CAPACITY
           </p>
           {isGoldenVIP && (
-            <p className="text-xs uppercase tracking-[0.3em] mt-1" style={{ color: '#C9A84C' }}>✦ Golden VIP ✦</p>
+            <p className="text-xs uppercase tracking-[0.3em] mt-1" style={{ color: '#C9A84C' }}>Golden VIP</p>
           )}
           <p className="text-sm text-gray-400 mt-2">18th April 2026 • Shotz, Flic en Flac</p>
         </div>
