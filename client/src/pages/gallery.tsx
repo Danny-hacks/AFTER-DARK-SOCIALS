@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Link } from "wouter";
-import { ArrowLeft, X, ChevronLeft, ChevronRight } from "lucide-react";
-import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import Navbar from "@/components/navbar";
+import Footer from "@/components/footer";
 
 // Vol 3 — event photos
 import vol3_1 from "@assets/Serge_74_1777968315600.jpg";
@@ -140,24 +140,7 @@ export default function GalleryPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="flex items-center justify-between h-16 sm:h-20">
-            <Link href="/">
-              <img src={logoImage} alt="AFTR" className="h-10 sm:h-12 w-auto" />
-            </Link>
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-white/40 hover:text-white text-[10px] uppercase tracking-[0.2em] transition-colors"
-              data-testid="gallery-back-home"
-            >
-              <ArrowLeft className="w-3 h-3" />
-              Back
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="pt-20">
         {/* Hero */}
@@ -231,6 +214,8 @@ export default function GalleryPage() {
           )}
         </div>
       </main>
+
+      <Footer />
 
       {/* Lightbox */}
       {lightboxIndex !== null && (
