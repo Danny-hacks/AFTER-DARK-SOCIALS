@@ -48,3 +48,7 @@ GOOGLE_SHEET_ID = "16xy77DW8BiNYzbpwkoQeNO5jU2mmnpWO4PQL1dvvTI8"
 
 [objectStorage]
 defaultBucketID = "replit-objstore-3508c614-6d3a-4bd7-ae53-824b205a59e5"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
