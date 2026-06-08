@@ -1,15 +1,16 @@
 import { useState, useRef, useEffect } from "react";
-import { Download, ArrowUpRight } from "lucide-react";
+import { Download, AlertTriangle } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
-// ─── Capacity config ─────────────────────────────────────────────────────────
-const CAPACITY: Record<string, number> = {
-  "General Entry": 100,
-  Table: 20,
-  VIP: 10,
-};
+// ─── Capacity info type (matches GET /api/access-capacity) ───────────────────
+interface PassCapacity {
+  count: number;
+  max: number;
+  remaining: number;
+  status: "available" | "low" | "sold_out";
+}
 
 function pad(n: number, l: number) {
   return String(n).padStart(l, "0");
@@ -403,11 +404,7 @@ export function AccessPassport() {
     phone: "",
     photo: "",
   });
-  const [counts, setCounts] = useState<Record<string, number>>({
-    "General Entry": 0,
-    Table: 0,
-    VIP: 0,
-  });
+  const [capacity, setCapacity] = useState<Record<string, PassCapacity>>({});
   const [passId] = useState(rndId);
   const [sending, setSending] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -417,17 +414,20 @@ export function AccessPassport() {
   useEffect(() => {
     fetch("/api/access-capacity")
       .then((r) => r.json())
-      .then((data) => {
-        if (data) setCounts(data);
+      .then((data: Record<string, PassCapacity>) => {
+        if (data) setCapacity(data);
       })
       .catch(() => {});
   }, []);
 
-  const remaining = CAPACITY[form.passType] - (counts[form.passType] || 0);
-  const isFull = Object.entries(CAPACITY).every(
-    ([type, cap]) => (counts[type] || 0) >= cap,
-  );
-  const currentFull = remaining <= 0;
+  const currentCap = capacity[form.passType];
+  const remaining = currentCap?.remaining ?? null;
+  const currentStatus = currentCap?.status ?? "available";
+  const currentFull = currentStatus === "sold_out";
+  const currentLow = currentStatus === "low";
+  const isFull =
+    Object.keys(capacity).length > 0 &&
+    Object.values(capacity).every((c) => c.status === "sold_out");
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -451,10 +451,9 @@ export function AccessPassport() {
     setSending(true);
     try {
       await apiRequest("POST", "/api/access-capacity", { type: form.passType });
-      setCounts((c) => ({
-        ...c,
-        [form.passType]: (c[form.passType] || 0) + 1,
-      }));
+      // Re-fetch full capacity to get accurate status after increment
+      const updated = await fetch("/api/access-capacity").then((r) => r.json());
+      if (updated) setCapacity(updated);
     } catch {}
 
     const msg = `*ACCESS MEMBER PASS*\n\n*Name:* ${form.name.toUpperCase()}\n*Edition:* ${form.edition}\n*Date:* ${form.date || "TBC"}\n*Pass ID:* ${passId}\n\nPresent this pass at the door.\n_After Dark Socials · @afterdarksocials.mu_`;
@@ -651,18 +650,42 @@ export function AccessPassport() {
                     className={`${inputCls} cursor-pointer appearance-none`}
                     style={selStyle}
                   >
-                    {Object.entries(CAPACITY).map(([type, cap]) => {
-                      const left = cap - (counts[type] || 0);
+                    {["General Entry", "Table", "VIP"].map((type) => {
+                      const cap = capacity[type];
+                      const left = cap?.remaining ?? null;
+                      const sold = cap?.status === "sold_out";
                       return (
-                        <option key={type} value={type} disabled={left <= 0}>
+                        <option key={type} value={type} disabled={sold}>
                           {type}
-                          {left <= 0 ? " (Full)" : ` (${left} left)`}
+                          {sold
+                            ? " (Full)"
+                            : left !== null
+                              ? ` (${left} left)`
+                              : ""}
                         </option>
                       );
                     })}
                   </select>
                 </div>
               </div>
+
+              {/* Capacity warning */}
+              {(currentLow || currentFull) && (
+                <div
+                  className={`flex items-start gap-2 px-3 py-2.5 border ${
+                    currentFull
+                      ? "border-[#c72d28]/40 bg-[#c72d28]/8 text-[#c72d28]"
+                      : "border-[#c9962a]/40 bg-[#c9962a]/8 text-[#c9962a]"
+                  }`}
+                >
+                  <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                  <p className="text-[9px] uppercase tracking-[0.18em] leading-relaxed">
+                    {currentFull
+                      ? "This pass type is sold out"
+                      : `Only ${remaining} spot${remaining === 1 ? "" : "s"} remaining for ${form.passType}`}
+                  </p>
+                </div>
+              )}
 
               {/* Date */}
               <div>
@@ -695,11 +718,6 @@ export function AccessPassport() {
                   {sending ? "Sending..." : "Apply →"}
                 </button>
               </div>
-              {currentFull && (
-                <p className="text-[#c72d28] text-[9px] uppercase tracking-[0.15em] text-center">
-                  This pass type is full
-                </p>
-              )}
             </div>
 
             {/* Live passport */}

@@ -700,11 +700,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const VALID_PASS_TYPES = new Set(["General Entry", "Table", "VIP"]);
 
-  // GET /api/access-capacity — returns current counts
+  const CAPACITY_LIMITS: Record<string, number> = {
+    "General Entry": 100,
+    Table: 20,
+    VIP: 10,
+  };
+
+  // GET /api/access-capacity — returns counts, max capacity, remaining, and status per pass type
   app.get("/api/access-capacity", async (_req, res) => {
     try {
       const counts = await storage.getAccessCounts();
-      res.json(counts);
+      const result: Record<
+        string,
+        { count: number; max: number; remaining: number; status: string }
+      > = {};
+      for (const [type, max] of Object.entries(CAPACITY_LIMITS)) {
+        const count = counts[type] || 0;
+        const remaining = Math.max(0, max - count);
+        let status: string;
+        if (remaining <= 0) {
+          status = "sold_out";
+        } else if (remaining <= Math.ceil(max * 0.25)) {
+          status = "low";
+        } else {
+          status = "available";
+        }
+        result[type] = { count, max, remaining, status };
+      }
+      res.json(result);
     } catch (error) {
       console.error("Error fetching access counts:", error);
       res.status(500).json({ error: "Failed to fetch access counts" });
