@@ -58,11 +58,11 @@ export default function ServicesSection() {
       className="bg-black py-28 border-t border-white/10"
       data-testid="services-section"
     >
-      <div className="max-w-7xl mx-auto px-6 lg:px-12">
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12">
         {/* Section label */}
         <div className="flex items-center gap-4 mb-16">
           <span className="section-line" />
-          <span className="text-[#c72d28] text-xs uppercase tracking-[0.3em] font-medium">
+          <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.3em] font-medium">
             What We Do
           </span>
         </div>

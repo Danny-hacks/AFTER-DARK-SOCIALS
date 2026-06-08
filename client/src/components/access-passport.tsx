@@ -457,11 +457,11 @@ export function AccessPassport() {
       }));
     } catch {}
 
-    const msg = `🖤 *ACCESS MEMBER PASS*\n\n*Name:* ${form.name.toUpperCase()}\n*Edition:* ${form.edition}\n*Date:* ${form.date || "TBC"}\n*Pass ID:* ${passId}\n\nPresent this pass at the door.\n_After Dark Socials · @afterdarksocials.mu_`;
+    const msg = `*ACCESS MEMBER PASS*\n\n*Name:* ${form.name.toUpperCase()}\n*Edition:* ${form.edition}\n*Date:* ${form.date || "TBC"}\n*Pass ID:* ${passId}\n\nPresent this pass at the door.\n_After Dark Socials · @afterdarksocials.mu_`;
 
     // Notify admin
     window.open(
-      `https://wa.me/23058205220?text=${encodeURIComponent(`📋 NEW ACCESS APPLICATION\n\n*Name:* ${form.name.toUpperCase()}\n*Pass Type:* ${form.passType}\n*Edition:* ${form.edition}\n*Date:* ${form.date || "TBC"}\n*Phone:* ${form.phone || "Not provided"}\n*Pass ID:* ${passId}`)}`,
+      `https://wa.me/23058205220?text=${encodeURIComponent(`NEW ACCESS APPLICATION\n\n*Name:* ${form.name.toUpperCase()}\n*Pass Type:* ${form.passType}\n*Edition:* ${form.edition}\n*Date:* ${form.date || "TBC"}\n*Phone:* ${form.phone || "Not provided"}\n*Pass ID:* ${passId}`)}`,
       "_blank",
     );
 

@@ -17,7 +17,7 @@ const photos = [
 export default function GalleryPreview() {
   return (
     <section id="gallery-preview" className="bg-black py-24 sm:py-32 border-t border-white/10" data-testid="gallery-preview-section">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12">
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12">
 
         {/* Header row */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-8 mb-12">

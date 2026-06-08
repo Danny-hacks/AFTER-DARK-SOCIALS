@@ -54,7 +54,7 @@ export default function ContactSection() {
       return;
     }
     const lines = [
-      `Hi After Dark Socials! 👋`,
+      `Hi After Dark Socials!`,
       ``,
       `*Enquiry Type:* ${formData.enquiryType}`,
       `*Name:* ${formData.name}`,

@@ -698,28 +698,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  const accessCounts: Record<string, number> = {
+    "General Entry": 0,
+    Table: 0,
+    VIP: 0,
+  };
+
+  // GET /api/access-capacity — returns current counts
+  app.get("/api/access-capacity", (_req, res) => {
+    res.json(accessCounts);
+  });
+
+  // POST /api/access-capacity — increments count for a pass type
+  app.post("/api/access-capacity", async (req, res) => {
+    const { type } = req.body;
+    if (!type || !(type in accessCounts)) {
+      return res.status(400).json({ error: "Invalid pass type" });
+    }
+    accessCounts[type] = (accessCounts[type] || 0) + 1;
+    res.json({ success: true, counts: accessCounts });
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
 }
-
-const accessCounts: Record<string, number> = {
-  "General Entry": 100,
-  Table: 0,
-  VIP: 0,
-};
-
-// GET /api/access-capacity — returns current counts
-app.get("/api/access-capacity", (_req, res) => {
-  res.json(accessCounts);
-});
-
-// POST /api/access-capacity — increments count for a pass type
-app.post("/api/access-capacity", async (req, res) => {
-  const { type } = req.body;
-  if (!type || !(type in accessCounts)) {
-    return res.status(400).json({ error: "Invalid pass type" });
-  }
-  accessCounts[type] = (accessCounts[type] || 0) + 1;
-  res.json({ success: true, counts: accessCounts });
-});

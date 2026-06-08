@@ -20,7 +20,7 @@ export default function AboutSection() {
   };
 
   return (
-    <section id="about" className="py-20 sm:py-28 bg-black" data-testid="about-section">
+    <section id="about" className="py-20 sm:py-28 bg-black border-t border-white/10" data-testid="about-section">
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12">
 
         {/* Section label */}
