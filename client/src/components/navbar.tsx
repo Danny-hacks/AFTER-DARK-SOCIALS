@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { SiInstagram } from "react-icons/si";
 import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
@@ -8,6 +8,8 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
+  const [location] = useLocation();
+  const isGalleryActive = location === "/gallery";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -91,10 +93,15 @@ export default function Navbar() {
             ))}
             <Link
               href="/gallery"
-              className="text-xs uppercase tracking-[0.2em] font-medium text-white/50 hover:text-white transition-colors"
+              className={`text-xs uppercase tracking-[0.2em] font-medium transition-colors ${
+                isGalleryActive ? "text-white" : "text-white/50 hover:text-white"
+              }`}
               data-testid="nav-link-gallery"
             >
               Gallery
+              {isGalleryActive && (
+                <span className="block h-px bg-[#c72d28] mt-1 w-full" />
+              )}
             </Link>
             <a
               href="https://www.instagram.com/afterdarksocials.mu"
@@ -150,7 +157,9 @@ export default function Navbar() {
             <Link
               href="/gallery"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="block w-full text-left px-0 py-3 text-xs uppercase tracking-[0.2em] font-medium text-white/50 hover:text-white border-b border-white/5 transition-colors"
+              className={`block w-full text-left px-0 py-3 text-xs uppercase tracking-[0.2em] font-medium border-b border-white/5 transition-colors ${
+                isGalleryActive ? "text-white" : "text-white/50"
+              }`}
               data-testid="mobile-nav-link-gallery"
             >
               Gallery
