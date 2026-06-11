@@ -401,8 +401,8 @@ const accessPhotos: { src: string | null; position: string; alt: string }[] = [
   { src: `${R2}/Serge_53.jpg`, position: "object-center", alt: "ACCESS experience" },
   { src: `${R2}/Serge_82.jpg`, position: "object-center", alt: "ACCESS experience" },
   { src: `${R2}/Serge_70.jpg`, position: "object-center", alt: "ACCESS experience" },
-  { src: `${R2}/Serge_47.jpg`, position: "object-center", alt: "ACCESS experience" },
-  { src: `${R2}/Serge_49.jpg`, position: "object-center", alt: "ACCESS experience" },
+  { src: `${R2}/Serge_47.jpg`, position: "object-bottom", alt: "ACCESS experience" },
+  { src: `${R2}/Serge_49.jpg`, position: "object-bottom", alt: "ACCESS experience" },
   { src: `${R2}/Serge_56.jpg`, position: "object-center", alt: "ACCESS experience" },
 ];
 
