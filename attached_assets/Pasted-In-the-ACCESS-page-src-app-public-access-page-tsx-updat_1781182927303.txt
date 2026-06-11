@@ -1,0 +1,52 @@
+In the ACCESS page (src/app/(public)/access/page.tsx), update the bottom photo strip section to include a header and a 3×2 photo grid.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HEADER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add a section header above the photo grid:
+- Section label: red horizontal line + "Past Editions" in red caps 10px tracking-[0.3em]
+- Heading: "THE NIGHTS SO FAR." in Bebas Neue clamp(48px, 7vw, 96px) text-white leading-none
+- Subtext: "A glimpse into what ACCESS looks like." — 13px rgba(255,255,255,0.4)
+- Padding: pt-20 sm:pt-28 pb-12
+- Border-top: border-t border-white/10 separating this section from what's above it
+- Standard outer padding: px-5 sm:px-6 lg:px-12
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHOTO GRID
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+3 rows x 2 columns grid of photos directly below the header.
+Total: 6 photos. No outer padding on the grid — full bleed edge to edge.
+
+Grid specs:
+- CSS grid: grid-cols-2
+- Each row height: h-64 sm:h-80 lg:h-96
+- gap-0 (no gaps between photos)
+- Full width, mt-0
+
+Each photo cell:
+- position: relative, overflow-hidden, group
+- Next.js Image component with fill, object-cover
+- Each image has its own object-position — object-center as default
+- Grayscale by default: grayscale
+- On hover: grayscale-0, scale-105
+- Transition: transition-all duration-700
+- Dark overlay: absolute inset-0 bg-black/30, on hover bg-black/10, transition-colors duration-500
+
+Photo array at the top of the section — easy to swap in real images later:
+
+const accessPhotos = [
+  { src: null, position: "object-center", alt: "ACCESS experience" },
+  { src: null, position: "object-center", alt: "ACCESS experience" },
+  { src: null, position: "object-center", alt: "ACCESS experience" },
+  { src: null, position: "object-center", alt: "ACCESS experience" },
+  { src: null, position: "object-center", alt: "ACCESS experience" },
+  { src: null, position: "object-center", alt: "ACCESS experience" },
+]
+
+When src is null: render placeholder div with bg-white/5, centered label 
+in DM Mono text-white/20 text-xs uppercase tracking-widest "PHOTO 1" etc.
+When src has a value: render Next.js Image component.
+
+Do not change anything else on the access page. Only add this section.

@@ -394,6 +394,16 @@ function PassportCard({ pass }: { pass: PassFields }) {
   );
 }
 
+// ─── Past Editions photos (swap src values in when real images are ready) ─────
+const accessPhotos: { src: string | null; position: string; alt: string }[] = [
+  { src: null, position: "object-center", alt: "ACCESS experience" },
+  { src: null, position: "object-center", alt: "ACCESS experience" },
+  { src: null, position: "object-center", alt: "ACCESS experience" },
+  { src: null, position: "object-center", alt: "ACCESS experience" },
+  { src: null, position: "object-center", alt: "ACCESS experience" },
+  { src: null, position: "object-center", alt: "ACCESS experience" },
+];
+
 // ─── Main public component ────────────────────────────────────────────────────
 export function AccessPassport() {
   const [form, setForm] = useState({
@@ -729,6 +739,60 @@ export function AccessPassport() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Past Editions photo section ─────────────────────────────────── */}
+      <div className="border-t border-white/10">
+        {/* Header */}
+        <div className="px-5 sm:px-6 lg:px-12 pt-20 sm:pt-28 pb-12">
+          <div className="flex items-center gap-4 mb-8">
+            <span className="w-8 h-px bg-[#c72d28]" />
+            <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.3em]">
+              Past Editions
+            </span>
+          </div>
+          <h2
+            className="text-white leading-none mb-4"
+            style={{
+              fontFamily: "'Bebas Neue', Impact, sans-serif",
+              fontSize: "clamp(48px, 7vw, 96px)",
+            }}
+          >
+            THE NIGHTS SO FAR.
+          </h2>
+          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)" }}>
+            A glimpse into what ACCESS looks like.
+          </p>
+        </div>
+
+        {/* 3×2 photo grid — full bleed */}
+        <div className="grid grid-cols-2 gap-0">
+          {accessPhotos.map((photo, i) => (
+            <div
+              key={i}
+              className="relative overflow-hidden group h-64 sm:h-80 lg:h-96"
+            >
+              {photo.src ? (
+                <img
+                  src={photo.src}
+                  alt={photo.alt}
+                  className={`absolute inset-0 w-full h-full object-cover ${photo.position} grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700`}
+                />
+              ) : (
+                <div className="absolute inset-0 bg-white/5 flex items-center justify-center">
+                  <span
+                    style={{ fontFamily: "'DM Mono', monospace" }}
+                    className="text-white/20 text-xs uppercase tracking-widest"
+                  >
+                    Photo {i + 1}
+                  </span>
+                </div>
+              )}
+              {/* Dark overlay */}
+              <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors duration-500" />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
