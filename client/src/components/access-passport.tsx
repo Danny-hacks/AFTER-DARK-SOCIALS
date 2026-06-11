@@ -528,7 +528,7 @@ export function AccessPassport() {
               fontSize: "clamp(52px, 9vw, 100px)",
             }}
           >
-            APPLY FOR
+            RSVP FOR
             <br />
             <span
               style={{
@@ -727,7 +727,7 @@ export function AccessPassport() {
                   className="flex items-center justify-center gap-2 bg-[#c9962a] hover:bg-[#b8860b] disabled:opacity-40 text-black text-[9px] uppercase tracking-[0.2em] font-bold py-4 transition-colors"
                 >
                   <SiWhatsapp className="w-3 h-3" />
-                  {sending ? "Sending..." : "Apply →"}
+                  {sending ? "Sending..." : "RSVP →"}
                 </button>
               </div>
             </div>
