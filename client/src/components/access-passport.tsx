@@ -399,11 +399,11 @@ const R2 = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictu
 // ─── Past Editions photos — update src / position per image as needed ─────────
 const accessPhotos: { src: string | null; position: string; alt: string }[] = [
   { src: `${R2}/Serge_53.jpg`, position: "object-center", alt: "ACCESS experience" },
-  { src: `${R2}/Serge_56.jpg`, position: "object-center", alt: "ACCESS experience" },
-  { src: `${R2}/Serge_59.jpg`, position: "object-center", alt: "ACCESS experience" },
-  { src: `${R2}/Serge_70.jpg`, position: "object-center", alt: "ACCESS experience" },
   { src: `${R2}/Serge_82.jpg`, position: "object-center", alt: "ACCESS experience" },
-  { src: `${R2}/Serge_53.jpg`, position: "object-top",   alt: "ACCESS experience" },
+  { src: `${R2}/Serge_70.jpg`, position: "object-center", alt: "ACCESS experience" },
+  { src: `${R2}/Serge_47.jpg`, position: "object-center", alt: "ACCESS experience" },
+  { src: `${R2}/Serge_49.jpg`, position: "object-center", alt: "ACCESS experience" },
+  { src: `${R2}/Serge_56.jpg`, position: "object-center", alt: "ACCESS experience" },
 ];
 
 // ─── Main public component ────────────────────────────────────────────────────
