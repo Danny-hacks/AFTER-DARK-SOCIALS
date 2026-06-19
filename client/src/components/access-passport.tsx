@@ -116,8 +116,8 @@ function PassportCard({ pass }: { pass: PassFields }) {
           top: "50%",
           left: "50%",
           transform: "translate(-50%,-50%)",
-          width: "200px",
-          height: "150px",
+          width: "180px",
+          height: "180px",
           opacity: 0.05,
           pointerEvents: "none",
           zIndex: 0,
@@ -299,7 +299,7 @@ function PassportCard({ pass }: { pass: PassFields }) {
           <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "7px", color: "rgba(0,0,0,0.3)", marginBottom: "1px" }}>
             Pass ID:
           </div>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", color: "rgba(0,0,0,0.42)", letterSpacing: "0.1em" }}>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "10px", color: "rgba(0,0,0,0.42)", letterSpacing: "0.1em" }}>
             {pass.id}
           </div>
         </div>
