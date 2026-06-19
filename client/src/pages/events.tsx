@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Calendar, MapPin, Clock, ArrowUpRight } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import type { Event } from "@shared/schema";
@@ -65,7 +66,6 @@ export default function EventsPage() {
   });
 
   const upcoming = events.filter((e) => !e.isPast);
-  const hasPast = events.some((e) => e.isPast);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -83,26 +83,26 @@ export default function EventsPage() {
             className="font-black text-white leading-none"
             style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(52px, 8vw, 100px)" }}
           >
-            UPCOMING
+            GET YOUR
             <br />
             <span style={{ WebkitTextStroke: "2px rgba(255,255,255,0.15)", color: "transparent" }}>
-              EVENTS.
+              TICKETS.
             </span>
           </h1>
           <p className="text-white/40 text-sm leading-relaxed">
-            Every AFTR night is a new chapter. Check what's coming and secure your spot before it sells out.
+            Every AFTR night is a new chapter. Secure your spot before it sells out.
           </p>
         </div>
 
-        {/* Upcoming events */}
+        {/* Event grid */}
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-white/10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white/10">
             {[1, 2, 3].map((i) => (
               <div key={i} className="bg-black h-64 animate-pulse" />
             ))}
           </div>
         ) : upcoming.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-white/10 mb-20">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white/10">
             {upcoming.map((event) => (
               <div key={event.id} className="bg-black">
                 <EventCard event={event} />
@@ -110,31 +110,40 @@ export default function EventsPage() {
             ))}
           </div>
         ) : (
-          <div className="border border-white/10 p-12 text-center mb-20">
+          /* Empty state */
+          <div className="border border-white/10 py-20 sm:py-28 px-8 flex flex-col items-center text-center">
+            <p className="text-[#c72d28] text-[9px] uppercase tracking-[0.35em] mb-4">Next Up</p>
+            <h2
+              className="font-black text-white leading-none mb-3"
+              style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(48px, 8vw, 96px)" }}
+            >
+              VOL. 4
+            </h2>
             <p
-              className="font-black text-white/20 mb-3"
-              style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "48px" }}
+              className="font-black leading-none mb-8"
+              style={{
+                fontFamily: "'Bebas Neue', Impact, sans-serif",
+                fontSize: "clamp(28px, 4vw, 48px)",
+                WebkitTextStroke: "2px rgba(255,255,255,0.15)",
+                color: "transparent",
+              }}
             >
               COMING SOON.
             </p>
-            <p className="text-white/25 text-sm">No upcoming events announced yet. Follow us to be first to know.</p>
+            <p className="text-white/30 text-sm mb-10 max-w-sm">
+              Details dropping soon. Join the WhatsApp group to be first to know.
+            </p>
+            <a
+              href="https://wa.me/23058205220"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex items-center gap-3 bg-[#25D366] text-white text-[10px] uppercase tracking-[0.25em] font-bold px-8 py-4 hover:bg-[#1ebe5b] transition-colors"
+            >
+              <SiWhatsapp className="w-4 h-4" />
+              Join WhatsApp Group
+            </a>
           </div>
         )}
-
-        {/* Past events link */}
-        <div className="border-t border-white/10 pt-12 flex items-center justify-between">
-          <div>
-            <p className="text-white text-sm font-medium mb-1">Looking for past events?</p>
-            <p className="text-white/30 text-xs">Relive the nights — Vol. 1 through Vol. 3.</p>
-          </div>
-          <Link
-            href="/events/past"
-            className="group inline-flex items-center gap-3 border border-white/15 text-white/50 text-[10px] uppercase tracking-[0.2em] font-bold px-6 py-3 hover:border-white/40 hover:text-white transition-all"
-          >
-            Past Events
-            <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </Link>
-        </div>
       </div>
 
       <Footer />
