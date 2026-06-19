@@ -801,6 +801,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ─── Table-based ACCESS routes (new inventory system) ──────────────────────
+  const TABLE_INVENTORY: Record<string, { label: string; price: number; capacity: number; maxGuests: number; minGuests: number }> = {
+    table_4:      { label: "Table for 4",           price: 4000, capacity: 5, maxGuests: 4,  minGuests: 1 },
+    table_5:      { label: "Table for 5",           price: 5000, capacity: 5, maxGuests: 5,  minGuests: 1 },
+    section_8_12: { label: "Section (8–12 guests)", price: 8000, capacity: 3, maxGuests: 12, minGuests: 8 },
+  };
+  const VALID_TABLE_TYPES_NEW = new Set(Object.keys(TABLE_INVENTORY));
+
+  app.get("/api/access/capacity", async (_req, res) => {
+    try {
+      const counts = await storage.getAccessCounts();
+      const result: Record<string, object> = {};
+      for (const [key, config] of Object.entries(TABLE_INVENTORY)) {
+        result[key] = { ...config, used: counts[key] || 0 };
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching access capacity:", error);
+      res.status(500).json({ error: "Failed to fetch access capacity" });
+    }
+  });
+
+  app.post("/api/access/apply", async (req, res) => {
+    const { tableType, guests } = req.body;
+    if (!tableType || !VALID_TABLE_TYPES_NEW.has(tableType)) {
+      return res.status(400).json({ error: "Invalid table type" });
+    }
+    if (!Array.isArray(guests) || guests.length === 0) {
+      return res.status(400).json({ error: "Guests required" });
+    }
+    const config = TABLE_INVENTORY[tableType];
+    try {
+      const counts = await storage.getAccessCounts();
+      if ((counts[tableType] || 0) >= config.capacity) {
+        return res.status(400).json({ error: "This table type is fully booked" });
+      }
+      await storage.incrementAccessCount(tableType);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error applying for access:", error);
+      res.status(500).json({ error: "Failed to apply" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

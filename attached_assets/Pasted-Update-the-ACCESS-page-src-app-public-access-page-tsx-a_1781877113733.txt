@@ -1,0 +1,161 @@
+Update the ACCESS page (src/app/(public)/access/page.tsx) and its related components. Full spec below.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGES OVERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Remove the Edition dropdown entirely
+2. Hardcode the date to "27 July 2026" on the passport card
+3. Replace the Pass Type dropdown with a full table/section selection UI
+4. Capacity is based on real inventory (not a flat number)
+5. Each person at a table gets their own individual pass
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REAL INVENTORY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Indoor Tables (5 total):
+- Table for 4 — MUR 4,000 — 5 available
+- Table for 5 — MUR 5,000 — 5 available
+
+Sections (3 total):
+- Section for 8–12 guests — MUR 8,000 — 3 available
+
+Store remaining counts in the API route /api/access/capacity.
+The capacity object should look like:
+{
+  "table_4": { label: "Table for 4", price: 4000, capacity: 5, used: 0, maxGuests: 4 },
+  "table_5": { label: "Table for 5", price: 5000, capacity: 5, used: 0, maxGuests: 5 },
+  "section_8_12": { label: "Section (8–12 guests)", price: 8000, capacity: 3, used: 0, maxGuests: 12 }
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1 — TABLE SELECTION UI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace the Pass Type dropdown with a full table selection section that appears ABOVE the form.
+
+Layout: section label "Select Your Table" in gold caps + 3 cards in a grid (1 col mobile, 3 col lg)
+
+Each card design:
+- Border: border border-white/10, hover: border-[#c9962a]/50
+- Selected state: border-[#c9962a] bg-[#c9962a]/8
+- Sold out state: opacity-40 pointer-events-none, "SOLD OUT" badge
+- Padding: p-6
+- Contents:
+  Top row: table name in Bebas Neue 22px text-white + price right-aligned in gold "MUR X,XXX"
+  Capacity pill: "Up to X guests" — 9px gold caps
+  Remaining: "X tables remaining" — 9px text-white/30 (hide if sold out)
+  Bottom: short description 12px text-white/40
+
+Card descriptions:
+- Table for 4: "Intimate reserved table for your group of 4. Includes dedicated server and bottle service."
+- Table for 5: "Reserved table for 5 with premium positioning. Dedicated server and bottle service included."
+- Section (8–12): "Exclusive section for larger groups. Prime floor placement, bottle service, and dedicated host."
+
+When a card is selected:
+- Card gets selected styling
+- A guest count input appears below the cards: "HOW MANY IN YOUR GROUP?" label + number input (min depends on table type: table_4 min 1 max 4, table_5 min 1 max 5, section min 8 max 12)
+- Below guest count: helper text "You will generate one pass per person at your table"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2 — INDIVIDUAL PASS GENERATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Once table is selected and guest count is entered, the form area changes to show one form per guest.
+
+Each guest form (stacked vertically, separated by border-t border-white/10):
+- Guest label: "GUEST 1", "GUEST 2" etc — 10px gold caps
+- Full Name field (required)
+- Photo upload (optional) — renders on their individual passport card
+- WhatsApp Number (optional — for sending their pass)
+
+The live passport preview on the right shows whichever guest form is currently active/focused.
+
+Passport card hardcoded values:
+- Date: "27 JULY 2026" — hardcoded, not editable
+- Edition field: REMOVE — replace with "Table" field showing the selected table name e.g. "TABLE FOR 4"
+- Pass ID: unique per guest — generated on mount for each guest
+- Place of Access: Mauritius (static)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3 — SEND PASSES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+At the bottom: summary bar showing:
+- Selected table name + price
+- Number of guests
+- "Send All Passes" gold button
+
+On click "Send All Passes":
+1. Validate all guest names are filled
+2. POST to /api/access/apply with:
+   {
+     tableType: "table_4" | "table_5" | "section_8_12",
+     guests: [{ name, phone, passId }],
+     date: "27 July 2026"
+   }
+3. Increment used count for that table type in capacity
+4. Open WhatsApp to admin (23058205220) with:
+   "ACCESS RESERVATION
+   Table: [Table Name]
+   Date: 27 July 2026
+   Total: MUR [Price]
+   Guests ([X] people):
+   1. [Name] — [PassId] — [Phone if provided]
+   2. [Name] — [PassId]
+   ..."
+5. For each guest that provided a WhatsApp number, open WhatsApp to their number with their individual pass details after a 1 second delay per guest
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASSPORT CARD UPDATES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Update PassportCard component props:
+- Remove: edition prop
+- Remove: passType prop  
+- Add: tableType prop (shows e.g. "TABLE FOR 4")
+- Hardcode: date = "27 JULY 2026"
+
+Passport fields (4 fields, same layout as before):
+1. Name: from guest name input
+2. Place of Access: Mauritius (static)
+3. Table: from selected tableType e.g. "TABLE FOR 4"
+4. Date: "27 JULY 2026" (hardcoded)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CAPACITY HANDLING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GET /api/access/capacity — returns current inventory with used counts
+POST /api/access/apply — increments used count for the selected table type
+
+When a table type used >= capacity:
+- Card shows "SOLD OUT" badge
+- Card is greyed out and unselectable
+- If ALL table types are sold out: show full page "FULLY BOOKED" message
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UI FLOW SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Step 1: User lands on /access → sees table selection cards with pricing
+Step 2: User selects a table → guest count input appears
+Step 3: User enters guest count → individual guest forms appear (one per person)
+Step 4: User fills in names (+ optional photos and WhatsApp numbers)
+Step 5: Live passport preview shows the active guest's pass updating in real time
+Step 6: User hits "Send All Passes" → WhatsApp opens to admin + individual passes sent to guests who provided numbers
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DESIGN RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Keep all existing page design — heading "RSVP FOR ACCESS." stays
+- Keep passport card design exactly as is
+- Table selection cards: black bg, gold border on hover/selected, consistent with site design system
+- All labels: gold 9-10px uppercase tracking-[0.3em]
+- All inputs: border-b border-white/15 only, no box border
+- No emoji anywhere
+- Mobile: table cards stack 1 col, guest forms stack below passport preview
+- Passport preview stays sticky on desktop (lg:sticky lg:top-8)
+- Active guest indicator: highlight the currently focused guest form with a subtle gold left border
