@@ -87,7 +87,6 @@ function PassportCard({ pass }: { pass: PassFields }) {
     <div
       style={{
         width: "100%",
-        maxWidth: "480px",
         border: "3px solid #7a1515",
         borderRadius: "10px",
         overflow: "hidden",
