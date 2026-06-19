@@ -336,7 +336,6 @@ export function AccessPassport() {
   const [inventory, setInventory] = useState<Record<string, InventoryItem>>({});
   const [loadingInventory, setLoadingInventory] = useState(true);
   const [selectedTable, setSelectedTable] = useState<TableKey | null>(null);
-  const [guestCount, setGuestCount] = useState<number>(0);
   const [guests, setGuests] = useState<GuestData[]>([]);
   const [activeGuest, setActiveGuest] = useState<number>(0);
   const [sending, setSending] = useState(false);
@@ -377,21 +376,22 @@ export function AccessPassport() {
 
   const selectedConfig = selectedTable ? inventory[selectedTable] : null;
 
-  // When a table is selected reset guest count + forms
+  // Fixed guest counts per table type
+  const FIXED_COUNTS: Record<TableKey, number> = {
+    table_4: 4,
+    table_5: 5,
+    section_8_12: 8,
+  };
+
+  // When a table is selected, immediately generate the fixed set of guest forms
   function selectTable(key: TableKey) {
     setSelectedTable(key);
-    setGuestCount(0);
-    setGuests([]);
     setActiveGuest(0);
-  }
-
-  // When guest count is confirmed, generate per-guest state
-  function applyGuestCount(count: number) {
+    const count = FIXED_COUNTS[key];
     const newGuests: GuestData[] = Array.from({ length: count }, (_, i) =>
       guests[i] ?? { name: "", photo: "", phone: "", passId: rndId() }
     );
     setGuests(newGuests);
-    setActiveGuest(0);
   }
 
   function updateGuest(index: number, patch: Partial<GuestData>) {
@@ -589,45 +589,7 @@ export function AccessPassport() {
               </div>
             </div>
 
-            {/* ── Step 2: Guest count ── */}
-            {selectedTable && selectedConfig && (
-              <div className="border-t border-white/10 pt-10 mb-10">
-                <label className={labelCls}>How many in your group?</label>
-                <div className="flex items-center gap-4 mt-1">
-                  <input
-                    type="number"
-                    min={selectedConfig.minGuests}
-                    max={selectedConfig.maxGuests}
-                    value={guestCount || ""}
-                    onChange={(e) => {
-                      const v = parseInt(e.target.value, 10);
-                      if (!isNaN(v)) setGuestCount(Math.min(selectedConfig.maxGuests, Math.max(selectedConfig.minGuests, v)));
-                    }}
-                    placeholder={`${selectedConfig.minGuests}–${selectedConfig.maxGuests}`}
-                    className={`${inputCls} max-w-[120px]`}
-                  />
-                  <button
-                    onClick={() => guestCount >= selectedConfig.minGuests && applyGuestCount(guestCount)}
-                    disabled={guestCount < selectedConfig.minGuests || guestCount > selectedConfig.maxGuests}
-                    className="text-[9px] uppercase tracking-[0.2em] text-black bg-[#c9962a] hover:bg-[#b8860b] disabled:opacity-30 disabled:pointer-events-none px-5 py-3 transition-colors font-bold"
-                  >
-                    Confirm
-                  </button>
-                </div>
-                {guestCount > 0 && guestCount >= selectedConfig.minGuests && guests.length === 0 && (
-                  <p className="text-white/30 text-[9px] uppercase tracking-[0.15em] mt-2">
-                    You will generate one pass per person at your table
-                  </p>
-                )}
-                {guests.length > 0 && (
-                  <p className="text-white/30 text-[9px] uppercase tracking-[0.15em] mt-2">
-                    You will generate one pass per person at your table
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* ── Step 3: Guest forms + passport preview ── */}
+            {/* ── Guest forms + passport preview ── */}
             {guests.length > 0 && selectedConfig && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
 
