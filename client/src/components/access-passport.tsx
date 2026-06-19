@@ -477,38 +477,53 @@ export function AccessPassport() {
     "w-full bg-transparent border-0 border-b border-white/15 text-white placeholder:text-white/20 text-sm px-0 py-3 focus:outline-none focus:border-[#c9962a]/50 transition-colors font-mono";
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="max-w-6xl mx-auto px-5 sm:px-6 lg:px-12 py-20 sm:py-28">
+    <div className="min-h-screen bg-black text-white pt-28">
 
-        {/* Section label */}
+      {/* ── Section 1: Header ── */}
+      <div className="px-5 sm:px-6 lg:px-12 pb-12 border-b border-white/10">
         <div className="flex items-center gap-4 mb-16">
           <span className="w-8 h-px bg-[#c9962a]" />
           <span className="text-[#c9962a] text-[10px] uppercase tracking-[0.35em]">Exclusive Experience</span>
         </div>
-
-        {/* Heading */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-end mb-16 border-b border-white/10 pb-16">
-          <h1
-            className="font-black text-white leading-none"
-            style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(52px, 9vw, 100px)" }}
+        <h1
+          className="font-black text-white leading-none mb-6"
+          style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(56px, 10vw, 140px)" }}
+        >
+          RSVP FOR
+          <br />
+          <span
+            style={{
+              background: "linear-gradient(135deg,#c9962a,#f5d76e,#b8860b)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
           >
-            RSVP FOR
-            <br />
-            <span
-              style={{
-                background: "linear-gradient(135deg,#c9962a,#f5d76e,#b8860b)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
-              ACCESS.
-            </span>
-          </h1>
-          <p className="text-white/40 text-sm leading-relaxed max-w-sm lg:pb-2">
-            Select your table, enter your group's details, and your passes generate instantly. Send them via WhatsApp and present at the door.
+            ACCESS.
+          </span>
+        </h1>
+        <p className="text-white/40 text-sm leading-relaxed max-w-xl">
+          Select your table, enter your group's details, and your passes generate instantly. Send them via WhatsApp and present at the door.
+        </p>
+      </div>
+
+      {/* ── Section 2: Banner Image ── */}
+      <div className="my-12 px-5 sm:px-6 lg:px-12">
+        <div className="relative h-[45vh] sm:h-[55vh] overflow-hidden">
+          <img
+            src={`${R2}/Serge_59.jpg`}
+            alt="ACCESS experience"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+          <p className="absolute bottom-8 left-5 sm:left-6 lg:left-12 text-white/30 text-[9px] uppercase tracking-[0.3em]">
+            ACCESS · Vol. 3 · 2025
           </p>
         </div>
+      </div>
+
+      {/* ── Reservation content ── */}
+      <div className="px-5 sm:px-6 lg:px-12 pb-20">
 
         {/* ── Fully booked state ── */}
         {allSoldOut ? (
