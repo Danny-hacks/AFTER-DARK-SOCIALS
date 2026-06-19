@@ -4,53 +4,31 @@ import { Link, useLocation } from "wouter";
 import { SiInstagram } from "react-icons/si";
 import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
+const navLinks = [
+  { label: "About",    href: "/about" },
+  { label: "Events",   href: "/events" },
+  { label: "ACCESS",   href: "/access" },
+  { label: "Gallery",  href: "/gallery" },
+  { label: "Services", href: "/services" },
+  { label: "Contact",  href: "/contact" },
+];
+
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState("");
   const [location] = useLocation();
-  const isGalleryActive = location === "/gallery";
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-      const sections = [
-        "about",
-        "services",
-        "access",
-        "past-events",
-        "contact",
-      ];
-      let currentSection = "";
-      for (const sectionId of sections) {
-        const element = document.getElementById(sectionId);
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          if (rect.top <= 150 && rect.bottom >= 150) {
-            currentSection = sectionId;
-            break;
-          }
-        }
-      }
-      setActiveSection(currentSection);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const scrollTo = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) element.scrollIntoView({ behavior: "smooth" });
-    setIsMobileMenuOpen(false);
-  };
+  // Close mobile menu on route change
+  useEffect(() => { setIsMobileMenuOpen(false); }, [location]);
 
-  const navLinks = [
-    { label: "About", id: "about" },
-    { label: "Services", id: "services" },
-    { label: "ACCESS", id: "access" },
-    { label: "Past Events", id: "past-events" },
-    { label: "Contact", id: "contact" },
-  ];
+  const isActive = (href: string) =>
+    href === "/" ? location === "/" : location.startsWith(href);
 
   return (
     <nav
@@ -61,48 +39,32 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <div className="flex items-center justify-between h-16 sm:h-20">
-          <button
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="flex items-center"
-            data-testid="nav-logo"
-          >
+          {/* Logo */}
+          <Link href="/" className="flex items-center" data-testid="nav-logo">
             <img
               src={logoImage}
               alt="After Dark Socials"
               className="h-10 sm:h-12 w-auto"
             />
-          </button>
+          </Link>
 
+          {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => scrollTo(link.id)}
+              <Link
+                key={link.href}
+                href={link.href}
                 className={`text-xs uppercase tracking-[0.2em] font-medium transition-colors ${
-                  activeSection === link.id
-                    ? "text-white"
-                    : "text-white/50 hover:text-white"
+                  isActive(link.href) ? "text-white" : "text-white/50 hover:text-white"
                 }`}
-                data-testid={`nav-link-${link.id}`}
+                data-testid={`nav-link-${link.label.toLowerCase()}`}
               >
                 {link.label}
-                {activeSection === link.id && (
+                {isActive(link.href) && (
                   <span className="block h-px bg-[#c72d28] mt-1 w-full" />
                 )}
-              </button>
+              </Link>
             ))}
-            <Link
-              href="/gallery"
-              className={`text-xs uppercase tracking-[0.2em] font-medium transition-colors ${
-                isGalleryActive ? "text-white" : "text-white/50 hover:text-white"
-              }`}
-              data-testid="nav-link-gallery"
-            >
-              Gallery
-              {isGalleryActive && (
-                <span className="block h-px bg-[#c72d28] mt-1 w-full" />
-              )}
-            </Link>
             <a
               href="https://www.instagram.com/afterdarksocials.mu"
               target="_blank"
@@ -124,46 +86,34 @@ export default function Navbar() {
             </a>
           </div>
 
+          {/* Mobile toggle */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden p-2 text-white"
             data-testid="mobile-menu-button"
           >
-            {isMobileMenuOpen ? (
-              <X className="w-5 h-5" />
-            ) : (
-              <Menu className="w-5 h-5" />
-            )}
+            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
 
+        {/* Mobile menu */}
         {isMobileMenuOpen && (
           <div
             className="md:hidden bg-black border-t border-white/10 py-6"
             data-testid="mobile-menu"
           >
             {navLinks.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => scrollTo(link.id)}
+              <Link
+                key={link.href}
+                href={link.href}
                 className={`block w-full text-left px-0 py-3 text-xs uppercase tracking-[0.2em] font-medium transition-colors border-b border-white/5 ${
-                  activeSection === link.id ? "text-white" : "text-white/50"
+                  isActive(link.href) ? "text-white" : "text-white/50"
                 }`}
-                data-testid={`mobile-nav-link-${link.id}`}
+                data-testid={`mobile-nav-link-${link.label.toLowerCase()}`}
               >
                 {link.label}
-              </button>
+              </Link>
             ))}
-            <Link
-              href="/gallery"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className={`block w-full text-left px-0 py-3 text-xs uppercase tracking-[0.2em] font-medium border-b border-white/5 transition-colors ${
-                isGalleryActive ? "text-white" : "text-white/50"
-              }`}
-              data-testid="mobile-nav-link-gallery"
-            >
-              Gallery
-            </Link>
             <a
               href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO"
               target="_blank"
