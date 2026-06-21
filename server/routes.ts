@@ -827,6 +827,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/admin/access/single", requireAuth, async (req, res) => {
+    const { name, phone, tableType, tableNumber, notes } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: "Name required" });
+    if (!tableType || !VALID_TABLE_TYPES_NEW.has(tableType)) {
+      return res.status(400).json({ error: "Invalid table type" });
+    }
+    const tNum = parseInt(tableNumber, 10);
+    if (isNaN(tNum) || tNum < 1) {
+      return res.status(400).json({ error: "Invalid table number" });
+    }
+    const config = TABLE_INVENTORY[tableType];
+    const passId = `ACC-${tNum}001`;
+    const guest = {
+      name: name.trim(),
+      phone: phone?.trim() ?? "",
+      passId,
+      notes: notes?.trim() ?? "",
+    };
+    try {
+      const reservation = await storage.createAdminSinglePass({
+        tableType,
+        tableLabel: config.label,
+        guestsJson: JSON.stringify([guest]),
+      });
+      let whatsappUrl: string | null = null;
+      if (phone?.trim()) {
+        const clean = (phone as string).replace(/\s+/g, "").replace(/^\+/, "");
+        const msg =
+          `Your ACCESS pass is confirmed.\n\n` +
+          `Name: ${(name as string).toUpperCase()}\n` +
+          `Table: ${config.label.toUpperCase()}\n` +
+          `Date: 27 July 2026\n` +
+          `Pass ID: ${passId}\n\n` +
+          `Your pass has been attached to this message.\n\n` +
+          `After Dark Socials · @afterdarksocials.mu`;
+        whatsappUrl = `https://wa.me/${clean}?text=${encodeURIComponent(msg)}`;
+      }
+      res.json({ success: true, reservation, passId, whatsappUrl });
+    } catch (error) {
+      console.error("Error creating single pass:", error);
+      res.status(500).json({ error: "Failed to create pass" });
+    }
+  });
+
   app.put("/api/admin/access/:id/reject", requireAuth, async (req, res) => {
     try {
       const reservation = await storage.rejectAccessReservation(req.params.id);

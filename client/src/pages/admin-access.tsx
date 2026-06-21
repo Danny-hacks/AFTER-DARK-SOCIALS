@@ -1,13 +1,19 @@
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Check, X, Clock, Send, MessageSquare } from "lucide-react";
+import { Loader2, Check, X, Clock, ChevronDown, ChevronUp, Download, MessageSquare, Plus } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
+import { PassportCard } from "@/components/passport-card";
+import type { PassFields } from "@/components/passport-card";
+import { downloadPassPng } from "@/lib/download-pass";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface Guest {
   name: string;
   phone?: string;
   passId: string;
+  notes?: string;
 }
 
 interface Reservation {
@@ -16,6 +22,7 @@ interface Reservation {
   tableLabel: string;
   guestsJson: string;
   status: "pending_payment" | "approved" | "rejected";
+  source?: string;
   createdAt: string;
   approvedAt: string | null;
 }
@@ -31,12 +38,20 @@ interface ReservationsResponse {
   counts: Record<string, TableCounts>;
 }
 
+// ─── Config ───────────────────────────────────────────────────────────────────
 const TABLE_CONFIG: Record<string, { label: string; price: number; capacity: number }> = {
   table_4:      { label: "Table for 4",           price: 4000, capacity: 5 },
   table_5:      { label: "Table for 5",           price: 5000, capacity: 5 },
   section_8_12: { label: "Section (8–12 guests)", price: 8000, capacity: 3 },
 };
 
+const TABLE_MAX_NUM: Record<string, number> = {
+  table_4: 5,
+  table_5: 5,
+  section_8_12: 3,
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", {
     day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
@@ -47,38 +62,30 @@ function parseGuests(json: string): Guest[] {
   try { return JSON.parse(json); } catch { return []; }
 }
 
-function buildWhatsappUrl(guest: Guest, tableLabel: string): string {
+function buildWaUrl(guest: Guest, tableLabel: string): string {
   const clean = (guest.phone ?? "").replace(/\s+/g, "").replace(/^\+/, "");
   const msg =
-    `Your ACCESS pass has been confirmed.\n\n` +
+    `Your ACCESS pass is confirmed.\n\n` +
     `Name: ${guest.name.toUpperCase()}\n` +
     `Table: ${tableLabel.toUpperCase()}\n` +
     `Date: 27 July 2026\n` +
-    `Pass ID: ${guest.passId}\n` +
-    `Venue: Mauritius\n\n` +
-    `Present this pass at the door.\n` +
+    `Pass ID: ${guest.passId}\n\n` +
+    `Your pass has been attached to this message.\n\n` +
     `After Dark Socials · @afterdarksocials.mu`;
   return `https://wa.me/${clean}?text=${encodeURIComponent(msg)}`;
 }
 
-function sendPasses(r: Reservation) {
-  const guests = parseGuests(r.guestsJson);
-  let delay = 0;
-  guests.forEach((g) => {
-    if (!g.phone?.trim()) return;
-    setTimeout(() => window.open(buildWhatsappUrl(g, r.tableLabel), "_blank"), delay);
-    delay += 1000;
-  });
-}
-
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function AdminAccessPage() {
   const { toast } = useToast();
 
+  // ── Data ──
   const { data, isLoading } = useQuery<ReservationsResponse>({
     queryKey: ["/api/admin/access/reservations"],
     select: (d) => d,
   });
 
+  // ── Approve / reject mutations ──
   const approveMutation = useMutation({
     mutationFn: (id: string) => apiRequest("PUT", `/api/admin/access/${id}/approve`),
     onSuccess: () => {
@@ -97,19 +104,259 @@ export default function AdminAccessPage() {
     onError: () => toast({ title: "Failed to reject", variant: "destructive" }),
   });
 
-  const reservations = data?.reservations ?? [];
-  const counts = data?.counts ?? {};
+  // ── Single pass form ──
+  const [showIssueForm, setShowIssueForm]     = useState(false);
+  const [singleName, setSingleName]           = useState("");
+  const [singlePhone, setSinglePhone]         = useState("");
+  const [singleType, setSingleType]           = useState("table_4");
+  const [singleTableNum, setSingleTableNum]   = useState(1);
+  const [singleNotes, setSingleNotes]         = useState("");
 
+  const livePassId = `ACC-${singleTableNum}001`;
+  const livePass: PassFields = {
+    name: singleName,
+    tableLabel: TABLE_CONFIG[singleType]?.label ?? "",
+    photo: "",
+    id: livePassId,
+  };
+
+  const singleMutation = useMutation({
+    mutationFn: (body: object) => apiRequest("POST", "/api/admin/access/single", body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/access/reservations"] });
+    },
+    onError: () => toast({ title: "Failed to create pass", variant: "destructive" }),
+  });
+
+  function resetSingleForm() {
+    setSingleName(""); setSinglePhone(""); setSingleType("table_4");
+    setSingleTableNum(1); setSingleNotes("");
+  }
+
+  // ── PDF download via hidden capture div ──
+  const captureRef = useRef<HTMLDivElement>(null);
+  const [capturePass, setCapturePass] = useState<PassFields | null>(null);
+
+  const triggerDownload = useCallback(async (pass: PassFields): Promise<void> => {
+    setCapturePass(pass);
+    await new Promise((r) => setTimeout(r, 300));
+    if (captureRef.current) {
+      await downloadPassPng(captureRef.current, pass.id);
+    }
+    setCapturePass(null);
+  }, []);
+
+  // Single pass actions
+  async function handleSaveOnly() {
+    if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
+    await singleMutation.mutateAsync({ name: singleName, phone: singlePhone, tableType: singleType, tableNumber: singleTableNum, notes: singleNotes });
+    resetSingleForm();
+    toast({ title: "Pass saved", description: `Pass ID: ${livePassId}` });
+  }
+
+  async function handleDownloadPass() {
+    if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
+    const res: any = await singleMutation.mutateAsync({ name: singleName, phone: singlePhone, tableType: singleType, tableNumber: singleTableNum, notes: singleNotes });
+    const pass: PassFields = { name: singleName, tableLabel: TABLE_CONFIG[singleType]?.label ?? "", photo: "", id: res.passId ?? livePassId };
+    await triggerDownload(pass);
+    resetSingleForm();
+    toast({ title: "Pass saved & downloaded", description: `ACCESS-PASS-${pass.id}.png` });
+  }
+
+  async function handleSendWhatsApp() {
+    if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
+    const res: any = await singleMutation.mutateAsync({ name: singleName, phone: singlePhone, tableType: singleType, tableNumber: singleTableNum, notes: singleNotes });
+    const pass: PassFields = { name: singleName, tableLabel: TABLE_CONFIG[singleType]?.label ?? "", photo: "", id: res.passId ?? livePassId };
+    await triggerDownload(pass);
+    if (res.whatsappUrl) window.open(res.whatsappUrl, "_blank");
+    resetSingleForm();
+    toast({ title: "Pass sent", description: singlePhone ? "PNG downloaded · WhatsApp opened" : "PNG downloaded (no phone provided)" });
+  }
+
+  // Per-guest download / send
+  async function downloadGuestPass(guest: Guest, tableLabel: string) {
+    const pass: PassFields = { name: guest.name, tableLabel, photo: "", id: guest.passId };
+    await triggerDownload(pass);
+    toast({ title: "Downloading…", description: `ACCESS-PASS-${guest.passId}.png` });
+  }
+
+  function sendGuestWhatsApp(guest: Guest, tableLabel: string) {
+    downloadGuestPass(guest, tableLabel);
+    setTimeout(() => window.open(buildWaUrl(guest, tableLabel), "_blank"), 400);
+  }
+
+  const reservations = data?.reservations ?? [];
+  const counts       = data?.counts ?? {};
   const pending  = reservations.filter((r) => r.status === "pending_payment");
   const approved = reservations.filter((r) => r.status === "approved");
   const rejected = reservations.filter((r) => r.status === "rejected");
 
+  const isBusy = singleMutation.isPending;
+
+  // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <AdminLayout title="ACCESS">
+      {/* Hidden capture element for html2canvas */}
+      {capturePass && (
+        <div ref={captureRef} style={{ position: "fixed", top: -9999, left: -9999, width: 460, zIndex: -1, pointerEvents: "none" }}>
+          <PassportCard pass={capturePass} pdfMode />
+        </div>
+      )}
+
       <div className="mb-8">
         <p className="text-white/40 text-xs uppercase tracking-[0.2em]">
           Reservations · confirm payment to approve and issue passes
         </p>
+      </div>
+
+      {/* ════════════════════════════════════════════════════════════
+          ISSUE SINGLE PASS — collapsible panel
+      ════════════════════════════════════════════════════════════ */}
+      <div className="mb-12 border border-white/10">
+        {/* Toggle header */}
+        <button
+          onClick={() => setShowIssueForm((v) => !v)}
+          className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-white/[0.02] transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Plus className="w-3.5 h-3.5 text-[#c9962a]" />
+            <span
+              className="text-white font-black leading-none"
+              style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "18px" }}
+            >
+              Issue Single Pass
+            </span>
+          </div>
+          {showIssueForm
+            ? <ChevronUp className="w-3.5 h-3.5 text-white/30" />
+            : <ChevronDown className="w-3.5 h-3.5 text-white/30" />
+          }
+        </button>
+
+        {/* Form body */}
+        {showIssueForm && (
+          <div className="border-t border-white/10 p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+
+              {/* ── Form (left) ── */}
+              <div className="lg:col-span-5 space-y-5">
+                {/* Name */}
+                <div>
+                  <label className="block text-[9px] text-[#c9962a]/60 uppercase tracking-[0.3em] mb-2">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={singleName}
+                    onChange={(e) => setSingleName(e.target.value)}
+                    placeholder="Full name"
+                    maxLength={30}
+                    className="w-full bg-transparent border border-white/15 text-white text-sm px-4 py-3 placeholder-white/20 focus:outline-none focus:border-[#c9962a]/50"
+                  />
+                </div>
+
+                {/* WhatsApp */}
+                <div>
+                  <label className="block text-[9px] text-[#c9962a]/60 uppercase tracking-[0.3em] mb-2">
+                    WhatsApp Number (Optional)
+                  </label>
+                  <input
+                    type="tel"
+                    value={singlePhone}
+                    onChange={(e) => setSinglePhone(e.target.value)}
+                    placeholder="+230 5XXX XXXX"
+                    className="w-full bg-transparent border border-white/15 text-white text-sm px-4 py-3 placeholder-white/20 focus:outline-none focus:border-[#c9962a]/50"
+                  />
+                </div>
+
+                {/* Pass Type */}
+                <div>
+                  <label className="block text-[9px] text-[#c9962a]/60 uppercase tracking-[0.3em] mb-2">
+                    Pass Type
+                  </label>
+                  <select
+                    value={singleType}
+                    onChange={(e) => { setSingleType(e.target.value); setSingleTableNum(1); }}
+                    className="w-full bg-[#0a0a0a] border border-white/15 text-white text-sm px-4 py-3 focus:outline-none focus:border-[#c9962a]/50"
+                  >
+                    <option value="table_4">Table for 4</option>
+                    <option value="table_5">Table for 5</option>
+                    <option value="section_8_12">Section (8–12 guests)</option>
+                  </select>
+                </div>
+
+                {/* Table Number */}
+                <div>
+                  <label className="block text-[9px] text-[#c9962a]/60 uppercase tracking-[0.3em] mb-2">
+                    Table Number (1–{TABLE_MAX_NUM[singleType]})
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={TABLE_MAX_NUM[singleType]}
+                    value={singleTableNum}
+                    onChange={(e) => setSingleTableNum(Math.max(1, Math.min(TABLE_MAX_NUM[singleType], parseInt(e.target.value) || 1)))}
+                    className="w-full bg-transparent border border-white/15 text-white text-sm px-4 py-3 focus:outline-none focus:border-[#c9962a]/50"
+                  />
+                  <p className="text-white/20 text-[9px] mt-1.5 uppercase tracking-[0.15em]">
+                    Pass ID will be: {livePassId}
+                  </p>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-[9px] text-[#c9962a]/60 uppercase tracking-[0.3em] mb-2">
+                    Notes (Internal Only)
+                  </label>
+                  <textarea
+                    value={singleNotes}
+                    onChange={(e) => setSingleNotes(e.target.value)}
+                    placeholder="Walk-in, guest list, etc."
+                    rows={2}
+                    className="w-full bg-transparent border border-white/15 text-white text-sm px-4 py-3 placeholder-white/20 focus:outline-none focus:border-[#c9962a]/50 resize-none"
+                  />
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex items-center gap-2 pt-2 flex-wrap">
+                  <button
+                    onClick={handleSaveOnly}
+                    disabled={isBusy}
+                    className="flex items-center gap-1.5 border border-white/20 hover:border-white/40 text-white/60 hover:text-white text-[8px] uppercase tracking-[0.2em] font-bold px-4 py-2.5 transition-colors disabled:opacity-40"
+                  >
+                    {isBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                    Save Only
+                  </button>
+                  <button
+                    onClick={handleDownloadPass}
+                    disabled={isBusy}
+                    className="flex items-center gap-1.5 border border-[#c9962a]/40 hover:border-[#c9962a] text-[#c9962a] text-[8px] uppercase tracking-[0.2em] font-bold px-4 py-2.5 transition-colors disabled:opacity-40"
+                  >
+                    <Download className="w-3 h-3" />
+                    Download Pass
+                  </button>
+                  <button
+                    onClick={handleSendWhatsApp}
+                    disabled={isBusy}
+                    className="flex items-center gap-1.5 text-black text-[8px] uppercase tracking-[0.2em] font-bold px-4 py-2.5 transition-colors disabled:opacity-40"
+                    style={{ backgroundColor: isBusy ? "#888" : "#c9962a" }}
+                  >
+                    <MessageSquare className="w-3 h-3" />
+                    Send Pass via WhatsApp
+                  </button>
+                </div>
+              </div>
+
+              {/* ── Live preview (right) ── */}
+              <div className="lg:col-span-7 lg:sticky lg:top-8">
+                <p className="text-white/20 text-[9px] uppercase tracking-[0.25em] mb-5">
+                  Live Pass Preview · Updates as you type
+                </p>
+                <PassportCard pass={livePass} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {isLoading ? (
@@ -137,30 +384,22 @@ export default function AdminAccessPage() {
                   >
                     {config.label}
                   </h3>
-
                   <div className="h-1 bg-white/10 mb-3">
                     <div
                       className={`h-full transition-all duration-500 ${pct >= 100 ? "bg-[#c72d28]" : pct >= 75 ? "bg-yellow-500" : "bg-[#c9962a]"}`}
                       style={{ width: `${Math.min(100, pct)}%` }}
                     />
                   </div>
-
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-green-400 text-[9px] uppercase tracking-[0.2em]">
-                        {confirmed} confirmed
-                      </span>
+                      <span className="text-green-400 text-[9px] uppercase tracking-[0.2em]">{confirmed} confirmed</span>
                       <span className={`text-[9px] uppercase tracking-[0.2em] font-bold ${remaining <= 0 ? "text-[#c72d28]" : "text-white/30"}`}>
                         {remaining <= 0 ? "Full" : `${remaining} left`}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-yellow-400 text-[9px] uppercase tracking-[0.2em]">
-                        {pendingCount} pending
-                      </span>
-                      <span className="text-white/20 text-[9px] uppercase tracking-[0.2em]">
-                        {config.capacity} total
-                      </span>
+                      <span className="text-yellow-400 text-[9px] uppercase tracking-[0.2em]">{pendingCount} pending</span>
+                      <span className="text-white/20 text-[9px] uppercase tracking-[0.2em]">{config.capacity} total</span>
                     </div>
                   </div>
                 </div>
@@ -176,10 +415,7 @@ export default function AdminAccessPage() {
               { label: "Rejected",        value: rejected.length, color: "text-[#c72d28]" },
             ].map((s) => (
               <div key={s.label} className="bg-[#0a0a0a] border border-white/10 p-5">
-                <p
-                  className={`font-black leading-none mb-1 ${s.color}`}
-                  style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "36px" }}
-                >
+                <p className={`font-black leading-none mb-1 ${s.color}`} style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "36px" }}>
                   {s.value}
                 </p>
                 <p className="text-white/25 text-[9px] uppercase tracking-[0.2em]">{s.label}</p>
@@ -187,7 +423,7 @@ export default function AdminAccessPage() {
             ))}
           </div>
 
-          {/* ── Reservation list ── */}
+          {/* ── Reservations list ── */}
           <div className="border-t border-white/10 pt-8">
             <p className="text-[9px] text-white/25 uppercase tracking-[0.3em] mb-6">All Reservations</p>
 
@@ -196,10 +432,10 @@ export default function AdminAccessPage() {
             ) : (
               <div className="space-y-3">
                 {[...pending, ...approved, ...rejected].map((r) => {
-                  const guests    = parseGuests(r.guestsJson);
+                  const guests     = parseGuests(r.guestsJson);
                   const isPending  = r.status === "pending_payment";
                   const isApproved = r.status === "approved";
-                  const hasPhones  = guests.some((g) => g.phone?.trim());
+                  const isAdminIssued = r.source === "admin_single";
 
                   return (
                     <div
@@ -211,96 +447,98 @@ export default function AdminAccessPage() {
                         : "border-white/5 opacity-50",
                       ].join(" ")}
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        {/* ── Left: info ── */}
-                        <div className="min-w-0 flex-1">
-                          {/* Title + badge */}
-                          <div className="flex items-center gap-3 mb-2 flex-wrap">
-                            <span
-                              className="text-white font-black leading-none"
-                              style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "18px" }}
-                            >
-                              {r.tableLabel}
+                      {/* ── Row header ── */}
+                      <div className="flex items-start justify-between gap-4 mb-4">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span
+                            className="text-white font-black leading-none"
+                            style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "18px" }}
+                          >
+                            {r.tableLabel}
+                          </span>
+                          <span className={[
+                            "text-[8px] uppercase tracking-[0.2em] font-bold px-2 py-0.5",
+                            isPending  ? "bg-yellow-400/15 text-yellow-400"
+                            : isApproved ? "bg-green-400/15 text-green-400"
+                            : "bg-white/5 text-white/30",
+                          ].join(" ")}>
+                            {isPending ? "Pending Payment" : isApproved ? "Approved" : "Rejected"}
+                          </span>
+                          {isAdminIssued && (
+                            <span className="text-[8px] uppercase tracking-[0.2em] font-bold px-2 py-0.5 bg-[#c9962a]/15 text-[#c9962a]">
+                              Admin Issued
                             </span>
-                            <span
-                              className={[
-                                "text-[8px] uppercase tracking-[0.2em] font-bold px-2 py-0.5",
-                                isPending  ? "bg-yellow-400/15 text-yellow-400"
-                                : isApproved ? "bg-green-400/15 text-green-400"
-                                : "bg-white/5 text-white/30",
-                              ].join(" ")}
-                            >
-                              {isPending ? "Pending Payment" : isApproved ? "Approved" : "Rejected"}
-                            </span>
-                          </div>
-
-                          {/* Timestamp */}
-                          <div className="flex items-center gap-1 mb-3">
-                            <Clock className="w-2.5 h-2.5 text-white/20" />
-                            <span className="text-white/25 text-[9px] uppercase tracking-[0.15em]">
-                              {fmtDate(r.createdAt)}
-                            </span>
-                          </div>
-
-                          {/* Guest list */}
-                          <div className="flex flex-wrap gap-x-6 gap-y-1.5">
-                            {guests.map((g, i) => (
-                              <div key={i} className="text-[10px] font-mono">
-                                <span className="text-white/20 mr-1">{i + 1}.</span>
-                                <span className="text-white/60">{g.name || "—"}</span>
-                                {g.phone && (
-                                  <span className="text-white/25 ml-1.5">{g.phone}</span>
-                                )}
-                                {isApproved && g.passId && (
-                                  <span className="text-[#c9962a]/70 ml-2 tracking-wider">{g.passId}</span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
+                          )}
                         </div>
-
-                        {/* ── Right: actions ── */}
-                        <div className="flex flex-col items-end gap-2 shrink-0">
-                          {isPending && (
-                            <>
-                              <button
-                                onClick={() => approveMutation.mutate(r.id)}
-                                disabled={approveMutation.isPending}
-                                className="flex items-center gap-1.5 disabled:opacity-40 text-black text-[8px] uppercase tracking-[0.2em] font-bold px-3 py-2 transition-colors"
-                                style={{ backgroundColor: "#c9962a" }}
-                              >
-                                <Check className="w-3 h-3" />
-                                Confirm Payment &amp; Approve
-                              </button>
-                              <button
-                                onClick={() => rejectMutation.mutate(r.id)}
-                                disabled={rejectMutation.isPending}
-                                className="flex items-center gap-1.5 border border-[#c72d28]/50 hover:border-[#c72d28] text-[#c72d28] text-[8px] uppercase tracking-[0.2em] font-bold px-3 py-2 transition-colors"
-                              >
-                                <X className="w-3 h-3" />
-                                Reject
-                              </button>
-                            </>
-                          )}
-
-                          {isApproved && (
-                            <button
-                              onClick={() => {
-                                if (!hasPhones) {
-                                  toast({ title: "No phone numbers", description: "No guests provided a WhatsApp number." });
-                                  return;
-                                }
-                                sendPasses(r);
-                                toast({ title: "Opening WhatsApp", description: "Passes being sent to each guest." });
-                              }}
-                              className="flex items-center gap-1.5 border border-[#c9962a]/40 hover:border-[#c9962a] text-[#c9962a] text-[8px] uppercase tracking-[0.2em] font-bold px-3 py-2 transition-colors"
-                            >
-                              <MessageSquare className="w-3 h-3" />
-                              Send Passes
-                            </button>
-                          )}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Clock className="w-2.5 h-2.5 text-white/20" />
+                          <span className="text-white/25 text-[9px] uppercase tracking-[0.15em]">{fmtDate(r.createdAt)}</span>
                         </div>
                       </div>
+
+                      {/* ── Guest list ── */}
+                      <div className="space-y-2 mb-4">
+                        {guests.map((g, i) => (
+                          <div key={i} className="flex items-center justify-between gap-4 flex-wrap">
+                            {/* Guest info */}
+                            <div className="flex items-center gap-3 min-w-0 text-[10px] font-mono">
+                              <span className="text-white/20">{i + 1}.</span>
+                              <span className="text-white/70">{g.name || "—"}</span>
+                              {g.phone && <span className="text-white/25">{g.phone}</span>}
+                              {isApproved && g.passId && (
+                                <span className="text-[#c9962a]/80 tracking-wider">{g.passId}</span>
+                              )}
+                            </div>
+
+                            {/* Per-guest actions on approved rows */}
+                            {isApproved && (
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <button
+                                  onClick={() => downloadGuestPass(g, r.tableLabel)}
+                                  className="flex items-center gap-1 border border-white/15 hover:border-[#c9962a]/50 text-white/40 hover:text-[#c9962a] text-[8px] uppercase tracking-[0.15em] font-bold px-2.5 py-1.5 transition-colors"
+                                  title={`Download pass for ${g.name}`}
+                                >
+                                  <Download className="w-2.5 h-2.5" />
+                                  Download
+                                </button>
+                                {g.phone?.trim() && (
+                                  <button
+                                    onClick={() => sendGuestWhatsApp(g, r.tableLabel)}
+                                    className="flex items-center gap-1 border border-[#c9962a]/30 hover:border-[#c9962a] text-[#c9962a]/60 hover:text-[#c9962a] text-[8px] uppercase tracking-[0.15em] font-bold px-2.5 py-1.5 transition-colors"
+                                    title={`Send pass to ${g.name} via WhatsApp`}
+                                  >
+                                    <MessageSquare className="w-2.5 h-2.5" />
+                                    Send
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* ── Approve / reject actions on pending rows ── */}
+                      {isPending && (
+                        <div className="flex items-center gap-2 pt-3 border-t border-white/5">
+                          <button
+                            onClick={() => approveMutation.mutate(r.id)}
+                            disabled={approveMutation.isPending}
+                            className="flex items-center gap-1.5 disabled:opacity-40 text-black text-[8px] uppercase tracking-[0.2em] font-bold px-4 py-2 transition-colors"
+                            style={{ backgroundColor: "#c9962a" }}
+                          >
+                            <Check className="w-3 h-3" />
+                            Confirm Payment &amp; Approve
+                          </button>
+                          <button
+                            onClick={() => rejectMutation.mutate(r.id)}
+                            disabled={rejectMutation.isPending}
+                            className="flex items-center gap-1.5 border border-[#c72d28]/50 hover:border-[#c72d28] text-[#c72d28] text-[8px] uppercase tracking-[0.2em] font-bold px-4 py-2 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                            Reject
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

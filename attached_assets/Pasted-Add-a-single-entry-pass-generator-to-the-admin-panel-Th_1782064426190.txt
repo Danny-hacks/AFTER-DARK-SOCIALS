@@ -1,0 +1,169 @@
+Add a single entry pass generator to the admin panel. This is for walk-ins, guest list additions, or any individual the admin wants to issue a pass to directly without going through the public reservation flow.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LOCATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add a new section to /admin/access called "Issue Single Pass"
+Place it above the reservations list as a collapsible panel.
+Toggle button: "Issue Single Pass" with a plus icon — expands/collapses the form.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FORM FIELDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Full Name (required)
+- WhatsApp Number (optional — for sending the pass)
+- Pass Type (dropdown): General Entry / Table for 4 / Table for 5 / Section
+- Table Number (number input, 1–5 for tables, 1–3 for sections) — so admin assigns which specific table
+- Notes (optional text field — internal only, not sent to guest)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASS ID GENERATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Generate the pass ID server-side using the same format as the reservation flow:
+ACC-[TABLE_NUMBER][GUEST_NUMBER]
+
+For single entry passes:
+- TABLE_NUMBER = the table number the admin assigns
+- GUEST_NUMBER = 001 (since it is a single entry, always 001)
+
+Example:
+- Admin issues a single pass for Table 3 → ACC-3001
+- Admin issues a single pass for Table 1 → ACC-1001
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LIVE PASSPORT PREVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Show the PassportCard component live on the right side of the form.
+Updates in real time as admin fills in the fields.
+Same passport design as the public /access page.
+Hardcoded date: 27 July 2026.
+Pass ID shown on the passport once generated.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASS DOWNLOAD + WHATSAPP DELIVERY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After a pass is generated (both admin single issue and reservation approval), two delivery options must be available:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. DOWNLOADABLE PASS (PDF/PNG)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Use html2canvas to capture the PassportCard component as a PNG image.
+Then use jsPDF to convert the PNG into a downloadable PDF.
+
+Install both packages:
+npm install html2canvas jspdf
+
+Implementation:
+- Add a "Download Pass" button below the passport preview in both:
+ a. The admin single pass generator
+ b. Each approved reservation in the admin reservations list
+
+- On click:
+ 1. Use html2canvas to screenshot the PassportCard DOM element
+ 2. Convert to PDF using jsPDF (A6 landscape size — 148mm x 105mm — standard card size)
+ 3. Trigger browser download as: "ACCESS-PASS-[PASSID].pdf"
+
+PDF settings:
+- Page size: A6 landscape (148 x 105mm)
+- No margins — passport card fills the full page
+- Filename: ACCESS-PASS-[PASSID].pdf
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. SEND TO GUEST WHATSAPP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Since WhatsApp does not support sending files via wa.me links, use a two-step approach:
+
+Step 1 — Auto-download the pass PDF to admin's device
+Step 2 — Open WhatsApp to the guest's number with this pre-filled message:
+
+"Your ACCESS pass is confirmed.
+
+Name: [NAME]
+Table: [TABLE TYPE]
+Date: 27 July 2026
+Pass ID: [PASSID]
+
+Your pass has been attached to this message.
+
+After Dark Socials · @afterdarksocials.mu"
+
+This means:
+- The PDF downloads automatically to the admin's device
+- WhatsApp opens to the guest's number
+- Admin manually attaches and sends the downloaded PDF in the chat
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUTTON LAYOUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Three buttons in a row on both the admin single pass generator and approved reservations:
+
+[ Save Only ]  [ Download Pass ]  [ Send Pass via WhatsApp ]
+
+- Save Only: outlined, saves to DB only, no delivery
+- Download Pass: outlined gold, downloads PDF only
+- Send Pass via WhatsApp: gold filled, auto-downloads PDF + opens WhatsApp to guest number
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FOR RESERVATION APPROVALS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the approved reservations list, for each guest in the group show:
+- Guest name
+- Pass ID
+- "Download Pass" button — downloads that individual guest's PDF
+- "Send via WhatsApp" button (only if phone number was provided) — downloads PDF + opens their WhatsApp
+
+Each guest gets their own individual PDF with their own passport card.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ACTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"Save & Send Pass" (gold button):
+- POSTs to /api/admin/access/single — creates a record in the database with status: approved
+- Increments the used count for the selected table type in accessCapacity
+- Auto-downloads the pass PDF
+- If WhatsApp number provided: opens wa.me/[number]?text=[pass message] in new tab
+
+"Save Only" (outlined button):
+- Same as above but does not open WhatsApp and does not download PDF
+- Creates the record, generates the pass ID
+- Admin can send later from the reservations list
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DATABASE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Save single entry passes to the same accessPasses table as reservations with:
+- status: "approved" (no pending step — admin is issuing directly)
+- source: "admin_single" (to distinguish from public reservations)
+- All other fields same as regular reservations
+
+Single entry passes should appear in the reservations list below with a badge "Admin Issued" to distinguish them from public submissions.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+API ROUTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+POST /api/admin/access/single
+- Authenticate as admin (JWT middleware)
+- Generate pass ID server-side using ACC-[TABLE_NUMBER][GUEST_NUMBER] format
+- Save to database with status: approved and source: admin_single
+- Return pass ID and WhatsApp URL if phone provided
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT CHANGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- The public /access page
+- The existing reservations list and approval flow
+- The PassportCard component design
+- Any other admin pages or routes

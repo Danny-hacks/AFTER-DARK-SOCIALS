@@ -53,6 +53,7 @@ export interface IStorage {
   rejectAccessReservation(id: string): Promise<AccessReservation | undefined>;
   getAccessReservationCounts(): Promise<Record<string, { confirmed: number; pending: number }>>;
   getReservationCountByType(tableType: string): Promise<number>;
+  createAdminSinglePass(data: { tableType: string; tableLabel: string; guestsJson: string }): Promise<AccessReservation>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -307,6 +308,14 @@ export class DatabaseStorage implements IStorage {
       else if (row.status === "pending_payment") result[row.tableType].pending++;
     }
     return result;
+  }
+
+  async createAdminSinglePass(data: { tableType: string; tableLabel: string; guestsJson: string }): Promise<AccessReservation> {
+    const [row] = await db
+      .insert(accessReservations)
+      .values({ ...data, status: "approved", source: "admin_single", approvedAt: new Date() })
+      .returning();
+    return row;
   }
 
   async getReservationCountByType(tableType: string): Promise<number> {

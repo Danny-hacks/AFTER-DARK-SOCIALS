@@ -116,6 +116,7 @@ export const accessReservations = pgTable("access_reservations", {
   tableLabel: text("table_label").notNull(),
   guestsJson: text("guests_json").notNull(),
   status: text("status").notNull().default("pending_payment"),
+  source: text("source").notNull().default("public"),
   createdAt: timestamp("created_at").defaultNow(),
   approvedAt: timestamp("approved_at"),
 });
