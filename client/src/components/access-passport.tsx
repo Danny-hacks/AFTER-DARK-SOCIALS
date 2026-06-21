@@ -441,7 +441,7 @@ export function AccessPassport() {
       `Total: MUR ${selectedConfig.price.toLocaleString()}\n\n` +
       `Guests (${guests.length} ${guests.length === 1 ? "person" : "people"}):\n` +
       guestLines +
-      `\n\nPlease confirm payment and approve in the admin panel to issue passes.`;
+      `\n\nLooking forward to hearing from you.`;
 
     window.open(`https://wa.me/23058205220?text=${encodeURIComponent(adminMsg)}`, "_blank");
 
