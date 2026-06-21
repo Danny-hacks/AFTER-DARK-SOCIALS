@@ -1,6 +1,6 @@
-import { type User, type InsertUser, type Ticket, type InsertTicket, type TicketPurchase, type InsertTicketPurchase, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, type AccessCount, type CapacitySettings, type AccessReservation, users, tickets, ticketPurchases, events, heroSlides, accessCounts, capacitySettings, accessReservations } from "@shared/schema";
+import { type User, type InsertUser, type Ticket, type InsertTicket, type TicketPurchase, type InsertTicketPurchase, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, type AccessReservation, users, tickets, ticketPurchases, events, heroSlides, accessReservations } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql, count } from "drizzle-orm";
+import { eq, desc, and, ne } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -46,20 +46,13 @@ export interface IStorage {
   updateHeroSlide(id: string, slide: Partial<InsertHeroSlide>): Promise<HeroSlide | undefined>;
   deleteHeroSlide(id: string): Promise<boolean>;
 
-  // Access count operations
-  getAccessCounts(): Promise<Record<string, number>>;
-  incrementAccessCount(passType: string): Promise<Record<string, number>>;
-
-  // Capacity settings operations
-  getCapacityLimits(): Promise<Record<string, number>>;
-  setCapacityLimit(passType: string, maxCapacity: number): Promise<CapacitySettings>;
-
   // Access reservation operations
   createAccessReservation(data: { tableType: string; tableLabel: string; guestsJson: string }): Promise<AccessReservation>;
   getAllAccessReservations(): Promise<AccessReservation[]>;
   approveAccessReservation(id: string): Promise<AccessReservation | undefined>;
   rejectAccessReservation(id: string): Promise<AccessReservation | undefined>;
   getAccessReservationCounts(): Promise<Record<string, { confirmed: number; pending: number }>>;
+  getReservationCountByType(tableType: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -274,53 +267,6 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
-  // Access count operations
-  async getAccessCounts(): Promise<Record<string, number>> {
-    const rows = await db.select().from(accessCounts);
-    const result: Record<string, number> = {
-      "General Entry": 0,
-      Table: 0,
-      VIP: 0,
-    };
-    for (const row of rows) {
-      result[row.passType] = row.count;
-    }
-    return result;
-  }
-
-  async incrementAccessCount(passType: string): Promise<Record<string, number>> {
-    await db
-      .insert(accessCounts)
-      .values({ passType, count: 1 })
-      .onConflictDoUpdate({
-        target: accessCounts.passType,
-        set: { count: sql`${accessCounts.count} + 1` },
-      });
-    return this.getAccessCounts();
-  }
-
-  // Capacity settings operations
-  async getCapacityLimits(): Promise<Record<string, number>> {
-    const rows = await db.select().from(capacitySettings);
-    const result: Record<string, number> = {};
-    for (const row of rows) {
-      result[row.passType] = row.maxCapacity;
-    }
-    return result;
-  }
-
-  async setCapacityLimit(passType: string, maxCapacity: number): Promise<CapacitySettings> {
-    const [row] = await db
-      .insert(capacitySettings)
-      .values({ passType, maxCapacity })
-      .onConflictDoUpdate({
-        target: capacitySettings.passType,
-        set: { maxCapacity },
-      })
-      .returning();
-    return row;
-  }
-
   // Access reservation operations
   async createAccessReservation(data: { tableType: string; tableLabel: string; guestsJson: string }): Promise<AccessReservation> {
     const [row] = await db
@@ -361,6 +307,14 @@ export class DatabaseStorage implements IStorage {
       else if (row.status === "pending_payment") result[row.tableType].pending++;
     }
     return result;
+  }
+
+  async getReservationCountByType(tableType: string): Promise<number> {
+    const rows = await db
+      .select()
+      .from(accessReservations)
+      .where(and(eq(accessReservations.tableType, tableType), ne(accessReservations.status, "rejected")));
+    return rows.length;
   }
 }
 

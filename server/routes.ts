@@ -713,95 +713,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const VALID_PASS_TYPES = new Set(["General Entry", "Table", "VIP"]);
-
-  const DEFAULT_CAPACITY_LIMITS: Record<string, number> = {
-    "General Entry": 100,
-    Table: 20,
-    VIP: 10,
-  };
-
-  // GET /api/access-capacity — returns counts, max capacity, remaining, and status per pass type
-  app.get("/api/access-capacity", async (_req, res) => {
-    try {
-      const [counts, dbLimits] = await Promise.all([
-        storage.getAccessCounts(),
-        storage.getCapacityLimits(),
-      ]);
-      const limits = { ...DEFAULT_CAPACITY_LIMITS, ...dbLimits };
-      const result: Record<
-        string,
-        { count: number; max: number; remaining: number; status: string }
-      > = {};
-      for (const [type, max] of Object.entries(limits)) {
-        const count = counts[type] || 0;
-        const remaining = Math.max(0, max - count);
-        let status: string;
-        if (remaining <= 0) {
-          status = "sold_out";
-        } else if (remaining <= Math.ceil(max * 0.25)) {
-          status = "low";
-        } else {
-          status = "available";
-        }
-        result[type] = { count, max, remaining, status };
-      }
-      res.json(result);
-    } catch (error) {
-      console.error("Error fetching access counts:", error);
-      res.status(500).json({ error: "Failed to fetch access counts" });
-    }
-  });
-
-  // POST /api/access-capacity — increments count for a pass type
-  app.post("/api/access-capacity", async (req, res) => {
-    const { type } = req.body;
-    if (!type || !VALID_PASS_TYPES.has(type)) {
-      return res.status(400).json({ error: "Invalid pass type" });
-    }
-    try {
-      const counts = await storage.incrementAccessCount(type);
-      res.json({ success: true, counts });
-    } catch (error) {
-      console.error("Error incrementing access count:", error);
-      res.status(500).json({ error: "Failed to increment access count" });
-    }
-  });
-
-  // GET /api/admin/capacity-settings — returns current capacity limits (protected)
-  app.get("/api/admin/capacity-settings", requireAuth, async (_req, res) => {
-    try {
-      const dbLimits = await storage.getCapacityLimits();
-      const limits = { ...DEFAULT_CAPACITY_LIMITS, ...dbLimits };
-      res.json({ success: true, limits });
-    } catch (error) {
-      console.error("Error fetching capacity settings:", error);
-      res.status(500).json({ error: "Failed to fetch capacity settings" });
-    }
-  });
-
-  // PUT /api/admin/capacity-settings — updates a pass type capacity limit (protected)
-  app.put("/api/admin/capacity-settings", requireAuth, async (req, res) => {
-    const { passType, maxCapacity } = req.body;
-    if (!passType || !VALID_PASS_TYPES.has(passType)) {
-      return res.status(400).json({ error: "Invalid pass type" });
-    }
-    const parsed = parseInt(maxCapacity, 10);
-    if (isNaN(parsed) || parsed < 0) {
-      return res.status(400).json({ error: "maxCapacity must be a non-negative integer" });
-    }
-    try {
-      await storage.setCapacityLimit(passType, parsed);
-      const dbLimits = await storage.getCapacityLimits();
-      const limits = { ...DEFAULT_CAPACITY_LIMITS, ...dbLimits };
-      res.json({ success: true, limits });
-    } catch (error) {
-      console.error("Error updating capacity settings:", error);
-      res.status(500).json({ error: "Failed to update capacity settings" });
-    }
-  });
-
-  // ─── Table-based ACCESS routes (new inventory system) ──────────────────────
+  // ─── Table-based ACCESS routes ────────────────────────────────────────────
   const TABLE_INVENTORY: Record<string, { label: string; price: number; capacity: number; maxGuests: number; minGuests: number }> = {
     table_4:      { label: "Table for 4",           price: 4000, capacity: 5, maxGuests: 4,  minGuests: 1 },
     table_5:      { label: "Table for 5",           price: 5000, capacity: 5, maxGuests: 5,  minGuests: 1 },
@@ -815,7 +727,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result: Record<string, object> = {};
       for (const [key, config] of Object.entries(TABLE_INVENTORY)) {
         const confirmed = counts[key]?.confirmed ?? 0;
-        result[key] = { ...config, used: confirmed };
+        const pending = counts[key]?.pending ?? 0;
+        result[key] = {
+          ...config,
+          used: confirmed,
+          confirmed,
+          pending,
+          available: config.capacity - confirmed,
+        };
       }
       res.json(result);
     } catch (error) {
@@ -838,10 +757,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if ((counts[tableType]?.confirmed ?? 0) >= config.capacity) {
         return res.status(400).json({ error: "This table type is fully booked" });
       }
+      // Assign the next table number for this type (non-rejected count + 1)
+      const existingCount = await storage.getReservationCountByType(tableType);
+      const tableNumber = existingCount + 1;
+      // Generate server-side pass IDs: ACC-[tableNumber][guestIndex padded 3 digits]
+      const guestsWithPassIds = (guests as { name: string; phone?: string }[]).map((g, i) => ({
+        name: g.name,
+        phone: g.phone ?? "",
+        passId: `ACC-${tableNumber}${String(i + 1).padStart(3, "0")}`,
+      }));
       await storage.createAccessReservation({
         tableType,
         tableLabel: config.label,
-        guestsJson: JSON.stringify(guests),
+        guestsJson: JSON.stringify(guestsWithPassIds),
       });
       res.json({ success: true });
     } catch (error) {
@@ -866,7 +794,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const reservation = await storage.approveAccessReservation(req.params.id);
       if (!reservation) return res.status(404).json({ error: "Reservation not found" });
-      res.json({ success: true, reservation });
+
+      // Build per-guest WhatsApp URLs for admin to dispatch manually
+      const guests: { name: string; phone?: string; passId: string }[] = (() => {
+        try { return JSON.parse(reservation.guestsJson); } catch { return []; }
+      })();
+
+      const whatsappUrls = guests
+        .filter((g) => g.phone?.trim())
+        .map((g) => {
+          const clean = (g.phone ?? "").replace(/\s+/g, "").replace(/^\+/, "");
+          const msg =
+            `Your ACCESS pass has been confirmed.\n\n` +
+            `Name: ${g.name.toUpperCase()}\n` +
+            `Table: ${reservation.tableLabel.toUpperCase()}\n` +
+            `Date: 27 July 2026\n` +
+            `Pass ID: ${g.passId}\n` +
+            `Venue: Mauritius\n\n` +
+            `Present this pass at the door.\n` +
+            `After Dark Socials · @afterdarksocials.mu`;
+          return {
+            name: g.name,
+            passId: g.passId,
+            url: `https://wa.me/${clean}?text=${encodeURIComponent(msg)}`,
+          };
+        });
+
+      res.json({ success: true, reservation, whatsappUrls });
     } catch (error) {
       console.error("Error approving reservation:", error);
       res.status(500).json({ error: "Failed to approve" });

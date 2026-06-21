@@ -110,20 +110,6 @@ export const insertHeroSlideSchema = createInsertSchema(heroSlides).omit({
   createdAt: true,
 });
 
-export const accessCounts = pgTable("access_counts", {
-  passType: text("pass_type").primaryKey(),
-  count: integer("count").notNull().default(0),
-});
-
-export const insertAccessCountSchema = createInsertSchema(accessCounts);
-
-export const capacitySettings = pgTable("capacity_settings", {
-  passType: text("pass_type").primaryKey(),
-  maxCapacity: integer("max_capacity").notNull(),
-});
-
-export const insertCapacitySettingsSchema = createInsertSchema(capacitySettings);
-
 export const accessReservations = pgTable("access_reservations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tableType: text("table_type").notNull(),
@@ -150,7 +136,5 @@ export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Event = typeof events.$inferSelect;
 export type InsertHeroSlide = z.infer<typeof insertHeroSlideSchema>;
 export type HeroSlide = typeof heroSlides.$inferSelect;
-export type AccessCount = typeof accessCounts.$inferSelect;
-export type CapacitySettings = typeof capacitySettings.$inferSelect;
 export type InsertAccessReservation = z.infer<typeof insertAccessReservationSchema>;
 export type AccessReservation = typeof accessReservations.$inferSelect;

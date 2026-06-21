@@ -420,49 +420,36 @@ export function AccessPassport() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tableType: selectedTable,
-          guests: guests.map(({ name, phone, passId }) => ({ name, phone, passId })),
-          date: "27 July 2026",
+          guests: guests.map(({ name, phone }) => ({ name, phone })),
         }),
       });
-
     } catch {}
 
-    // Admin WhatsApp
+    // Notify admin via WhatsApp — passes are NOT sent to guests yet
     const guestLines = guests
       .map((g, i) => {
-        const parts = [`${i + 1}. ${g.name.toUpperCase()}`, g.passId];
+        const parts = [`${i + 1}. ${g.name.toUpperCase()}`];
         if (g.phone) parts.push(g.phone);
         return parts.join(" \u2014 ");
       })
       .join("\n");
 
     const adminMsg =
-      `ACCESS RESERVATION\n` +
+      `NEW ACCESS RESERVATION\n\n` +
       `Table: ${selectedConfig.label}\n` +
       `Date: 27 July 2026\n` +
-      `Total: ${fmtPrice(selectedConfig.price)}\n` +
+      `Total: MUR ${selectedConfig.price.toLocaleString()}\n\n` +
       `Guests (${guests.length} ${guests.length === 1 ? "person" : "people"}):\n` +
-      guestLines;
+      guestLines +
+      `\n\nPlease confirm payment and approve in the admin panel to issue passes.`;
 
     window.open(`https://wa.me/23058205220?text=${encodeURIComponent(adminMsg)}`, "_blank");
 
-    // Individual guest WhatsApp (1 s delay per guest)
-    guests.forEach((g, i) => {
-      if (!g.phone.trim()) return;
-      const clean = g.phone.replace(/\s+/g, "").replace(/^\+/, "");
-      const msg =
-        `ACCESS MEMBER PASS\n\n` +
-        `Name: ${g.name.toUpperCase()}\n` +
-        `Table: ${selectedConfig.label.toUpperCase()}\n` +
-        `Date: 27 July 2026\n` +
-        `Pass ID: ${g.passId}\n\n` +
-        `Present this pass at the door.\n` +
-        `After Dark Socials - @afterdarksocials.mu`;
-      setTimeout(() => window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, "_blank"), 1000 * (i + 1));
-    });
-
     setSending(false);
-    toast({ title: "Passes sent!", description: "WhatsApp opened for admin and each guest." });
+    toast({
+      title: "Reservation request received",
+      description: "We will send your passes once payment is confirmed. Please complete your payment via WhatsApp.",
+    });
   }
 
   // Shared style tokens

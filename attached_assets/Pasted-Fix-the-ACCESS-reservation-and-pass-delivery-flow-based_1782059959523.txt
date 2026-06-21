@@ -1,0 +1,154 @@
+Fix the ACCESS reservation and pass delivery flow based on this audit. The core problem is passes are sent at submission time before payment is confirmed. The correct flow is: user submits → admin approves payment → passes are sent.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 1 — Remove pass delivery from submission
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the frontend /access page, when user hits "Send All Passes":
+
+REMOVE:
+- Opening WhatsApp to each individual guest's number with their pass
+- Sending any pass details to guests at this stage
+
+KEEP:
+- Opening WhatsApp to admin (23058205220) with the reservation summary
+- POSTing the reservation to the backend
+
+The WhatsApp message to admin should say:
+"NEW ACCESS RESERVATION
+
+Table: [Table Name]
+Date: 27 July 2026
+Total: MUR [Price]
+
+Guests ([X] people):
+1. [Name] — [Phone if provided]
+2. [Name] — [Phone if provided]
+
+Please confirm payment and approve in the admin panel to issue passes."
+
+Show the user a confirmation message after submission:
+"Your reservation request has been received. We will send your passes once payment is confirmed. Please complete your payment via WhatsApp."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 2 — Generate and persist pass IDs server-side
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In POST /api/access/apply:
+
+Generate a unique passId server-side for each guest using this exact format:
+ACC-[TABLE_NUMBER][GUEST_NUMBER]
+
+Where:
+- TABLE_NUMBER is the assigned table number (1 through 5 for tables, 1 through 3 for sections)
+ This should be the next available table number of that type.
+ Example: if table_4 already has 2 confirmed reservations, the next one gets table number 3.
+ So the first Table for 4 reservation = table 1, second = table 2, etc.
+
+- GUEST_NUMBER is the guest's position in the group, zero-padded to 3 digits (001 through 005)
+
+Examples:
+ First reservation, Table for 4, guest 1 → ACC-1001
+ First reservation, Table for 4, guest 2 → ACC-1002
+ First reservation, Table for 4, guest 3 → ACC-1003
+ First reservation, Table for 4, guest 4 → ACC-1004
+ Second reservation, Table for 4, guest 1 → ACC-2001
+ Second reservation, Table for 4, guest 2 → ACC-2002
+ First section reservation, guest 1 → ACC-1001 (sections have their own numbering sequence separate from tables)
+
+Implementation:
+- Query the database to find how many confirmed + pending reservations already exist for that table type
+- Assign the next table number in sequence (count + 1)
+- Generate one passId per guest using ACC-[tableNumber][guestIndex padded to 3 digits]
+- Save all passIds server-side in the database linked to their reservation and guest
+- Do NOT return pass IDs to the frontend at submission time
+- Set reservation status: "pending_payment"
+- Do NOT increment any capacity count yet
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 3 — Deliver passes on admin approval
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the admin approval route (PUT /api/admin/access/[id]/approve):
+
+1. Update reservation status to "approved"
+
+2. Increment the used count in accessCapacity for the relevant table type
+  - Only increment by 1 (one table slot used, regardless of guest count)
+
+3. Retrieve the saved pass IDs and guest details from the database
+
+4. For each guest who provided a WhatsApp number, send their individual pass via WhatsApp:
+  Open wa.me/[guestPhone]?text=[message] where message is:
+  "Your ACCESS pass has been confirmed.
+
+  Name: [GUEST NAME]
+  Table: [TABLE NAME]
+  Date: 27 July 2026
+  Pass ID: [PASSID]
+  Venue: [Venue]
+
+  Present this pass at the door.
+  After Dark Socials · @afterdarksocials.mu"
+
+  Since server-side WhatsApp opening is not possible, return all guest WhatsApp URLs to the admin panel so the admin can trigger them manually with one click per guest — or open them all in sequence.
+
+5. Send a confirmation email via Resend (if configured) to any guest who provided an email address with their pass details.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 4 — Admin panel pass delivery UI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In /admin/access, on each reservation row:
+
+PENDING reservations show:
+- Guest names, table type, date submitted
+- "Confirm Payment & Approve" button (gold)
+- "Reject" button (outlined red)
+
+APPROVED reservations show:
+- Status badge: "Approved"
+- "Send Passes" button — opens each guest's WhatsApp link in sequence so admin can dispatch passes manually
+- List of pass IDs per guest for reference
+
+When admin clicks "Confirm Payment & Approve":
+- Calls the approval API route
+- Updates the row status to approved
+- Shows the Send Passes button with all guest WhatsApp links
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 5 — Capacity sold-out check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Update GET /api/access/capacity to return:
+{
+ "table_4":    { capacity: 5, confirmed: X, pending: Y, available: 5 - X },
+ "table_5":    { capacity: 5, confirmed: X, pending: Y, available: 5 - X },
+ "section":    { capacity: 3, confirmed: X, pending: Y, available: 3 - X }
+}
+
+Sold out = confirmed >= capacity (pending does NOT block new submissions)
+
+On the public /access page:
+- Show "X tables remaining" based on available count (capacity minus confirmed only)
+- Show "Sold Out" only when confirmed >= capacity
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 6 — Clean up dead tables
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The access_counts and capacity_settings tables are unused.
+Either:
+- Remove them from the schema and drop the tables in a migration, OR
+- Wire accessCapacity to use capacity_settings for the capacity values so they are not dead weight
+
+Pick whichever is cleaner given the existing schema.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT CHANGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- The /access page UI and passport card design
+- The table selection flow and guest form layout
+- The date hardcoded to 27 July 2026
+- Any other pages, components or routes not mentioned above
