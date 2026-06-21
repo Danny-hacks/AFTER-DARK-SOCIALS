@@ -811,10 +811,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/access/capacity", async (_req, res) => {
     try {
-      const counts = await storage.getAccessCounts();
+      const counts = await storage.getAccessReservationCounts();
       const result: Record<string, object> = {};
       for (const [key, config] of Object.entries(TABLE_INVENTORY)) {
-        result[key] = { ...config, used: counts[key] || 0 };
+        const confirmed = counts[key]?.confirmed ?? 0;
+        result[key] = { ...config, used: confirmed };
       }
       res.json(result);
     } catch (error) {
@@ -833,15 +834,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const config = TABLE_INVENTORY[tableType];
     try {
-      const counts = await storage.getAccessCounts();
-      if ((counts[tableType] || 0) >= config.capacity) {
+      const counts = await storage.getAccessReservationCounts();
+      if ((counts[tableType]?.confirmed ?? 0) >= config.capacity) {
         return res.status(400).json({ error: "This table type is fully booked" });
       }
-      await storage.incrementAccessCount(tableType);
+      await storage.createAccessReservation({
+        tableType,
+        tableLabel: config.label,
+        guestsJson: JSON.stringify(guests),
+      });
       res.json({ success: true });
     } catch (error) {
       console.error("Error applying for access:", error);
       res.status(500).json({ error: "Failed to apply" });
+    }
+  });
+
+  // ─── Admin ACCESS reservation routes ───────────────────────────────────────
+  app.get("/api/admin/access/reservations", requireAuth, async (_req, res) => {
+    try {
+      const reservations = await storage.getAllAccessReservations();
+      const counts = await storage.getAccessReservationCounts();
+      res.json({ success: true, reservations, counts });
+    } catch (error) {
+      console.error("Error fetching access reservations:", error);
+      res.status(500).json({ error: "Failed to fetch reservations" });
+    }
+  });
+
+  app.put("/api/admin/access/:id/approve", requireAuth, async (req, res) => {
+    try {
+      const reservation = await storage.approveAccessReservation(req.params.id);
+      if (!reservation) return res.status(404).json({ error: "Reservation not found" });
+      res.json({ success: true, reservation });
+    } catch (error) {
+      console.error("Error approving reservation:", error);
+      res.status(500).json({ error: "Failed to approve" });
+    }
+  });
+
+  app.put("/api/admin/access/:id/reject", requireAuth, async (req, res) => {
+    try {
+      const reservation = await storage.rejectAccessReservation(req.params.id);
+      if (!reservation) return res.status(404).json({ error: "Reservation not found" });
+      res.json({ success: true, reservation });
+    } catch (error) {
+      console.error("Error rejecting reservation:", error);
+      res.status(500).json({ error: "Failed to reject" });
     }
   });
 

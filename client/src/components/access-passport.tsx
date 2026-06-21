@@ -425,11 +425,6 @@ export function AccessPassport() {
         }),
       });
 
-      // Update local inventory
-      setInventory((prev) => {
-        if (!prev[selectedTable]) return prev;
-        return { ...prev, [selectedTable]: { ...prev[selectedTable], used: prev[selectedTable].used + 1 } };
-      });
     } catch {}
 
     // Admin WhatsApp

@@ -1,6 +1,6 @@
-import { type User, type InsertUser, type Ticket, type InsertTicket, type TicketPurchase, type InsertTicketPurchase, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, type AccessCount, type CapacitySettings, users, tickets, ticketPurchases, events, heroSlides, accessCounts, capacitySettings } from "@shared/schema";
+import { type User, type InsertUser, type Ticket, type InsertTicket, type TicketPurchase, type InsertTicketPurchase, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, type AccessCount, type CapacitySettings, type AccessReservation, users, tickets, ticketPurchases, events, heroSlides, accessCounts, capacitySettings, accessReservations } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, count } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -53,6 +53,13 @@ export interface IStorage {
   // Capacity settings operations
   getCapacityLimits(): Promise<Record<string, number>>;
   setCapacityLimit(passType: string, maxCapacity: number): Promise<CapacitySettings>;
+
+  // Access reservation operations
+  createAccessReservation(data: { tableType: string; tableLabel: string; guestsJson: string }): Promise<AccessReservation>;
+  getAllAccessReservations(): Promise<AccessReservation[]>;
+  approveAccessReservation(id: string): Promise<AccessReservation | undefined>;
+  rejectAccessReservation(id: string): Promise<AccessReservation | undefined>;
+  getAccessReservationCounts(): Promise<Record<string, { confirmed: number; pending: number }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -312,6 +319,48 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return row;
+  }
+
+  // Access reservation operations
+  async createAccessReservation(data: { tableType: string; tableLabel: string; guestsJson: string }): Promise<AccessReservation> {
+    const [row] = await db
+      .insert(accessReservations)
+      .values({ ...data, status: "pending_payment" })
+      .returning();
+    return row;
+  }
+
+  async getAllAccessReservations(): Promise<AccessReservation[]> {
+    return db.select().from(accessReservations).orderBy(desc(accessReservations.createdAt));
+  }
+
+  async approveAccessReservation(id: string): Promise<AccessReservation | undefined> {
+    const [row] = await db
+      .update(accessReservations)
+      .set({ status: "approved", approvedAt: new Date() })
+      .where(eq(accessReservations.id, id))
+      .returning();
+    return row || undefined;
+  }
+
+  async rejectAccessReservation(id: string): Promise<AccessReservation | undefined> {
+    const [row] = await db
+      .update(accessReservations)
+      .set({ status: "rejected" })
+      .where(eq(accessReservations.id, id))
+      .returning();
+    return row || undefined;
+  }
+
+  async getAccessReservationCounts(): Promise<Record<string, { confirmed: number; pending: number }>> {
+    const rows = await db.select().from(accessReservations);
+    const result: Record<string, { confirmed: number; pending: number }> = {};
+    for (const row of rows) {
+      if (!result[row.tableType]) result[row.tableType] = { confirmed: 0, pending: 0 };
+      if (row.status === "approved") result[row.tableType].confirmed++;
+      else if (row.status === "pending_payment") result[row.tableType].pending++;
+    }
+    return result;
   }
 }
 

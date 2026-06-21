@@ -124,6 +124,22 @@ export const capacitySettings = pgTable("capacity_settings", {
 
 export const insertCapacitySettingsSchema = createInsertSchema(capacitySettings);
 
+export const accessReservations = pgTable("access_reservations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tableType: text("table_type").notNull(),
+  tableLabel: text("table_label").notNull(),
+  guestsJson: text("guests_json").notNull(),
+  status: text("status").notNull().default("pending_payment"),
+  createdAt: timestamp("created_at").defaultNow(),
+  approvedAt: timestamp("approved_at"),
+});
+
+export const insertAccessReservationSchema = createInsertSchema(accessReservations).omit({
+  id: true,
+  createdAt: true,
+  approvedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertTicketPurchase = z.infer<typeof insertTicketPurchaseSchema>;
@@ -136,3 +152,5 @@ export type InsertHeroSlide = z.infer<typeof insertHeroSlideSchema>;
 export type HeroSlide = typeof heroSlides.$inferSelect;
 export type AccessCount = typeof accessCounts.$inferSelect;
 export type CapacitySettings = typeof capacitySettings.$inferSelect;
+export type InsertAccessReservation = z.infer<typeof insertAccessReservationSchema>;
+export type AccessReservation = typeof accessReservations.$inferSelect;

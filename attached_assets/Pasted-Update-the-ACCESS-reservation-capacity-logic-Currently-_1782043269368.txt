@@ -1,0 +1,49 @@
+Update the ACCESS reservation capacity logic. Currently capacity decrements when the user hits "Send All Passes". This needs to change so capacity only decrements when the admin confirms payment.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — POST /api/access/capacity (or /api/access/apply)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When user submits a reservation:
+- Create the reservation record in the database with status: "pending_payment"
+- DO NOT increment the used count in accessCapacity table
+- Return success so the WhatsApp flow opens as normal
+
+The user still goes through the full WhatsApp send flow — nothing changes on the frontend. The only difference is the capacity number does not change yet.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Admin approval route
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When the admin approves a reservation (PUT /api/admin/access/[id]/approve or equivalent):
+- Update reservation status to "approved"
+- NOW increment the used count in accessCapacity for the relevant table type
+- Trigger pass delivery (WhatsApp to each guest who provided a number + email if configured)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 3 — Admin panel display
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the /admin/access page, show two counts per table type:
+- Confirmed (paid + approved) — this is what decrements capacity
+- Pending (submitted but not yet paid) — shown separately so admin knows what's in the pipeline
+
+Example display:
+Table for 4 — 2 confirmed / 1 pending / 5 total
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 4 — Public capacity display
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GET /api/access/capacity should return only CONFIRMED used count — not pending.
+
+A pending reservation should not show a table as sold out to the public. Only confirmed + paid reservations lock a slot.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT CHANGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- The frontend /access page UI — no changes needed there
+- The WhatsApp send flow — still fires on user submission
+- The passport card design
+- Any other pages or components
