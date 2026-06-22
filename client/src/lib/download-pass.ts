@@ -1,6 +1,9 @@
 import html2canvas from "html2canvas";
 
 export async function downloadPassPng(element: HTMLElement, passId: string): Promise<void> {
+  // Ensure all web fonts are loaded before capturing
+  await document.fonts.ready;
+
   const canvas = await html2canvas(element, {
     scale: 4,
     useCORS: true,

@@ -17,7 +17,6 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
     <div
       style={{
         width: "323px",
-        height: "204px",
         border: "2px solid #7a1515",
         borderRadius: "8px",
         overflow: "hidden",
@@ -26,8 +25,6 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
         background: "linear-gradient(170deg, #f2ede0 0%, #e9e2cc 100%)",
         position: "relative",
         boxSizing: "border-box",
-        display: "flex",
-        flexDirection: "column",
       }}
     >
       {/* Paper lines */}
@@ -66,8 +63,8 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
         <line x1="10" y1="125" x2="250" y2="125" stroke="black" strokeWidth="0.7" />
       </svg>
 
-      {/* Gold top bar — FIX 3: position relative + zIndex */}
-      <div style={{ height: "2px", background: "linear-gradient(90deg,#b8860b,#f5d76e,#c9962a,#f5d76e,#b8860b)", position: "relative", zIndex: 1, flexShrink: 0 }} />
+      {/* Gold top bar */}
+      <div style={{ height: "2px", background: "linear-gradient(90deg,#b8860b,#f5d76e,#c9962a,#f5d76e,#b8860b)", position: "relative", zIndex: 1 }} />
 
       {/* Header */}
       <div
@@ -79,7 +76,6 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
           borderBottom: "1px solid rgba(0,0,0,0.1)",
           position: "relative",
           zIndex: 1,
-          flexShrink: 0,
         }}
       >
         <div>
@@ -114,7 +110,7 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
               textTransform: "uppercase",
               color: "rgba(0,0,0,0.35)",
               paddingLeft: "2px",
-              marginTop: "2px",
+              marginTop: "3px",
             }}
           >
             Private Social Club · Member Pass
@@ -140,22 +136,20 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
         </div>
       </div>
 
-      {/* Body */}
+      {/* Body — natural height, no flex stretching */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "64px 1fr",
-          gap: "8px",
-          padding: "8px 12px 0",
+          gap: "10px",
+          padding: "10px 12px 8px",
           position: "relative",
           zIndex: 1,
-          flex: 1,
-          minHeight: 0,
-          overflow: "hidden",
+          alignItems: "start",
         }}
       >
         {/* Photo */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
+        <div>
           <div
             style={{
               width: "64px",
@@ -164,7 +158,6 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
               background: "rgba(0,0,0,0.06)",
               overflow: "hidden",
               position: "relative",
-              flexShrink: 0,
             }}
           >
             {pass.photo ? (
@@ -204,25 +197,38 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
           </div>
         </div>
 
-        {/* Fields */}
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "stretch", minWidth: 0 }}>
+        {/* Fields — natural height, packed top, no flex stretching */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
           {fields.map((f, i, arr) => (
             <div
               key={f.label}
               style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                padding: "2px 0",
+                padding: "4px 0",
                 borderBottom: i < arr.length - 1 ? "1px solid rgba(0,0,0,0.08)" : "none",
-                minHeight: 0,
               }}
             >
-              <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "5px", color: "rgba(0,0,0,0.35)", marginBottom: "1px" }}>
+              <div style={{
+                fontFamily: "Georgia, serif",
+                fontStyle: "italic",
+                fontSize: "5px",
+                color: "rgba(0,0,0,0.35)",
+                marginBottom: "2px",
+                lineHeight: 1.2,
+              }}>
                 {f.label}
               </div>
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "7px", fontWeight: "500", color: "#1a1a1a", letterSpacing: "0.04em", textTransform: "uppercase", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: "7px",
+                fontWeight: "500",
+                color: "#1a1a1a",
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                lineHeight: 1.3,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}>
                 {f.value}
               </div>
             </div>
@@ -240,30 +246,28 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          flexShrink: 0,
-          marginTop: "6px",
         }}
       >
         <div>
-          <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "5px", color: "rgba(0,0,0,0.3)", marginBottom: "1px" }}>
+          <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "5px", color: "rgba(0,0,0,0.3)", marginBottom: "2px", lineHeight: 1.2 }}>
             Pass ID:
           </div>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "6px", color: "rgba(0,0,0,0.42)", letterSpacing: "0.1em" }}>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "6px", color: "rgba(0,0,0,0.42)", letterSpacing: "0.1em", lineHeight: 1.3 }}>
             {pass.id}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "5px", color: "rgba(0,0,0,0.3)", marginBottom: "1px" }}>
+          <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "5px", color: "rgba(0,0,0,0.3)", marginBottom: "2px", lineHeight: 1.2 }}>
             Signature:
           </div>
-          <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "9px", color: "rgba(0,0,0,0.42)" }}>
+          <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "9px", color: "rgba(0,0,0,0.42)", lineHeight: 1.3 }}>
             After Dark Socials
           </div>
         </div>
       </div>
 
-      {/* Gold bottom bar — FIX 3: position relative + zIndex */}
-      <div style={{ height: "2px", background: "linear-gradient(90deg,#b8860b,#f5d76e,#c9962a,#f5d76e,#b8860b)", position: "relative", zIndex: 1, flexShrink: 0 }} />
+      {/* Gold bottom bar */}
+      <div style={{ height: "2px", background: "linear-gradient(90deg,#b8860b,#f5d76e,#c9962a,#f5d76e,#b8860b)", position: "relative", zIndex: 1 }} />
     </div>
   );
 }
