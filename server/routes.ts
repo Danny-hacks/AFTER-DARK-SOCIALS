@@ -834,14 +834,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!tableType || !VALID_TABLE_TYPES_NEW.has(tableType)) {
       return res.status(400).json({ error: "Invalid table type" });
     }
-    const tNum = parseInt(tableNumber, 10);
-    if (isNaN(tNum) || tNum < 1) {
-      return res.status(400).json({ error: "Invalid table number" });
+
+    let passId: string;
+    let tableLabel: string;
+
+    if (tableType === "single_entry") {
+      const count = await storage.countAdminSinglePassesByType("single_entry");
+      passId = `ACC-SE${(count + 1).toString().padStart(3, "0")}`;
+      tableLabel = "Single Entry";
+    } else {
+      const tNum = parseInt(tableNumber, 10);
+      if (isNaN(tNum) || tNum < 1) {
+        return res.status(400).json({ error: "Invalid number" });
+      }
+      if (tableType === "section_8_12") {
+        passId = `ACC-S${tNum}001`;
+        tableLabel = `Section ${tNum}`;
+      } else {
+        passId = `ACC-${tNum}001`;
+        tableLabel = TABLE_INVENTORY[tableType].label;
+      }
     }
-    const config = TABLE_INVENTORY[tableType];
-    const passId = `ACC-${tNum}001`;
+
     const guest = {
-      name: name.trim(),
+      name: (name as string).trim(),
       phone: phone?.trim() ?? "",
       passId,
       notes: notes?.trim() ?? "",
@@ -849,7 +865,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const reservation = await storage.createAdminSinglePass({
         tableType,
-        tableLabel: config.label,
+        tableLabel,
         guestsJson: JSON.stringify([guest]),
       });
       let whatsappUrl: string | null = null;
@@ -858,14 +874,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const msg =
           `Your ACCESS pass is confirmed.\n\n` +
           `Name: ${(name as string).toUpperCase()}\n` +
-          `Table: ${config.label.toUpperCase()}\n` +
+          `Table: ${tableLabel.toUpperCase()}\n` +
           `Date: 27 July 2026\n` +
           `Pass ID: ${passId}\n\n` +
           `Your pass has been attached to this message.\n\n` +
           `After Dark Socials · @afterdarksocials.mu`;
         whatsappUrl = `https://wa.me/${clean}?text=${encodeURIComponent(msg)}`;
       }
-      res.json({ success: true, reservation, passId, whatsappUrl });
+      res.json({ success: true, reservation, passId, tableLabel, whatsappUrl });
     } catch (error) {
       console.error("Error creating single pass:", error);
       res.status(500).json({ error: "Failed to create pass" });

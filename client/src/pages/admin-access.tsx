@@ -124,10 +124,18 @@ export default function AdminAccessPage() {
     reader.readAsDataURL(file);
   }
 
-  const livePassId = `ACC-${singleTableNum}001`;
+  const computedTableLabel =
+    singleType === "section_8_12" ? `Section ${singleTableNum}` :
+    TABLE_CONFIG[singleType]?.label ?? "";
+
+  const livePassId =
+    singleType === "single_entry" ? "ACC-SE???" :
+    singleType === "section_8_12" ? `ACC-S${singleTableNum}001` :
+    `ACC-${singleTableNum}001`;
+
   const livePass: PassFields = {
     name: singleName,
-    tableLabel: TABLE_CONFIG[singleType]?.label ?? "",
+    tableLabel: computedTableLabel,
     photo: singlePhoto,
     id: livePassId,
   };
@@ -170,7 +178,7 @@ export default function AdminAccessPage() {
   async function handleDownloadPass() {
     if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
     const res: any = await singleMutation.mutateAsync({ name: singleName, phone: singlePhone, tableType: singleType, tableNumber: singleTableNum, notes: singleNotes });
-    const pass: PassFields = { name: singleName, tableLabel: TABLE_CONFIG[singleType]?.label ?? "", photo: singlePhoto, id: res.passId ?? livePassId };
+    const pass: PassFields = { name: singleName, tableLabel: res.tableLabel ?? computedTableLabel, photo: singlePhoto, id: res.passId ?? livePassId };
     await triggerDownload(pass);
     resetSingleForm();
     toast({ title: "Pass saved & downloaded", description: `ACCESS-PASS-${pass.id}.png` });
@@ -179,7 +187,7 @@ export default function AdminAccessPage() {
   async function handleSendWhatsApp() {
     if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
     const res: any = await singleMutation.mutateAsync({ name: singleName, phone: singlePhone, tableType: singleType, tableNumber: singleTableNum, notes: singleNotes });
-    const pass: PassFields = { name: singleName, tableLabel: TABLE_CONFIG[singleType]?.label ?? "", photo: singlePhoto, id: res.passId ?? livePassId };
+    const pass: PassFields = { name: singleName, tableLabel: res.tableLabel ?? computedTableLabel, photo: singlePhoto, id: res.passId ?? livePassId };
     await triggerDownload(pass);
     if (res.whatsappUrl) window.open(res.whatsappUrl, "_blank");
     resetSingleForm();
@@ -301,23 +309,32 @@ export default function AdminAccessPage() {
                   </select>
                 </div>
 
-                {/* Table Number */}
-                <div>
-                  <label className="block text-[9px] text-[#c9962a]/60 uppercase tracking-[0.3em] mb-2">
-                    Table Number (1–{TABLE_MAX_NUM[singleType]})
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={TABLE_MAX_NUM[singleType]}
-                    value={singleTableNum}
-                    onChange={(e) => setSingleTableNum(Math.max(1, Math.min(TABLE_MAX_NUM[singleType], parseInt(e.target.value) || 1)))}
-                    className="w-full bg-transparent border border-white/15 text-white text-sm px-4 py-3 focus:outline-none focus:border-[#c9962a]/50"
-                  />
-                  <p className="text-white/20 text-[9px] mt-1.5 uppercase tracking-[0.15em]">
-                    Pass ID will be: {livePassId}
+                {/* Table / Section Number — hidden for single_entry */}
+                {singleType !== "single_entry" && (
+                  <div>
+                    <label className="block text-[9px] text-[#c9962a]/60 uppercase tracking-[0.3em] mb-2">
+                      {singleType === "section_8_12"
+                        ? `Section Number (1–${TABLE_MAX_NUM[singleType]})`
+                        : `Table Number (1–${TABLE_MAX_NUM[singleType]})`}
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={TABLE_MAX_NUM[singleType]}
+                      value={singleTableNum}
+                      onChange={(e) => setSingleTableNum(Math.max(1, Math.min(TABLE_MAX_NUM[singleType], parseInt(e.target.value) || 1)))}
+                      className="w-full bg-transparent border border-white/15 text-white text-sm px-4 py-3 focus:outline-none focus:border-[#c9962a]/50"
+                    />
+                    <p className="text-white/20 text-[9px] mt-1.5 uppercase tracking-[0.15em]">
+                      Pass ID will be: {livePassId}
+                    </p>
+                  </div>
+                )}
+                {singleType === "single_entry" && (
+                  <p className="text-white/20 text-[9px] uppercase tracking-[0.15em]">
+                    Pass ID will be: {livePassId} (assigned on save)
                   </p>
-                </div>
+                )}
 
                 {/* Notes */}
                 <div>

@@ -54,6 +54,7 @@ export interface IStorage {
   getAccessReservationCounts(): Promise<Record<string, { confirmed: number; pending: number }>>;
   getReservationCountByType(tableType: string): Promise<number>;
   createAdminSinglePass(data: { tableType: string; tableLabel: string; guestsJson: string }): Promise<AccessReservation>;
+  countAdminSinglePassesByType(tableType: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -316,6 +317,14 @@ export class DatabaseStorage implements IStorage {
       .values({ ...data, status: "approved", source: "admin_single", approvedAt: new Date() })
       .returning();
     return row;
+  }
+
+  async countAdminSinglePassesByType(tableType: string): Promise<number> {
+    const rows = await db
+      .select()
+      .from(accessReservations)
+      .where(and(eq(accessReservations.tableType, tableType), eq(accessReservations.source, "admin_single")));
+    return rows.length;
   }
 
   async getReservationCountByType(tableType: string): Promise<number> {

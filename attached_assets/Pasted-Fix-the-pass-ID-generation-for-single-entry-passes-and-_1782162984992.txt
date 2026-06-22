@@ -1,0 +1,64 @@
+Fix the pass ID generation for single entry passes and update the admin single pass form to conditionally show the table number field based on pass type selected.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 1 — Conditional table number field
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the admin single pass form on /admin/access:
+
+When Pass Type = "General Entry" (Single Entry):
+- Hide the Table Number field entirely
+- The pass has no table assignment
+
+When Pass Type = "Table for 4" or "Table for 5":
+- Show Table Number field with min 1, max 5
+- Required
+
+When Pass Type = "Section":
+- Show Table Number field with min 1, max 3
+- Required
+- Label should change to "Section Number" instead of "Table Number"
+
+Implement this with a simple conditional — show/hide the field based on the selected pass type value. No other changes to the form.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 2 — Pass ID format per type
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In POST /api/admin/access/single, generate the pass ID based on the pass type selected:
+
+If passType = "General Entry":
+- Format: ACC-SE[NUMBER]
+- NUMBER = count of all existing admin_single General Entry passes + 1, zero-padded to 3 digits
+- Example: ACC-SE001, ACC-SE002, ACC-SE003
+
+If passType = "Table for 4" or "Table for 5":
+- Format: ACC-[TABLE_NUMBER]001
+- TABLE_NUMBER = the table number the admin assigned
+- Example: Table 3 → ACC-3001
+
+If passType = "Section":
+- Format: ACC-S[SECTION_NUMBER]001
+- SECTION_NUMBER = the section number the admin assigned
+- Example: Section 2 → ACC-S2001
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 3 — Passport card Table field
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Update the passport card preview to show the correct value in the Table field based on pass type:
+
+- General Entry → "SINGLE ENTRY"
+- Table for 4 → "TABLE FOR 4"
+- Table for 5 → "TABLE FOR 5"
+- Section → "SECTION [NUMBER]"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT CHANGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- The public reservation pass ID format (ACC-[TABLE_NUMBER][GUEST_NUMBER])
+- The public /access page and table selection flow
+- The PassportCard design or layout
+- The download or WhatsApp delivery flow
+- Any other pages, routes or components
