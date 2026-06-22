@@ -64,7 +64,7 @@ function parseGuests(json: string): Guest[] {
 }
 
 function buildWaUrl(guest: Guest, tableLabel: string): string {
-  const clean = (guest.phone ?? "").replace(/\s+/g, "").replace(/^\+/, "");
+  const clean = (guest.phone ?? "").replace(/[\s\-\+\(\)]/g, "");
   const msg =
     `Your ACCESS pass is confirmed.\n\n` +
     `Name: ${guest.name.toUpperCase()}\n` +

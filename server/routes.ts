@@ -804,7 +804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const whatsappUrls = guests
         .filter((g) => g.phone?.trim())
         .map((g) => {
-          const clean = (g.phone ?? "").replace(/\s+/g, "").replace(/^\+/, "");
+          const clean = (g.phone ?? "").replace(/[\s\-\+\(\)]/g, "");
           const msg =
             `Your ACCESS pass has been confirmed.\n\n` +
             `Name: ${g.name.toUpperCase()}\n` +
@@ -870,7 +870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       let whatsappUrl: string | null = null;
       if (phone?.trim()) {
-        const clean = (phone as string).replace(/\s+/g, "").replace(/^\+/, "");
+        const clean = (phone as string).replace(/[\s\-\+\(\)]/g, "");
         const msg =
           `Your ACCESS pass is confirmed.\n\n` +
           `Name: ${(name as string).toUpperCase()}\n` +

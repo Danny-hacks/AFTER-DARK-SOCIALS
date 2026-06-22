@@ -148,8 +148,8 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       // Then open WhatsApp with message
       setTimeout(() => {
         const encodedMessage = encodeURIComponent(message);
-        const phoneNumber = ticket.customerPhone ? ticket.customerPhone.replace(/[^\d]/g, '') : '';
-        window.open(`https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodedMessage}`, '_blank');
+        const phoneNumber = ticket.customerPhone ? ticket.customerPhone.replace(/[\s\-\+\(\)]/g, '') : '';
+        window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
       }, 500);
       
       toast({
