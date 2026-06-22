@@ -58,7 +58,7 @@ export async function generatePassPDF(data: PassData): Promise<void> {
   ctx.restore();
 
   // ── Globe watermark ──
-  drawGlobe(ctx, CARD_W / 2, CARD_H / 2, 0.09);
+  drawGlobe(ctx, CARD_W / 2 + 80, CARD_H / 2, 0.09, 160, 110);
 
   // ── Gold bars ──
   ctx.fillStyle = goldGrad;
@@ -268,15 +268,14 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 function drawGlobe(
   ctx: CanvasRenderingContext2D,
   cx: number, cy: number,
-  opacity: number
+  opacity: number,
+  rx: number,
+  ry: number
 ) {
   ctx.save();
   ctx.globalAlpha = opacity;
   ctx.strokeStyle = "#000";
   ctx.lineWidth = 1.5;
-
-  const rx = 280;
-  const ry = 180;
 
   ctx.beginPath();
   ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
