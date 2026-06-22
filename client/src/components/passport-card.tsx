@@ -5,11 +5,20 @@ export interface PassFields {
   id: string;
 }
 
-export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfMode?: boolean }) {
+export function PassportCard({
+  pass,
+  pdfMode = false,
+}: {
+  pass: PassFields;
+  pdfMode?: boolean;
+}) {
   const fields = [
     { label: "Name:", value: pass.name || "\u2014" },
     { label: "Place of Access:", value: "Mauritius" },
-    { label: "Table:", value: pass.tableLabel ? pass.tableLabel.toUpperCase() : "\u2014" },
+    {
+      label: "Table:",
+      value: pass.tableLabel ? pass.tableLabel.toUpperCase() : "\u2014",
+    },
     { label: "Date:", value: "27 JULY 2026" },
   ];
 
@@ -55,16 +64,59 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
         viewBox="0 0 260 180"
         fill="none"
       >
-        <ellipse cx="130" cy="90" rx="120" ry="78" stroke="black" strokeWidth="1.2" />
-        <ellipse cx="130" cy="90" rx="80"  ry="78" stroke="black" strokeWidth="0.9" />
-        <ellipse cx="130" cy="90" rx="40"  ry="78" stroke="black" strokeWidth="0.9" />
-        <line x1="10" y1="90"  x2="250" y2="90"  stroke="black" strokeWidth="1"   />
-        <line x1="10" y1="55"  x2="250" y2="55"  stroke="black" strokeWidth="0.7" />
-        <line x1="10" y1="125" x2="250" y2="125" stroke="black" strokeWidth="0.7" />
+        <ellipse
+          cx="130"
+          cy="90"
+          rx="120"
+          ry="78"
+          stroke="black"
+          strokeWidth="1.2"
+        />
+        <ellipse
+          cx="130"
+          cy="90"
+          rx="80"
+          ry="78"
+          stroke="black"
+          strokeWidth="0.9"
+        />
+        <ellipse
+          cx="130"
+          cy="90"
+          rx="40"
+          ry="78"
+          stroke="black"
+          strokeWidth="0.9"
+        />
+        <line x1="10" y1="90" x2="250" y2="90" stroke="black" strokeWidth="1" />
+        <line
+          x1="10"
+          y1="55"
+          x2="250"
+          y2="55"
+          stroke="black"
+          strokeWidth="0.7"
+        />
+        <line
+          x1="10"
+          y1="125"
+          x2="250"
+          y2="125"
+          stroke="black"
+          strokeWidth="0.7"
+        />
       </svg>
 
       {/* Gold top bar */}
-      <div style={{ height: "2px", background: "linear-gradient(90deg,#b8860b,#f5d76e,#c9962a,#f5d76e,#b8860b)", position: "relative", zIndex: 1 }} />
+      <div
+        style={{
+          height: "2px",
+          background:
+            "linear-gradient(90deg,#b8860b,#f5d76e,#c9962a,#f5d76e,#b8860b)",
+          position: "relative",
+          zIndex: 1,
+        }}
+      />
 
       {/* Header */}
       <div
@@ -94,7 +146,8 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
                     fontSize: "22px",
                     letterSpacing: "0.18em",
                     lineHeight: 1,
-                    background: "linear-gradient(135deg,#c9962a 0%,#f5d76e 50%,#b8860b 100%)",
+                    background:
+                      "linear-gradient(135deg,#c9962a 0%,#f5d76e 50%,#b8860b 100%)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                     backgroundClip: "text",
@@ -113,7 +166,7 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
               marginTop: "3px",
             }}
           >
-            Private Social Club · Member Pass
+            Private Social Night · Event Pass
           </div>
         </div>
         <div
@@ -164,7 +217,13 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
               <img
                 src={pass.photo}
                 alt="member"
-                style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", display: "block" }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center top",
+                  display: "block",
+                }}
               />
             ) : (
               <div
@@ -178,8 +237,22 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
                   gap: "2px",
                 }}
               >
-                <div style={{ width: "20px", height: "20px", borderRadius: "50%", background: "rgba(0,0,0,0.13)" }} />
-                <div style={{ width: "30px", height: "17px", borderRadius: "50% 50% 0 0", background: "rgba(0,0,0,0.09)" }} />
+                <div
+                  style={{
+                    width: "20px",
+                    height: "20px",
+                    borderRadius: "50%",
+                    background: "rgba(0,0,0,0.13)",
+                  }}
+                />
+                <div
+                  style={{
+                    width: "30px",
+                    height: "17px",
+                    borderRadius: "50% 50% 0 0",
+                    background: "rgba(0,0,0,0.09)",
+                  }}
+                />
               </div>
             )}
           </div>
@@ -204,31 +277,36 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
               key={f.label}
               style={{
                 padding: "4px 0",
-                borderBottom: i < arr.length - 1 ? "1px solid rgba(0,0,0,0.08)" : "none",
+                borderBottom:
+                  i < arr.length - 1 ? "1px solid rgba(0,0,0,0.08)" : "none",
               }}
             >
-              <div style={{
-                fontFamily: "Georgia, serif",
-                fontStyle: "italic",
-                fontSize: "7px",
-                color: "rgba(0,0,0,0.35)",
-                marginBottom: "2px",
-                lineHeight: 1.2,
-              }}>
+              <div
+                style={{
+                  fontFamily: "Georgia, serif",
+                  fontStyle: "italic",
+                  fontSize: "7px",
+                  color: "rgba(0,0,0,0.35)",
+                  marginBottom: "2px",
+                  lineHeight: 1.2,
+                }}
+              >
                 {f.label}
               </div>
-              <div style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: "11px",
-                fontWeight: "500",
-                color: "#1a1a1a",
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
-                lineHeight: 1.3,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}>
+              <div
+                style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: "11px",
+                  fontWeight: "500",
+                  color: "#1a1a1a",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  lineHeight: 1.3,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {f.value}
               </div>
             </div>
@@ -249,25 +327,67 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
         }}
       >
         <div>
-          <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "7px", color: "rgba(0,0,0,0.3)", marginBottom: "2px", lineHeight: 1.2 }}>
+          <div
+            style={{
+              fontFamily: "Georgia, serif",
+              fontStyle: "italic",
+              fontSize: "7px",
+              color: "rgba(0,0,0,0.3)",
+              marginBottom: "2px",
+              lineHeight: 1.2,
+            }}
+          >
             Pass ID:
           </div>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", color: "rgba(0,0,0,0.42)", letterSpacing: "0.1em", lineHeight: 1.3 }}>
+          <div
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "9px",
+              color: "rgba(0,0,0,0.42)",
+              letterSpacing: "0.1em",
+              lineHeight: 1.3,
+            }}
+          >
             {pass.id}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "7px", color: "rgba(0,0,0,0.3)", marginBottom: "2px", lineHeight: 1.2 }}>
+          <div
+            style={{
+              fontFamily: "Georgia, serif",
+              fontStyle: "italic",
+              fontSize: "7px",
+              color: "rgba(0,0,0,0.3)",
+              marginBottom: "2px",
+              lineHeight: 1.2,
+            }}
+          >
             Signature:
           </div>
-          <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "9px", color: "rgba(0,0,0,0.42)", lineHeight: 1.3 }}>
+          <div
+            style={{
+              fontFamily: "Georgia, serif",
+              fontStyle: "italic",
+              fontSize: "9px",
+              color: "rgba(0,0,0,0.42)",
+              lineHeight: 1.3,
+            }}
+          >
             After Dark Socials
           </div>
         </div>
       </div>
 
       {/* Gold bottom bar */}
-      <div style={{ height: "2px", background: "linear-gradient(90deg,#b8860b,#f5d76e,#c9962a,#f5d76e,#b8860b)", position: "relative", zIndex: 1 }} />
+      <div
+        style={{
+          height: "2px",
+          background:
+            "linear-gradient(90deg,#b8860b,#f5d76e,#c9962a,#f5d76e,#b8860b)",
+          position: "relative",
+          zIndex: 1,
+        }}
+      />
     </div>
   );
 }
