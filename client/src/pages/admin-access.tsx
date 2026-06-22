@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, Check, X, Clock, ChevronDown, ChevronUp, Download, MessageSquare, Plus } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
@@ -80,6 +80,18 @@ function buildWaUrl(guest: Guest, tableLabel: string): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function AdminAccessPage() {
   const { toast } = useToast();
+
+  // FIX 3 — preload DM Mono + Bebas Neue into the document font set so
+  // html2canvas always finds them loaded (avoids glitched-character exports)
+  useEffect(() => {
+    const fonts = [
+      new FontFace("DM Mono", "url(https://fonts.gstatic.com/s/dmmono/v14/aFTR7PB1QTsUX8KYvrGyIYetlY4.woff2)"),
+      new FontFace("Bebas Neue", "url(https://fonts.gstatic.com/s/bebasneuepro/v3/fC1MPYA5ZYrSF0NpB0YOmOiGz9h5.woff2)"),
+    ];
+    fonts.forEach((font) => {
+      font.load().then((f) => document.fonts.add(f)).catch(() => {});
+    });
+  }, []);
 
   // ── Data ──
   const { data, isLoading } = useQuery<ReservationsResponse>({

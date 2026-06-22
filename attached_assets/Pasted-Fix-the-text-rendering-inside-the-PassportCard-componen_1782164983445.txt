@@ -1,0 +1,116 @@
+Fix the text rendering inside the PassportCard component when captured by html2canvas. The field values (Name, Place of Access, Table, Date) are rendering with corrupted/glitched characters in the exported PNG.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THE PROBLEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When html2canvas captures the PassportCard, the text values appear corrupted — letters are garbled, cut off, or overlapping. This is a known html2canvas issue with custom fonts (DM Mono) not being fully loaded before the capture runs.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 1 — Wait for fonts to load before capture
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Before calling html2canvas, ensure all fonts are fully loaded:
+
+const downloadPass = async (passId: string) => {
+  const element = document.getElementById('passport-card')
+  if (!element) return
+
+  await document.fonts.ready
+
+  const canvas = await html2canvas(element, {
+    useCORS: true,
+    allowTaint: true,
+    scale: 4,
+    scrollX: 0,
+    scrollY: -window.scrollY,
+    windowWidth: document.documentElement.scrollWidth,
+    windowHeight: document.documentElement.scrollHeight,
+    backgroundColor: null,
+    logging: false,
+    onclone: (clonedDoc) => {
+      const clonedElement = clonedDoc.getElementById('passport-card')
+      if (clonedElement) {
+        clonedElement.style.fontFamily = "'DM Mono', monospace"
+      }
+    }
+  })
+
+  const { jsPDF } = await import('jspdf')
+  const pdf = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: [85.6, 54],
+  })
+
+  const imgData = canvas.toDataURL('image/png')
+  pdf.addImage(imgData, 'PNG', 0, 0, 85.6, 54)
+  pdf.save(`ACCESS-PASS-${passId}.pdf`)
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 2 — Add a short delay before capture
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After document.fonts.ready, add a 300ms delay before capturing to ensure the DOM has fully painted:
+
+await document.fonts.ready
+await new Promise(resolve => setTimeout(resolve, 300))
+
+Then call html2canvas.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 3 — Preload fonts explicitly
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the PassportCard component or the page that uses it, add font preloading at the top:
+
+useEffect(() => {
+  const fonts = [
+    new FontFace('DM Mono', 'url(https://fonts.gstatic.com/s/dmmono/v14/aFTR7PB1QTsUX8KYvrGyIYetlY4.woff2)'),
+    new FontFace('Bebas Neue', 'url(https://fonts.gstatic.com/s/bebasneuepro/v3/fC1MPYA5ZYrSF0NpB0YOmOiGz9h5.woff2)'),
+  ]
+
+  Promise.all(fonts.map(font => {
+    font.load().then(f => document.fonts.add(f))
+    return font.load()
+  }))
+}, [])
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 4 — Fallback to system fonts in cloned document
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the onclone callback, copy all existing stylesheets from the main document into the cloned document so fonts and styles render correctly:
+
+onclone: (clonedDoc) => {
+  Array.from(document.styleSheets).forEach(sheet => {
+    try {
+      const rules = Array.from(sheet.cssRules || [])
+        .map(rule => rule.cssText)
+        .join('\n')
+      const style = clonedDoc.createElement('style')
+      style.textContent = rules
+      clonedDoc.head.appendChild(style)
+    } catch (e) {}
+  })
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 5 — Ensure passport card has explicit font declarations
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the PassportCard component, add explicit inline font-family on every text element that uses DM Mono or Bebas Neue. Do not rely on CSS inheritance for html2canvas — set font-family directly on each element:
+
+- All field value elements: style={{ fontFamily: "'DM Mono', monospace" }}
+- ACCESS title: style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
+- All italic label elements: style={{ fontFamily: "Georgia, serif", fontStyle: "italic" }}
+- Signature: style={{ fontFamily: "Georgia, serif", fontStyle: "italic" }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT CHANGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- The PassportCard design, layout, colors or content
+- The pass ID format
+- Any other pages or components
