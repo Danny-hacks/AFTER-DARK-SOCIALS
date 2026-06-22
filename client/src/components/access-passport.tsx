@@ -436,19 +436,23 @@ export function AccessPassport() {
                   </div>
                 </div>
 
-                {/* Live passport preview */}
+                {/* Live passport preview — FIX 5: natural 323×204 size, centered, mobile scale */}
                 <div className="lg:col-span-7 lg:sticky lg:top-8">
                   <p className="text-white/20 text-[9px] uppercase tracking-[0.25em] mb-5">
                     Guest {activeGuest + 1} Pass · Updates Live
                   </p>
-                  <PassportCard
-                    pass={{
-                      name: guests[activeGuest]?.name ?? "",
-                      tableLabel: selectedConfig.label,
-                      photo: guests[activeGuest]?.photo ?? "",
-                      id: guests[activeGuest]?.passId ?? "",
-                    }}
-                  />
+                  <div style={{ display: "flex", justifyContent: "center", overflow: "hidden" }}>
+                    <div style={{ flexShrink: 0, transformOrigin: "top center", transform: "scale(min(1, calc((100vw - 32px) / 323)))" }}>
+                      <PassportCard
+                        pass={{
+                          name: guests[activeGuest]?.name ?? "",
+                          tableLabel: selectedConfig.label,
+                          photo: guests[activeGuest]?.photo ?? "",
+                          id: guests[activeGuest]?.passId ?? "",
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

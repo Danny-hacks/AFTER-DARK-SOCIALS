@@ -1,0 +1,119 @@
+Fix the following visual issues on the ACCESS pass PNG/PDF export and update the passport card dimensions to credit card size.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 1 — Resize passport card to credit card dimensions
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Update the PassportCard component to render at CR80 credit card size:
+- Width: 323px (85.6mm at 96dpi)
+- Height: 204px (54mm at 96dpi)
+- Border radius: 8px
+- Border: 2px solid #7a1515
+
+Scale all internal elements down to fit the smaller canvas:
+
+Header:
+- Padding: 8px 12px 6px
+- ACCESS title font size: 22px
+- Subtitle font size: 5px letter-spacing .25em
+- Emblem circle: 18px width and height, font-size 9px
+
+Body:
+- Grid: 64px + 1fr, gap 8px, padding 8px 12px 0
+- Photo box: 64px × 78px
+- Photo label: 4px font size
+- Field label (italic): 5px font size
+- Field value (monospace): 7px font size
+- Field padding: 2px top and bottom
+
+Footer:
+- Padding: 5px 12px 7px
+- Pass ID label: 5px font size
+- Pass ID value: 6px font size
+- Signature: 9px font size
+- margin-top: 6px
+
+Paper lines:
+- Line repeat every 12px instead of 18px
+
+Gold bars:
+- Height: 2px instead of 3px
+
+Globe watermark:
+- Opacity: 0.09
+- Width: 60%, Height: 80%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 2 — Update PDF export to match credit card size
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Update the download pass function to export at CR80 dimensions:
+
+const downloadPass = async (passId: string) => {
+ const element = document.getElementById('passport-card')
+ if (!element) return
+
+ const canvas = await html2canvas(element, {
+   useCORS: true,
+   allowTaint: true,
+   scale: 4,
+   scrollX: 0,
+   scrollY: -window.scrollY,
+   windowWidth: document.documentElement.scrollWidth,
+   windowHeight: document.documentElement.scrollHeight,
+   backgroundColor: null,
+ })
+
+ const { jsPDF } = await import('jspdf')
+ const pdf = new jsPDF({
+   orientation: 'landscape',
+   unit: 'mm',
+   format: [85.6, 54],
+ })
+
+ const imgData = canvas.toDataURL('image/png')
+ pdf.addImage(imgData, 'PNG', 0, 0, 85.6, 54)
+ pdf.save(`ACCESS-PASS-${passId}.pdf`)
+}
+
+Use scale: 4 for sharp high resolution output at this small size.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 3 — Gold bars missing from export
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The gold gradient bars at the top and bottom of the passport card are not showing in the downloaded PNG.
+
+Fix:
+- Ensure both gold bar divs have position: relative and z-index: 1
+- Before triggering html2canvas, scroll the passport card element into full view
+- Pass scrollY: -window.scrollY in html2canvas options as shown above
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 4 — Right border clipped in export
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The dark red border on the right edge is being clipped in the PNG export.
+
+Fix:
+- Before calling html2canvas, wrap the passport card in a container with padding: 2px
+- Or ensure the card has box-sizing: border-box and does not overflow its container
+- All 4 sides of the border must be fully visible in the exported image
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 5 — On screen display
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+On the /access page and admin single pass generator, the passport card preview should:
+- Display at its natural 323px × 204px size on desktop — do not stretch it to fill the column
+- Center it within its container
+- On mobile: scale it down proportionally to fit within the screen with 16px padding either side using transform: scale() or max-width: 100%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT CHANGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- The passport card design, colors, and content
+- The field labels and values
+- The gold gradient colors
+- Any other pages or components

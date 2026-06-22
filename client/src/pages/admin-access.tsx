@@ -209,10 +209,12 @@ export default function AdminAccessPage() {
   // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <AdminLayout title="ACCESS">
-      {/* Hidden capture element for html2canvas */}
+      {/* Hidden capture element for html2canvas — FIX 4: 2px padding prevents border clip */}
       {capturePass && (
-        <div ref={captureRef} style={{ position: "fixed", top: -9999, left: -9999, width: 460, zIndex: -1, pointerEvents: "none" }}>
-          <PassportCard pass={capturePass} pdfMode />
+        <div style={{ position: "fixed", top: -9999, left: -9999, zIndex: -1, pointerEvents: "none", padding: "2px", width: "327px" }}>
+          <div ref={captureRef}>
+            <PassportCard pass={capturePass} pdfMode />
+          </div>
         </div>
       )}
 
@@ -412,12 +414,16 @@ export default function AdminAccessPage() {
                 </div>
               </div>
 
-              {/* ── Live preview (right) ── */}
+              {/* ── Live preview (right) — FIX 5: natural 323×204 size, centered, mobile scale ── */}
               <div className="lg:col-span-7 lg:sticky lg:top-8">
                 <p className="text-white/20 text-[9px] uppercase tracking-[0.25em] mb-5">
                   Live Pass Preview · Updates as you type
                 </p>
-                <PassportCard pass={livePass} />
+                <div style={{ display: "flex", justifyContent: "center", overflow: "hidden" }}>
+                  <div style={{ flexShrink: 0, transformOrigin: "top center", transform: "scale(min(1, calc((100vw - 32px) / 323)))" }}>
+                    <PassportCard pass={livePass} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
