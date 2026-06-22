@@ -40,12 +40,14 @@ interface ReservationsResponse {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const TABLE_CONFIG: Record<string, { label: string; price: number; capacity: number }> = {
-  table_4:      { label: "Table for 4",           price: 4000, capacity: 5 },
-  table_5:      { label: "Table for 5",           price: 5000, capacity: 5 },
-  section_8_12: { label: "Section (8–12 guests)", price: 8000, capacity: 3 },
+  single_entry: { label: "Single Entry",          price: 1500, capacity: 99 },
+  table_4:      { label: "Table for 4",           price: 4000, capacity: 5  },
+  table_5:      { label: "Table for 5",           price: 5000, capacity: 5  },
+  section_8_12: { label: "Section (8–12 guests)", price: 8000, capacity: 3  },
 };
 
 const TABLE_MAX_NUM: Record<string, number> = {
+  single_entry: 99,
   table_4: 5,
   table_5: 5,
   section_8_12: 3,
@@ -279,6 +281,7 @@ export default function AdminAccessPage() {
                     onChange={(e) => { setSingleType(e.target.value); setSingleTableNum(1); }}
                     className="w-full bg-[#0a0a0a] border border-white/15 text-white text-sm px-4 py-3 focus:outline-none focus:border-[#c9962a]/50"
                   >
+                    <option value="single_entry">Single Entry</option>
                     <option value="table_4">Table for 4</option>
                     <option value="table_5">Table for 5</option>
                     <option value="section_8_12">Section (8–12 guests)</option>

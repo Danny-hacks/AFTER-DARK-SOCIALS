@@ -715,9 +715,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ─── Table-based ACCESS routes ────────────────────────────────────────────
   const TABLE_INVENTORY: Record<string, { label: string; price: number; capacity: number; maxGuests: number; minGuests: number }> = {
-    table_4:      { label: "Table for 4",           price: 4000, capacity: 5, maxGuests: 4,  minGuests: 1 },
-    table_5:      { label: "Table for 5",           price: 5000, capacity: 5, maxGuests: 5,  minGuests: 1 },
-    section_8_12: { label: "Section (8–12 guests)", price: 8000, capacity: 3, maxGuests: 12, minGuests: 8 },
+    single_entry: { label: "Single Entry",          price: 1500, capacity: 99, maxGuests: 1,  minGuests: 1 },
+    table_4:      { label: "Table for 4",           price: 4000, capacity: 5,  maxGuests: 4,  minGuests: 1 },
+    table_5:      { label: "Table for 5",           price: 5000, capacity: 5,  maxGuests: 5,  minGuests: 1 },
+    section_8_12: { label: "Section (8–12 guests)", price: 8000, capacity: 3,  maxGuests: 12, minGuests: 8 },
   };
   const VALID_TABLE_TYPES_NEW = new Set(Object.keys(TABLE_INVENTORY));
 
