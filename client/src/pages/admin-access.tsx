@@ -113,12 +113,22 @@ export default function AdminAccessPage() {
   const [singleType, setSingleType]           = useState("table_4");
   const [singleTableNum, setSingleTableNum]   = useState(1);
   const [singleNotes, setSingleNotes]         = useState("");
+  const [singlePhoto, setSinglePhoto]         = useState("");
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setSinglePhoto(ev.target?.result as string ?? "");
+    reader.readAsDataURL(file);
+  }
 
   const livePassId = `ACC-${singleTableNum}001`;
   const livePass: PassFields = {
     name: singleName,
     tableLabel: TABLE_CONFIG[singleType]?.label ?? "",
-    photo: "",
+    photo: singlePhoto,
     id: livePassId,
   };
 
@@ -132,7 +142,8 @@ export default function AdminAccessPage() {
 
   function resetSingleForm() {
     setSingleName(""); setSinglePhone(""); setSingleType("table_4");
-    setSingleTableNum(1); setSingleNotes("");
+    setSingleTableNum(1); setSingleNotes(""); setSinglePhoto("");
+    if (photoInputRef.current) photoInputRef.current.value = "";
   }
 
   // ── PDF download via hidden capture div ──
@@ -159,7 +170,7 @@ export default function AdminAccessPage() {
   async function handleDownloadPass() {
     if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
     const res: any = await singleMutation.mutateAsync({ name: singleName, phone: singlePhone, tableType: singleType, tableNumber: singleTableNum, notes: singleNotes });
-    const pass: PassFields = { name: singleName, tableLabel: TABLE_CONFIG[singleType]?.label ?? "", photo: "", id: res.passId ?? livePassId };
+    const pass: PassFields = { name: singleName, tableLabel: TABLE_CONFIG[singleType]?.label ?? "", photo: singlePhoto, id: res.passId ?? livePassId };
     await triggerDownload(pass);
     resetSingleForm();
     toast({ title: "Pass saved & downloaded", description: `ACCESS-PASS-${pass.id}.png` });
@@ -168,7 +179,7 @@ export default function AdminAccessPage() {
   async function handleSendWhatsApp() {
     if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
     const res: any = await singleMutation.mutateAsync({ name: singleName, phone: singlePhone, tableType: singleType, tableNumber: singleTableNum, notes: singleNotes });
-    const pass: PassFields = { name: singleName, tableLabel: TABLE_CONFIG[singleType]?.label ?? "", photo: "", id: res.passId ?? livePassId };
+    const pass: PassFields = { name: singleName, tableLabel: TABLE_CONFIG[singleType]?.label ?? "", photo: singlePhoto, id: res.passId ?? livePassId };
     await triggerDownload(pass);
     if (res.whatsappUrl) window.open(res.whatsappUrl, "_blank");
     resetSingleForm();
@@ -318,6 +329,57 @@ export default function AdminAccessPage() {
                     rows={2}
                     className="w-full bg-transparent border border-white/15 text-white text-sm px-4 py-3 placeholder-white/20 focus:outline-none focus:border-[#c9962a]/50 resize-none"
                   />
+                </div>
+
+                {/* Photo upload */}
+                <div>
+                  <label className="block text-[9px] text-[#c9962a]/60 uppercase tracking-[0.3em] mb-2">
+                    Member Photo (Optional)
+                  </label>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="hidden"
+                    id="photo-upload"
+                  />
+                  <div className="flex items-center gap-4">
+                    {singlePhoto ? (
+                      <>
+                        <img
+                          src={singlePhoto}
+                          alt="preview"
+                          className="w-16 h-20 object-cover object-top border border-white/15"
+                        />
+                        <div className="flex flex-col gap-2">
+                          <label
+                            htmlFor="photo-upload"
+                            className="cursor-pointer border border-white/15 hover:border-white/40 text-white/50 hover:text-white text-[8px] uppercase tracking-[0.2em] font-bold px-3 py-2 transition-colors text-center"
+                          >
+                            Replace Photo
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => { setSinglePhoto(""); if (photoInputRef.current) photoInputRef.current.value = ""; }}
+                            className="border border-[#c72d28]/30 hover:border-[#c72d28] text-[#c72d28]/60 hover:text-[#c72d28] text-[8px] uppercase tracking-[0.2em] font-bold px-3 py-2 transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <label
+                        htmlFor="photo-upload"
+                        className="cursor-pointer flex items-center gap-2 border border-white/15 hover:border-[#c9962a]/50 text-white/40 hover:text-[#c9962a] text-[8px] uppercase tracking-[0.2em] font-bold px-4 py-3 transition-colors w-full justify-center"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Upload Photo
+                      </label>
+                    )}
+                  </div>
                 </div>
 
                 {/* Action buttons */}
