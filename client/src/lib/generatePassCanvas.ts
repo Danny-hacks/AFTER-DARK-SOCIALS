@@ -233,7 +233,15 @@ export async function generatePassPDF(data: PassData): Promise<void> {
     format: [85.6, 54],
   });
   pdf.addImage(imgData, "PNG", 0, 0, 85.6, 54);
-  pdf.save(`ACCESS-PASS-${data.passId}.pdf`);
+  const pdfBlob = pdf.output("blob");
+  const blobUrl = URL.createObjectURL(pdfBlob);
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = `ACCESS-PASS-${data.passId}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 }
 
 function roundRect(
