@@ -210,7 +210,7 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
               <div style={{
                 fontFamily: "Georgia, serif",
                 fontStyle: "italic",
-                fontSize: "5px",
+                fontSize: "7px",
                 color: "rgba(0,0,0,0.35)",
                 marginBottom: "2px",
                 lineHeight: 1.2,
@@ -219,7 +219,7 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
               </div>
               <div style={{
                 fontFamily: "'DM Mono', monospace",
-                fontSize: "7px",
+                fontSize: "11px",
                 fontWeight: "500",
                 color: "#1a1a1a",
                 letterSpacing: "0.04em",
@@ -249,15 +249,15 @@ export function PassportCard({ pass, pdfMode = false }: { pass: PassFields; pdfM
         }}
       >
         <div>
-          <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "5px", color: "rgba(0,0,0,0.3)", marginBottom: "2px", lineHeight: 1.2 }}>
+          <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "7px", color: "rgba(0,0,0,0.3)", marginBottom: "2px", lineHeight: 1.2 }}>
             Pass ID:
           </div>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "6px", color: "rgba(0,0,0,0.42)", letterSpacing: "0.1em", lineHeight: 1.3 }}>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px", color: "rgba(0,0,0,0.42)", letterSpacing: "0.1em", lineHeight: 1.3 }}>
             {pass.id}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "5px", color: "rgba(0,0,0,0.3)", marginBottom: "2px", lineHeight: 1.2 }}>
+          <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "7px", color: "rgba(0,0,0,0.3)", marginBottom: "2px", lineHeight: 1.2 }}>
             Signature:
           </div>
           <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "9px", color: "rgba(0,0,0,0.42)", lineHeight: 1.3 }}>

@@ -1,10 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, Check, X, Clock, ChevronDown, ChevronUp, Download, MessageSquare, Plus } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { PassportCard } from "@/components/passport-card";
-import type { PassFields } from "@/components/passport-card";
-import { downloadPassPng } from "@/lib/download-pass";
+import { generatePassPDF } from "@/lib/generatePassCanvas";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -166,19 +165,6 @@ export default function AdminAccessPage() {
     if (photoInputRef.current) photoInputRef.current.value = "";
   }
 
-  // ── PDF download via hidden capture div ──
-  const captureRef = useRef<HTMLDivElement>(null);
-  const [capturePass, setCapturePass] = useState<PassFields | null>(null);
-
-  const triggerDownload = useCallback(async (pass: PassFields): Promise<void> => {
-    setCapturePass(pass);
-    await new Promise((r) => setTimeout(r, 300));
-    if (captureRef.current) {
-      await downloadPassPng(captureRef.current, pass.id);
-    }
-    setCapturePass(null);
-  }, []);
-
   // Single pass actions
   async function handleSaveOnly() {
     if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
@@ -190,27 +176,28 @@ export default function AdminAccessPage() {
   async function handleDownloadPass() {
     if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
     const res: any = await singleMutation.mutateAsync({ name: singleName, phone: singlePhone, tableType: singleType, tableNumber: singleTableNum, notes: singleNotes });
-    const pass: PassFields = { name: singleName, tableLabel: res.tableLabel ?? computedTableLabel, photo: singlePhoto, id: res.passId ?? livePassId };
-    await triggerDownload(pass);
+    const passId = res.passId ?? livePassId;
+    const tableLabel = res.tableLabel ?? computedTableLabel;
+    await generatePassPDF({ name: singleName, table: tableLabel, date: "27 July 2026", passId, photoUrl: singlePhoto || undefined });
     resetSingleForm();
-    toast({ title: "Pass saved & downloaded", description: `ACCESS-PASS-${pass.id}.png` });
+    toast({ title: "Pass saved & downloaded", description: `ACCESS-PASS-${passId}.pdf` });
   }
 
   async function handleSendWhatsApp() {
     if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
     const res: any = await singleMutation.mutateAsync({ name: singleName, phone: singlePhone, tableType: singleType, tableNumber: singleTableNum, notes: singleNotes });
-    const pass: PassFields = { name: singleName, tableLabel: res.tableLabel ?? computedTableLabel, photo: singlePhoto, id: res.passId ?? livePassId };
-    await triggerDownload(pass);
+    const passId = res.passId ?? livePassId;
+    const tableLabel = res.tableLabel ?? computedTableLabel;
+    await generatePassPDF({ name: singleName, table: tableLabel, date: "27 July 2026", passId, photoUrl: singlePhoto || undefined });
     if (res.whatsappUrl) window.open(res.whatsappUrl, "_blank");
     resetSingleForm();
-    toast({ title: "Pass sent", description: singlePhone ? "PNG downloaded · WhatsApp opened" : "PNG downloaded (no phone provided)" });
+    toast({ title: "Pass sent", description: singlePhone ? "PDF downloaded · WhatsApp opened" : "PDF downloaded (no phone provided)" });
   }
 
   // Per-guest download / send
   async function downloadGuestPass(guest: Guest, tableLabel: string) {
-    const pass: PassFields = { name: guest.name, tableLabel, photo: "", id: guest.passId };
-    await triggerDownload(pass);
-    toast({ title: "Downloading…", description: `ACCESS-PASS-${guest.passId}.png` });
+    await generatePassPDF({ name: guest.name, table: tableLabel, date: "27 July 2026", passId: guest.passId, photoUrl: undefined });
+    toast({ title: "Downloading…", description: `ACCESS-PASS-${guest.passId}.pdf` });
   }
 
   function sendGuestWhatsApp(guest: Guest, tableLabel: string) {
@@ -229,14 +216,6 @@ export default function AdminAccessPage() {
   // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <AdminLayout title="ACCESS">
-      {/* Hidden capture element for html2canvas — FIX 4: 2px padding prevents border clip */}
-      {capturePass && (
-        <div style={{ position: "fixed", top: -9999, left: -9999, zIndex: -1, pointerEvents: "none", padding: "2px", width: "327px" }}>
-          <div ref={captureRef}>
-            <PassportCard pass={capturePass} pdfMode />
-          </div>
-        </div>
-      )}
 
       <div className="mb-8">
         <p className="text-white/40 text-xs uppercase tracking-[0.2em]">
