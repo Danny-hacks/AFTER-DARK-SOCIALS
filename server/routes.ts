@@ -888,6 +888,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/admin/access/:id", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteAccessReservation(req.params.id);
+      if (!deleted) return res.status(404).json({ error: "Reservation not found" });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting reservation:", error);
+      res.status(500).json({ error: "Failed to delete reservation" });
+    }
+  });
+
   app.put("/api/admin/access/:id/reject", requireAuth, async (req, res) => {
     try {
       const reservation = await storage.rejectAccessReservation(req.params.id);

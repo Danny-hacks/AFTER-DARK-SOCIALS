@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Check, X, Clock, ChevronDown, ChevronUp, Download, MessageSquare, Plus } from "lucide-react";
+import { Loader2, Check, X, Clock, ChevronDown, ChevronUp, Download, MessageSquare, Plus, Trash2 } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { PassportCard } from "@/components/passport-card";
 import { generatePassPDF } from "@/lib/generatePassCanvas";
@@ -106,6 +106,15 @@ export default function AdminAccessPage() {
       toast({ title: "Reservation approved", description: "Payment confirmed — use Send Passes to dispatch." });
     },
     onError: () => toast({ title: "Failed to approve", variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/access/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/access/reservations"] });
+      toast({ title: "Pass deleted" });
+    },
+    onError: () => toast({ title: "Failed to delete", variant: "destructive" }),
   });
 
   const rejectMutation = useMutation({
@@ -551,9 +560,22 @@ export default function AdminAccessPage() {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-2 shrink-0">
                           <Clock className="w-2.5 h-2.5 text-white/20" />
                           <span className="text-white/25 text-[9px] uppercase tracking-[0.15em]">{fmtDate(r.createdAt)}</span>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Delete this pass? This cannot be undone.`)) {
+                                deleteMutation.mutate(r.id);
+                              }
+                            }}
+                            disabled={deleteMutation.isPending}
+                            className="ml-1 flex items-center gap-1 border border-[#c72d28]/30 hover:border-[#c72d28] text-[#c72d28]/40 hover:text-[#c72d28] text-[8px] uppercase tracking-[0.15em] font-bold px-2 py-1 transition-colors disabled:opacity-30"
+                            title="Delete this pass"
+                          >
+                            <Trash2 className="w-2.5 h-2.5" />
+                            Delete
+                          </button>
                         </div>
                       </div>
 

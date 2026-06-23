@@ -55,6 +55,7 @@ export interface IStorage {
   getReservationCountByType(tableType: string): Promise<number>;
   createAdminSinglePass(data: { tableType: string; tableLabel: string; guestsJson: string }): Promise<AccessReservation>;
   countAdminSinglePassesByType(tableType: string): Promise<number>;
+  deleteAccessReservation(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -317,6 +318,11 @@ export class DatabaseStorage implements IStorage {
       .values({ ...data, status: "approved", source: "admin_single", approvedAt: new Date() })
       .returning();
     return row;
+  }
+
+  async deleteAccessReservation(id: string): Promise<boolean> {
+    const result = await db.delete(accessReservations).where(eq(accessReservations.id, id)).returning();
+    return result.length > 0;
   }
 
   async countAdminSinglePassesByType(tableType: string): Promise<number> {
