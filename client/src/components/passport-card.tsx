@@ -19,7 +19,7 @@ export function PassportCard({
       label: "Table:",
       value: pass.tableLabel ? pass.tableLabel.toUpperCase() : "\u2014",
     },
-    { label: "Date:", value: "27 JULY 2026" },
+    { label: "Date:", value: "27 JUNE 2026" },
   ];
 
   return (

@@ -298,7 +298,7 @@ export function AccessPassport() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
           <p className="absolute bottom-8 left-5 sm:left-6 lg:left-12 text-white/30 text-[9px] uppercase tracking-[0.3em]">
-            ACCESS · Vol. 3 · 2025
+            ACCESS · 2026
           </p>
         </div>
       </div>
