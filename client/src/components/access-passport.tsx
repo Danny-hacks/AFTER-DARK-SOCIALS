@@ -227,7 +227,7 @@ export function AccessPassport() {
     const adminMsg =
       `NEW ACCESS RESERVATION\n\n` +
       `Table: ${selectedConfig.label}\n` +
-      `Date: 27 July 2026\n` +
+      `Date: 27 June 2026\n` +
       `Total: MUR ${selectedConfig.price.toLocaleString()}\n\n` +
       `Guests (${guests.length} ${guests.length === 1 ? "person" : "people"}):\n` +
       guestLines +

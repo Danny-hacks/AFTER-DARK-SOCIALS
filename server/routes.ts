@@ -809,7 +809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `Your ACCESS pass has been confirmed.\n\n` +
             `Name: ${g.name.toUpperCase()}\n` +
             `Table: ${reservation.tableLabel.toUpperCase()}\n` +
-            `Date: 27 July 2026\n` +
+            `Date: 27 June 2026\n` +
             `Pass ID: ${g.passId}\n` +
             `Venue: Mauritius\n\n` +
             `Present this pass at the door.\n` +
@@ -875,7 +875,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           `Your ACCESS pass is confirmed.\n\n` +
           `Name: ${(name as string).toUpperCase()}\n` +
           `Table: ${tableLabel.toUpperCase()}\n` +
-          `Date: 27 July 2026\n` +
+          `Date: 27 June 2026\n` +
           `Pass ID: ${passId}\n\n` +
           `Your pass has been attached to this message.\n\n` +
           `After Dark Socials · @afterdarksocials.mu`;

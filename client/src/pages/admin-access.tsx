@@ -69,7 +69,7 @@ function buildWaUrl(guest: Guest, tableLabel: string): string {
     `Your ACCESS pass is confirmed.\n\n` +
     `Name: ${guest.name.toUpperCase()}\n` +
     `Table: ${tableLabel.toUpperCase()}\n` +
-    `Date: 27 July 2026\n` +
+    `Date: 27 June 2026\n` +
     `Pass ID: ${guest.passId}\n\n` +
     `Your pass has been attached to this message.\n\n` +
     `After Dark Socials · @afterdarksocials.mu`;
@@ -188,7 +188,7 @@ export default function AdminAccessPage() {
     const res = await (raw as any).json();
     const passId: string = res.passId;
     const tableLabel: string = res.tableLabel ?? computedTableLabel;
-    await generatePassPDF({ name: singleName, table: tableLabel, date: "27 July 2026", passId, photoUrl: singlePhoto || undefined });
+    await generatePassPDF({ name: singleName, table: tableLabel, date: "27 June 2026", passId, photoUrl: singlePhoto || undefined });
     resetSingleForm();
     toast({ title: "Pass saved & downloaded", description: `ACCESS-PASS-${passId}.pdf` });
   }
@@ -199,7 +199,7 @@ export default function AdminAccessPage() {
     const res = await (raw as any).json();
     const passId: string = res.passId;
     const tableLabel: string = res.tableLabel ?? computedTableLabel;
-    await generatePassPDF({ name: singleName, table: tableLabel, date: "27 July 2026", passId, photoUrl: singlePhoto || undefined });
+    await generatePassPDF({ name: singleName, table: tableLabel, date: "27 June 2026", passId, photoUrl: singlePhoto || undefined });
     if (res.whatsappUrl) window.open(res.whatsappUrl, "_blank");
     resetSingleForm();
     toast({ title: "Pass sent", description: singlePhone ? "PDF downloaded · WhatsApp opened" : "PDF downloaded (no phone provided)" });
@@ -207,7 +207,7 @@ export default function AdminAccessPage() {
 
   // Per-guest download / send
   async function downloadGuestPass(guest: Guest, tableLabel: string) {
-    await generatePassPDF({ name: guest.name, table: tableLabel, date: "27 July 2026", passId: guest.passId, photoUrl: undefined });
+    await generatePassPDF({ name: guest.name, table: tableLabel, date: "27 June 2026", passId: guest.passId, photoUrl: undefined });
     toast({ title: "Downloading…", description: `ACCESS-PASS-${guest.passId}.pdf` });
   }
 
