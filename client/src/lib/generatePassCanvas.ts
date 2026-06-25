@@ -107,7 +107,8 @@ export async function generatePassPDF(data: PassData): Promise<void> {
   const photoX = 30;
   const photoY = 165;
   const photoW = 180;
-  const photoH = 220;
+  const footerHeight = 90;
+  const photoH = CARD_H - footerHeight - photoY - 20;
 
   ctx.save();
   ctx.fillStyle = "rgba(0,0,0,0.06)";
@@ -132,14 +133,17 @@ export async function generatePassPDF(data: PassData): Promise<void> {
       ctx.restore();
     } catch (_) { /* skip on load error */ }
   } else {
-    // Silhouette placeholder
+    // Silhouette placeholder — centered within the new dynamic photoH
+    const silCx = photoX + photoW / 2;
+    const silHeadY = photoY + photoH * 0.38;
+    const silBodyY = photoY + photoH * 0.74;
     ctx.fillStyle = "rgba(0,0,0,0.13)";
     ctx.beginPath();
-    ctx.arc(photoX + photoW / 2, photoY + 90, 42, 0, Math.PI * 2);
+    ctx.arc(silCx, silHeadY, 42, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "rgba(0,0,0,0.09)";
     ctx.beginPath();
-    ctx.ellipse(photoX + photoW / 2, photoY + photoH + 20, 68, 50, 0, Math.PI, Math.PI * 2);
+    ctx.ellipse(silCx, silBodyY, 68, 50, 0, Math.PI, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
@@ -193,7 +197,7 @@ export async function generatePassPDF(data: PassData): Promise<void> {
   });
 
   // ── Footer divider ──
-  const footerY = CARD_H - 90;
+  const footerY = CARD_H - footerHeight;
   ctx.save();
   ctx.strokeStyle = "rgba(0,0,0,0.1)";
   ctx.lineWidth = 1;

@@ -185,9 +185,10 @@ export default function AdminAccessPage() {
   async function handleDownloadPass() {
     if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
     const raw = await singleMutation.mutateAsync({ name: singleName, phone: singlePhone, tableType: singleType, tableNumber: singleTableNum, notes: singleNotes });
-    const res = await (raw as any).json();
+    const res = await (raw as Response).json();
     const passId: string = res.passId;
     const tableLabel: string = res.tableLabel ?? computedTableLabel;
+    console.log("[handleDownloadPass] passId:", passId, "tableLabel:", tableLabel);
     await generatePassPDF({ name: singleName, table: tableLabel, date: "27 June 2026", passId, photoUrl: singlePhoto || undefined });
     resetSingleForm();
     toast({ title: "Pass saved & downloaded", description: `ACCESS-PASS-${passId}.pdf` });
@@ -196,9 +197,10 @@ export default function AdminAccessPage() {
   async function handleSendWhatsApp() {
     if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
     const raw = await singleMutation.mutateAsync({ name: singleName, phone: singlePhone, tableType: singleType, tableNumber: singleTableNum, notes: singleNotes });
-    const res = await (raw as any).json();
+    const res = await (raw as Response).json();
     const passId: string = res.passId;
     const tableLabel: string = res.tableLabel ?? computedTableLabel;
+    console.log("[handleSendWhatsApp] passId:", passId, "tableLabel:", tableLabel);
     await generatePassPDF({ name: singleName, table: tableLabel, date: "27 June 2026", passId, photoUrl: singlePhoto || undefined });
     if (res.whatsappUrl) window.open(res.whatsappUrl, "_blank");
     resetSingleForm();

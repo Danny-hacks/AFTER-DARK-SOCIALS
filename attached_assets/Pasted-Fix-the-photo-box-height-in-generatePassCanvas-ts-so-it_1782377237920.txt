@@ -1,0 +1,70 @@
+Fix the photo box height in generatePassCanvas.ts so it matches 
+the full height of the fields section on the right.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THE PROBLEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The photo box ends before the fields section does. The fields 
+(Name, Place of Access, Table, Date) extend further down than 
+the photo, leaving a visible gap between the bottom of the 
+photo and the footer divider line.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THE FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In generatePassCanvas.ts, calculate the photo height 
+dynamically to match the total fields section height 
+instead of using a fixed value.
+
+Replace the fixed photoH value with a calculated one:
+
+Current:
+const photoH = 220
+
+Replace with:
+const fieldSectionHeight = (CARD_H - footerHeight - bodyStartY - 20)
+const photoH = fieldSectionHeight
+
+Where:
+- bodyStartY = photoY (where the body section starts, e.g. 165)
+- footerHeight = approximately 90px from the bottom
+- So: photoH = CARD_H - 90 - photoY - 20
+
+This makes the photo box grow or shrink to exactly match 
+the height of all 4 fields stacked together.
+
+Also update the image drawing to fill the full new photoH:
+ctx.drawImage(img, photoX, photoY, photoW, photoH)
+
+And the silhouette placeholder positioning to remain 
+centered within the new taller box.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALSO FIX — Pass ID still showing ACC-SE???
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The passId is still not being passed correctly to 
+generatePassPDF. 
+
+Trace the full data flow:
+1. Admin submits single pass form
+2. POST /api/admin/access/single runs and returns { passId, ... }
+3. The component receives the response
+4. generatePassPDF is called with the passId from the response
+
+Add a console.log before calling generatePassPDF to confirm 
+passId is a valid string and not undefined.
+
+If the API response does not include passId, fix the API 
+route to return it explicitly in the response body.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT CHANGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- The canvas drawing logic for any other elements
+- The pass design, colors or typography
+- The WhatsApp delivery flow
+- Any other pages or components
