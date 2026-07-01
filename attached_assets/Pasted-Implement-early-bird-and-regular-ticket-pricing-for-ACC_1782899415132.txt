@@ -1,0 +1,264 @@
+Implement early bird and regular ticket pricing for ACCESS 
+with automatic switching based on both capacity and time.
+Update all pricing, add event poster, readjust reservation 
+form, and fix table card details.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EVENT DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Event: ACCESS Vol. 2 — An AFTR Private Social Night
+Date: Friday 3 July 2026
+Venue: Club Sixty Nine
+DJs: DJ Sweety (Mayotte's Finest) · DJ Luvlesh (Mauritius' Favourite)
+Genres: Amapiano · Afrobeat · Dancehall
+Collaboration: Kultur'M
+Contact: +230 5820 5220
+Early bird deadline: Thursday 2 July 2026 at 23:59 
+Mauritius time (UTC+4) = 2026-07-02T19:59:00.000Z
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CORRECT PRICING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GENERAL ENTRY:
+Early Bird: MUR 350 (limited to 50 tickets)
+Regular: MUR 500
+
+TABLE RESERVATIONS (entry tickets only — no drinks included):
+Table for 4: MUR 500 per person — MUR 2,000 total
+Table for 5: MUR 500 per person — MUR 2,500 total
+Section (8-12 guests): MUR 500 per person
+  — MUR 4,000 minimum (8 people)
+  — MUR 6,000 maximum (12 people)
+  — Final total confirmed on approval
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPDATE 1 — Add event poster to /access page
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+On the public /access page, add a poster section
+ABOVE the table selection and reservation form.
+
+Layout:
+- Full width section, border-bottom border-white/10
+- padding: py-12
+- 2-col grid on lg: poster left (col-span-5), 
+  event info right (col-span-7)
+- Single column stacked on mobile
+
+Left col — poster:
+- Image URL: `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/access/access-vol2-poster.jpg`
+- Use Next.js Image component with unoptimized prop
+- max-width: 380px on desktop, full width on mobile
+- shadow-2xl
+
+Right col — event info:
+- Section label: red line + "Upcoming Event" in red caps
+- "ACCESS" heading in gold gradient Bebas Neue
+  clamp(52px, 8vw, 80px)
+- "An AFTR Private Social Night" subtitle in gold 12px caps
+- Divider line rgba(255,255,255,0.1)
+- Event details list (gold label left, white value right):
+  DATE: Friday 3 July 2026
+  VENUE: Club Sixty Nine
+  TIME: Doors Open 8PM
+  CONTACT: +230 5820 5220
+- DJ lineup section label: "DJ LINEUP" gold caps 9px
+- Two DJ cards side by side:
+  DJ SWEETY — Mayotte's Finest — Amapiano · Afrobeat · Dancehall
+  DJ LUVLESH — Mauritius' Favourite — Amapiano · Afrobeat
+  Each card: name Bebas Neue 18px white,
+  origin gold caps 8px, genres white/30 9px
+- "In collaboration with Kultur'M" small muted text
+- Divider then "RESERVE YOUR TABLE BELOW" 
+  with arrow pointing down in gold
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPDATE 2 — Database tier records
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Update or insert the following tiers for access-vol2:
+
+{
+  slug: "access-vol2",
+  tiers: [
+    {
+      id: "early_bird",
+      name: "Early Bird",
+      price: 350,
+      capacity: 50,
+      sold: 0,
+      closesAt: "2026-07-02T19:59:00.000Z",
+      type: "general"
+    },
+    {
+      id: "regular",
+      name: "General Entry",
+      price: 500,
+      capacity: 100,
+      sold: 0,
+      opensAt: "2026-07-02T20:00:00.000Z",
+      type: "general"
+    },
+    {
+      id: "table_4",
+      name: "Table for 4",
+      pricePerPerson: 500,
+      totalPrice: 2000,
+      capacity: 5,
+      sold: 0,
+      type: "table"
+    },
+    {
+      id: "table_5",
+      name: "Table for 5",
+      pricePerPerson: 500,
+      totalPrice: 2500,
+      capacity: 5,
+      sold: 0,
+      type: "table"
+    },
+    {
+      id: "section",
+      name: "Section (8-12 guests)",
+      pricePerPerson: 500,
+      capacity: 3,
+      sold: 0,
+      type: "section"
+    }
+  ]
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPDATE 3 — Early bird logic
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create helper function isEarlyBirdActive():
+
+function isEarlyBirdActive(tier): boolean {
+  const now = new Date()
+  const deadline = new Date("2026-07-02T19:59:00.000Z")
+  const capacityAvailable = tier.sold < tier.capacity
+  return now < deadline && capacityAvailable
+}
+
+Use in:
+- GET /api/access/capacity — return active pricing
+- /access page — display correct price and tier label
+- WhatsApp message templates — include correct price
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPDATE 4 — General Entry section on /access page
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add General Entry ticket card ABOVE the table 
+selection cards. Separate from table reservations.
+
+When Early Bird active:
+- Badge: "EARLY BIRD" red caps 9px
+- Price: "MUR 350" in gold large
+- Subtext: "Limited to 50 tickets"
+- Remaining: "X tickets remaining"
+- Deadline note: "Price increases Friday 3 July"
+- CTA: "Reserve via WhatsApp" red button
+
+When Regular active:
+- Badge: "GENERAL ENTRY" white/30 caps 9px
+- Price: "MUR 500" in gold large
+- CTA: "Reserve via WhatsApp" red button
+
+When sold out:
+- "SOLD OUT" badge, CTA disabled
+
+WhatsApp message for General Entry:
+"Hi, I'd like to reserve a General Entry ticket
+for ACCESS on 3 July 2026 at Club Sixty Nine.
+
+Ticket: [Early Bird MUR 350 / General Entry MUR 500]
+Name: [Name]
+Phone: [Phone]
+
+Looking forward to hearing from you."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPDATE 5 — Table reservation cards
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Update the 3 table cards with correct pricing
+and NO DRINKS messaging:
+
+Table for 4:
+- Price: "MUR 500 per person"
+- Total: "MUR 2,000 total" small muted text
+- Remove all mention of bottle service or drinks
+
+Table for 5:
+- Price: "MUR 500 per person"
+- Total: "MUR 2,500 total" small muted text
+- Remove all mention of bottle service or drinks
+
+Section:
+- Price: "MUR 500 per person"
+- Note: "8-12 guests · MUR 4,000 - 6,000 · 
+  final total confirmed on approval"
+- Remove all mention of bottle service or drinks
+
+Add this note below all three table cards:
+Font: italic, white/30, 11px, centered
+"Drinks are not included. Available for purchase
+at the bar on the night."
+
+Table selection heading update:
+"RESERVE YOUR TABLE"
+Subtext below heading: 
+"Friday 3 July 2026 · Club Sixty Nine"
+in gold caps 10px
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPDATE 6 — WhatsApp admin message for tables
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"NEW ACCESS RESERVATION
+
+Table: [Table Name]
+Price: MUR 500 per person · MUR [Total] total
+Date: 3 July 2026
+Venue: Club Sixty Nine
+Note: Entry tickets only — no drinks included
+
+Guests ([X] people):
+1. [Name] — [Phone if provided]
+2. [Name] — [Phone if provided]
+
+Awaiting payment confirmation."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPDATE 7 — Hardcoded date update everywhere
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find and replace every instance of "27 July 2026"
+with "3 July 2026" across:
+- PassportCard component
+- generatePassCanvas.ts
+- All WhatsApp message templates
+- All API routes for access passes
+- Admin single pass generator
+- Approved reservations pass delivery messages
+
+Also add venue to pass footer in generatePassCanvas.ts:
+- Below the footer divider line, centered
+- Text: "Club Sixty Nine"
+- Font: DM Mono 14px rgba(0,0,0,0.3)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT CHANGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Pass ID format
+- Pass card design and layout
+- Admin panel approval flow
+- Download and WhatsApp delivery flow
+- Table capacities: 5 tables for 4, 5 tables for 5,
+  3 sections
+- Any other pages or components not mentioned above

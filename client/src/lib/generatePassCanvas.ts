@@ -229,6 +229,15 @@ export async function generatePassPDF(data: PassData): Promise<void> {
   ctx.textAlign = "left";
   ctx.restore();
 
+  // ── Venue (centered, below footer) ──
+  ctx.save();
+  ctx.font = '400 14px "DM Mono", monospace';
+  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  ctx.textAlign = "center";
+  ctx.fillText("Club Sixty Nine", CARD_W / 2, footerY + 82);
+  ctx.textAlign = "left";
+  ctx.restore();
+
   // ── Export as PDF ──
   const imgData = canvas.toDataURL("image/png", 1.0);
   const pdf = new jsPDF({

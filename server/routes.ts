@@ -714,11 +714,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ─── Table-based ACCESS routes ────────────────────────────────────────────
-  const TABLE_INVENTORY: Record<string, { label: string; price: number; capacity: number; maxGuests: number; minGuests: number }> = {
-    single_entry: { label: "Single Entry",          price: 1500, capacity: 99, maxGuests: 1,  minGuests: 1 },
-    table_4:      { label: "Table for 4",           price: 4000, capacity: 5,  maxGuests: 4,  minGuests: 1 },
-    table_5:      { label: "Table for 5",           price: 5000, capacity: 5,  maxGuests: 5,  minGuests: 1 },
-    section_8_12: { label: "Section (8–12 guests)", price: 8000, capacity: 3,  maxGuests: 12, minGuests: 8 },
+  const TABLE_INVENTORY: Record<string, { label: string; price: number; pricePerPerson: number; capacity: number; maxGuests: number; minGuests: number }> = {
+    single_entry: { label: "Single Entry",          price: 500,  pricePerPerson: 500,  capacity: 99, maxGuests: 1,  minGuests: 1 },
+    table_4:      { label: "Table for 4",           price: 2000, pricePerPerson: 500,  capacity: 5,  maxGuests: 4,  minGuests: 1 },
+    table_5:      { label: "Table for 5",           price: 2500, pricePerPerson: 500,  capacity: 5,  maxGuests: 5,  minGuests: 1 },
+    section_8_12: { label: "Section (8–12 guests)", price: 4000, pricePerPerson: 500,  capacity: 3,  maxGuests: 12, minGuests: 8 },
   };
   const VALID_TABLE_TYPES_NEW = new Set(Object.keys(TABLE_INVENTORY));
 
@@ -809,9 +809,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `Your ACCESS pass has been confirmed.\n\n` +
             `Name: ${g.name.toUpperCase()}\n` +
             `Table: ${reservation.tableLabel.toUpperCase()}\n` +
-            `Date: 27 June 2026\n` +
-            `Pass ID: ${g.passId}\n` +
-            `Venue: Mauritius\n\n` +
+            `Date: 3 July 2026\n` +
+            `Venue: Club Sixty Nine\n` +
+            `Pass ID: ${g.passId}\n\n` +
             `Present this pass at the door.\n` +
             `After Dark Socials · @afterdarksocials.mu`;
           return {
@@ -875,7 +875,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           `Your ACCESS pass is confirmed.\n\n` +
           `Name: ${(name as string).toUpperCase()}\n` +
           `Table: ${tableLabel.toUpperCase()}\n` +
-          `Date: 27 June 2026\n` +
+          `Date: 3 July 2026\n` +
+          `Venue: Club Sixty Nine\n` +
           `Pass ID: ${passId}\n\n` +
           `Your pass has been attached to this message.\n\n` +
           `After Dark Socials · @afterdarksocials.mu`;
