@@ -39,7 +39,7 @@ const TABLE_CONFIG: Record<
     capacity: 5,
     maxGuests: 4,
     minGuests: 1,
-    description: "Reserved table for your group of 4. Entry tickets only — drinks available for purchase at the bar.",
+    description: "Reserved table. Entry tickets only.",
   },
   table_5: {
     label: "Table for 5",
@@ -49,7 +49,7 @@ const TABLE_CONFIG: Record<
     capacity: 5,
     maxGuests: 5,
     minGuests: 1,
-    description: "Reserved table for 5 with premium positioning. Entry tickets only — drinks available for purchase at the bar.",
+    description: "Premium positioning. Entry tickets only.",
   },
   section_8_12: {
     label: "Section (8\u201312 guests)",
@@ -59,7 +59,7 @@ const TABLE_CONFIG: Record<
     capacity: 3,
     maxGuests: 12,
     minGuests: 8,
-    description: "Exclusive section for larger groups. Prime floor placement with dedicated host. Entry tickets only.",
+    description: "Exclusive floor section. Entry tickets only.",
   },
 };
 
@@ -359,37 +359,36 @@ export function AccessPassport() {
         ) : (
           <>
             {/* ── General Entry Card ── */}
-            <div className="mb-12">
-              <div className="border border-white/10 p-6 max-w-lg">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    {earlyBird ? (
-                      <span className="text-[#c72d28] text-[9px] uppercase tracking-[0.25em] font-bold">Early Bird</span>
-                    ) : (
-                      <span className="text-white/30 text-[9px] uppercase tracking-[0.25em]">General Entry</span>
-                    )}
-                    <p className="text-white leading-none mt-2" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "22px" }}>
-                      General Entry
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-mono font-medium" style={{ color: "#c9962a", fontSize: "22px" }}>
+            <div className="mb-12 border border-white/10 p-6 md:p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+                {/* Left: badge, title, price, notes */}
+                <div>
+                  {earlyBird ? (
+                    <span className="text-[#c72d28] text-[9px] uppercase tracking-[0.25em] font-bold">Early Bird</span>
+                  ) : (
+                    <span className="text-white/30 text-[9px] uppercase tracking-[0.25em]">General Entry</span>
+                  )}
+                  <p className="text-white leading-none mt-2 mb-3" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(28px,5vw,42px)" }}>
+                    General Entry
+                  </p>
+                  <div className="flex items-baseline gap-3 mb-3">
+                    <p className="font-mono font-medium" style={{ color: "#c9962a", fontSize: "28px" }}>
                       MUR {earlyBird ? EARLY_BIRD_PRICE : REGULAR_PRICE}
                     </p>
                     {earlyBird && (
-                      <p className="text-white/30 text-[9px] line-through mt-0.5 font-mono">MUR {REGULAR_PRICE}</p>
+                      <p className="text-white/30 text-[11px] line-through font-mono">MUR {REGULAR_PRICE}</p>
                     )}
                   </div>
+                  {earlyBird && (
+                    <div className="space-y-1">
+                      <p className="text-white/40 text-[10px] uppercase tracking-[0.2em]">Limited to 50 tickets</p>
+                      <p className="text-white/25 text-[9px] uppercase tracking-[0.15em]">Price increases Friday 3 July</p>
+                    </div>
+                  )}
                 </div>
 
-                {earlyBird && (
-                  <div className="mb-4 space-y-1">
-                    <p className="text-white/40 text-[10px] uppercase tracking-[0.2em]">Limited to 50 tickets</p>
-                    <p className="text-white/25 text-[9px] uppercase tracking-[0.15em]">Price increases Friday 3 July</p>
-                  </div>
-                )}
-
-                <div className="border-t border-white/8 pt-4 space-y-3">
+                {/* Right: name, phone, button */}
+                <div className="flex flex-col justify-center space-y-4">
                   <div>
                     <label className={labelCls}>Your Name *</label>
                     <input
@@ -412,7 +411,7 @@ export function AccessPassport() {
                   </div>
                   <button
                     onClick={handleGeneralEntryWA}
-                    className="mt-2 flex items-center gap-2 bg-[#c72d28] hover:bg-[#a01f1f] text-white text-[9px] uppercase tracking-[0.2em] font-bold px-6 py-3.5 transition-colors"
+                    className="flex items-center gap-2 bg-[#c72d28] hover:bg-[#a01f1f] text-white text-[9px] uppercase tracking-[0.2em] font-bold px-6 py-3.5 transition-colors self-start"
                   >
                     <SiWhatsapp className="w-3 h-3" />
                     Reserve via WhatsApp
@@ -423,10 +422,14 @@ export function AccessPassport() {
 
             {/* ── Step 1: Table selection ── */}
             <div className="mb-10">
-              <p className="text-white text-[9px] uppercase tracking-[0.3em] mb-1" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "18px" }}>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-6 h-px bg-[#c72d28]" />
+                <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.3em]">Table Reservations</span>
+              </div>
+              <p className="font-black text-white leading-none mb-1" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(40px, 6vw, 72px)" }}>
                 Reserve Your Table
               </p>
-              <p className="text-[#c9962a] text-[10px] uppercase tracking-[0.25em] mb-6">Friday 3 July 2026 · Club Sixty Nine</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] mb-6" style={{ color: "rgba(201,150,42,0.6)" }}>Friday 3 July 2026 · Club Sixty Nine</p>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {Object.entries(TABLE_CONFIG).map(([key, config]) => {
@@ -444,22 +447,20 @@ export function AccessPassport() {
                       className={[
                         "text-left p-6 border transition-all duration-200",
                         soldOut
-                          ? "opacity-40 pointer-events-none border-white/10"
+                          ? "opacity-40 pointer-events-none border-white/15"
                           : isSelected
-                            ? "border-[#c9962a] bg-[#c9962a]/8"
-                            : "border-white/10 hover:border-[#c9962a]/50",
+                            ? "border-[#c9962a] bg-[#c9962a]/5"
+                            : "border-white/15 hover:border-[#c9962a]/50",
                       ].join(" ")}
                     >
-                      {/* Top row */}
-                      <div className="flex items-start justify-between mb-1">
-                        <span className="text-white leading-none" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "22px" }}>
-                          {config.label}
-                        </span>
-                      </div>
+                      {/* Label */}
+                      <span className="text-white leading-none block mb-2" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "22px" }}>
+                        {config.label}
+                      </span>
 
                       {/* Pricing */}
                       <p className="text-[#c9962a] text-sm font-mono font-medium mb-0.5">MUR 500 per person</p>
-                      <p className="text-white/30 text-[9px] font-mono mb-3">{config.totalLabel}</p>
+                      <p className="font-mono mb-3" style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)" }}>{config.totalLabel}</p>
 
                       {/* Capacity */}
                       <p className="text-[#c9962a]/60 text-[9px] uppercase tracking-[0.25em] mb-2">Up to {config.maxGuests} guests</p>
@@ -475,16 +476,21 @@ export function AccessPassport() {
                       )}
 
                       {/* Description */}
-                      <p className="text-white/40 text-xs leading-relaxed">{config.description}</p>
+                      <p className="text-white/40 text-[11px] leading-snug mb-3">{config.description}</p>
+
+                      {/* Drinks note */}
+                      <p className="italic text-white/25" style={{ fontSize: "10px" }}>Drinks not included.</p>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Drinks disclaimer */}
-              <p className="text-center text-white/30 text-[11px] italic mt-5">
-                Drinks are not included. Available for purchase at the bar on the night.
-              </p>
+              {/* FIX 6 — next step prompt, only when no table selected */}
+              {!selectedTable && (
+                <p className="text-center italic mt-5" style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)" }}>
+                  Select a table above to fill in your group details and receive your passes.
+                </p>
+              )}
             </div>
 
             {/* ── Guest forms + passport preview ── */}

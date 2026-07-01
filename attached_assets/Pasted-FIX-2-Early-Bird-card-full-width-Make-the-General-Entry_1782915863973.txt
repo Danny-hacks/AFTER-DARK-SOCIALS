@@ -1,0 +1,85 @@
+FIX 2 — Early Bird card full width
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Make the General Entry / Early Bird card span
+the full page width.
+
+Internal layout: 2-col grid on md+
+- Left col: badge, title, price, deadline note
+- Right col: name field, WhatsApp field, 
+  Reserve button
+
+On mobile: single column, stacked.
+
+Remove the current max-width constraint 
+that is limiting it to ~40% width.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 3 — Section label before table cards
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add a section label above "RESERVE YOUR TABLE":
+- Red horizontal line + "Table Reservations" 
+  in red caps 10px tracking-[0.3em]
+- This matches every other section on the site
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 4 — Typography fixes
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"RESERVE YOUR TABLE" heading:
+- Font: Bebas Neue clamp(40px, 6vw, 72px)
+- Color: white
+- Ensure it uses the display font not a default h2
+
+"FRIDAY 3 JULY 2026 · CLUB SIXTY NINE" subtext:
+- Font size: 10px
+- Color: rgba(201,150,42,0.6) — muted gold
+- Letter spacing: tracking-[0.2em]
+- Uppercase
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 5 — Table card improvements
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Card borders:
+- Default: border-white/15 (slightly more visible)
+- Hover: border-[#c9962a]/50
+- Selected: border-[#c9962a] bg-[#c9962a]/5
+
+Card descriptions — shorten to max 2 lines:
+- Table for 4: "Reserved table. Entry tickets only."
+- Table for 5: "Premium positioning. Entry tickets only."
+- Section: "Exclusive floor section. Entry tickets only."
+
+Total price:
+- Font size: 12px
+- Color: rgba(255,255,255,0.5)
+
+"Drinks are not included" note:
+- Move it inside each card, below the description
+- Font: italic 10px white/25
+- Not floating below the grid
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 6 — Next step prompt
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add a subtle instruction below the table cards:
+"Select a table above to fill in your group details
+and receive your passes."
+Font: 11px white/25, centered, italic
+
+This only shows when no table card is selected.
+Hide it once a card is selected.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT CHANGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Pricing amounts
+- Early bird deadline logic
+- Pass card design
+- Guest form flow after table selection
+- Admin panel
+- Any other pages or components
