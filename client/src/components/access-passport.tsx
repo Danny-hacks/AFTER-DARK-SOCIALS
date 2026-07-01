@@ -243,7 +243,7 @@ export function AccessPassport() {
   }
 
   const labelCls = "block text-[9px] text-[#c9962a]/60 uppercase tracking-[0.3em] mb-2";
-  const inputCls = "w-full bg-transparent border-0 border-b border-white/15 text-white placeholder:text-white/20 text-sm px-0 py-3 focus:outline-none focus:border-[#c9962a]/50 transition-colors font-mono";
+  const inputCls = "w-full bg-transparent border-0 border-b border-white/15 text-white placeholder:text-white/20 text-sm px-0 py-3 focus:outline-none focus:border-[#c9962a]/50 transition-colors";
 
   return (
     <div className="min-h-screen bg-black text-white pt-28">
@@ -254,7 +254,7 @@ export function AccessPassport() {
           <span className="text-[#c9962a] text-[10px] uppercase tracking-[0.35em]">Exclusive Experience</span>
         </div>
         <h1
-          className="font-black text-white leading-none mb-6"
+          className="text-white leading-none mb-6"
           style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(56px, 10vw, 140px)" }}
         >
           RSVP FOR
@@ -426,7 +426,7 @@ export function AccessPassport() {
                 <span className="w-6 h-px bg-[#c72d28]" />
                 <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.3em]">Table Reservations</span>
               </div>
-              <p className="font-black text-white leading-none mb-1" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(40px, 6vw, 72px)" }}>
+              <p className="text-white leading-none mb-1" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(40px, 6vw, 72px)" }}>
                 Reserve Your Table
               </p>
               <p className="text-[10px] uppercase tracking-[0.2em] mb-6" style={{ color: "rgba(201,150,42,0.6)" }}>Friday 3 July 2026 · Club Sixty Nine</p>
@@ -459,11 +459,11 @@ export function AccessPassport() {
                       </span>
 
                       {/* Pricing */}
-                      <p className="text-[#c9962a] text-sm font-mono font-medium mb-0.5">MUR 500 per person</p>
-                      <p className="font-mono mb-3" style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)" }}>{config.totalLabel}</p>
+                      <p className="text-[#c9962a] text-[13px] font-mono font-medium mb-0.5">MUR 500 per person</p>
+                      <p className="text-[12px] font-mono text-white/50 mb-3">{config.totalLabel}</p>
 
                       {/* Capacity */}
-                      <p className="text-[#c9962a]/60 text-[9px] uppercase tracking-[0.25em] mb-2">Up to {config.maxGuests} guests</p>
+                      <p className="text-[#c9962a]/60 text-[9px] uppercase tracking-[0.25em] font-medium mb-2">Up to {config.maxGuests} guests</p>
 
                       {/* Remaining */}
                       {!soldOut && (
@@ -472,14 +472,14 @@ export function AccessPassport() {
                         </p>
                       )}
                       {soldOut && (
-                        <p className="text-[#c72d28] text-[9px] uppercase tracking-[0.2em] mb-3 font-bold">Sold Out</p>
+                        <p className="text-[#c72d28] text-[9px] uppercase tracking-[0.2em] mb-3 font-medium">Sold Out</p>
                       )}
 
                       {/* Description */}
                       <p className="text-white/40 text-[11px] leading-snug mb-3">{config.description}</p>
 
                       {/* Drinks note */}
-                      <p className="italic text-white/25" style={{ fontSize: "10px" }}>Drinks not included.</p>
+                      <p className="text-[10px] text-white/25" style={{ fontStyle: "italic" }}>Drinks not included.</p>
                     </button>
                   );
                 })}
