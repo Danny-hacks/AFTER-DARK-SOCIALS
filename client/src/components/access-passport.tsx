@@ -11,7 +11,7 @@ const EARLY_BIRD_PRICE = 350;
 const REGULAR_PRICE = 500;
 const ADMIN_PHONE = "23058205220";
 const R2 = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictures";
-const POSTER_URL = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/access/access-vol2-poster.jpg";
+const POSTER_URL = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictures/IMG_0246.PNG";
 
 function isEarlyBirdActive(): boolean {
   return new Date() < EARLY_BIRD_DEADLINE;
