@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { SiWhatsapp } from "react-icons/si";
 import { ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PassportCard } from "@/components/passport-card";
 import type { PassFields } from "@/components/passport-card";
+import type { AccessEvent } from "@shared/schema";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const EARLY_BIRD_DEADLINE = new Date("2026-07-02T19:59:00.000Z");
@@ -11,7 +13,12 @@ const EARLY_BIRD_PRICE = 350;
 const REGULAR_PRICE = 500;
 const ADMIN_PHONE = "23058205220";
 const R2 = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictures";
-const POSTER_URL = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictures/IMG_0246.PNG";
+// Fallback defaults, used only until an ACCESS event is created in the admin.
+const DEFAULT_POSTER_URL = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictures/IMG_0246.PNG";
+const DEFAULT_BANNER_URL = `${R2}/Serge_59.jpg`;
+const DEFAULT_DATE = "Friday 3 July 2026";
+const DEFAULT_VENUE = "Club Sixty Nine";
+const DEFAULT_TIME = "Doors Open 8PM";
 
 function isEarlyBirdActive(): boolean {
   return new Date() < EARLY_BIRD_DEADLINE;
@@ -112,6 +119,16 @@ export function AccessPassport() {
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { toast } = useToast();
 
+  const { data: currentEventData } = useQuery<{ success: boolean; event: AccessEvent | null }>({
+    queryKey: ["/api/access/current"],
+  });
+  const currentEvent = currentEventData?.event ?? null;
+  const posterUrl = currentEvent?.posterUrl || DEFAULT_POSTER_URL;
+  const bannerUrl = currentEvent?.bannerUrl || DEFAULT_BANNER_URL;
+  const eventDate = currentEvent?.date || DEFAULT_DATE;
+  const eventVenue = currentEvent?.venue || DEFAULT_VENUE;
+  const eventTime = currentEvent?.time || DEFAULT_TIME;
+
   // General entry state
   const earlyBird = isEarlyBirdActive();
   const [geName, setGeName] = useState("");
@@ -183,7 +200,7 @@ export function AccessPassport() {
     }
     const tierLabel = earlyBird ? `Early Bird MUR ${EARLY_BIRD_PRICE}` : `General Entry MUR ${REGULAR_PRICE}`;
     const msg =
-      `Hi, I'd like to reserve a General Entry ticket for ACCESS on 3 July 2026 at Club Sixty Nine.\n\n` +
+      `Hi, I'd like to reserve a General Entry ticket for ACCESS on ${eventDate} at ${eventVenue}.\n\n` +
       `Ticket: ${tierLabel}\n` +
       `Name: ${geName.trim()}\n` +
       `Phone: ${gePhone.trim() || "—"}\n\n` +
@@ -226,8 +243,8 @@ export function AccessPassport() {
       `NEW ACCESS RESERVATION\n\n` +
       `Table: ${selectedConfig.label}\n` +
       `Price: MUR 500 per person \u00b7 ${localConfig.totalLabel}\n` +
-      `Date: 3 July 2026\n` +
-      `Venue: Club Sixty Nine\n` +
+      `Date: ${eventDate}\n` +
+      `Venue: ${eventVenue}\n` +
       `Note: Entry tickets only \u2014 no drinks included\n\n` +
       `Guests (${guests.length} ${guests.length === 1 ? "person" : "people"}):\n` +
       guestLines +
@@ -271,7 +288,7 @@ export function AccessPassport() {
       {/* ── Section 2: Banner Image ── */}
       <div className="my-12 px-5 sm:px-6 lg:px-12">
         <div className="relative h-[45vh] sm:h-[55vh] overflow-hidden">
-          <img src={`${R2}/Serge_59.jpg`} alt="ACCESS experience" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+          <img src={bannerUrl} alt="ACCESS experience" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
           <p className="absolute bottom-8 left-5 sm:left-6 lg:left-12 text-white/30 text-[9px] uppercase tracking-[0.3em]">ACCESS · 2026</p>
         </div>
@@ -283,7 +300,7 @@ export function AccessPassport() {
           {/* Poster */}
           <div className="lg:col-span-5 flex justify-center lg:justify-start">
             <img
-              src={POSTER_URL}
+              src={posterUrl}
               alt="ACCESS event poster"
               className="shadow-2xl w-full max-w-[380px] object-cover"
               loading="lazy"
@@ -308,9 +325,9 @@ export function AccessPassport() {
 
             <div className="border-t border-white/10 pt-6 mb-6 space-y-3">
               {[
-                ["DATE", "Friday 3 July 2026"],
-                ["VENUE", "Club Sixty Nine"],
-                ["TIME", "Doors Open 8PM"],
+                ["DATE", eventDate],
+                ["VENUE", eventVenue],
+                ["TIME", eventTime],
                 ["CONTACT", "+230 5820 5220"],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-baseline gap-4">
@@ -430,7 +447,7 @@ export function AccessPassport() {
               <p className="text-white leading-none mb-1" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(40px, 6vw, 72px)" }}>
                 Reserve Your Table
               </p>
-              <p className="text-[10px] uppercase tracking-[0.2em] mb-6" style={{ color: "rgba(201,150,42,0.6)" }}>Friday 3 July 2026 · Club Sixty Nine</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] mb-6" style={{ color: "rgba(201,150,42,0.6)" }}>{eventDate} · {eventVenue}</p>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {Object.entries(TABLE_CONFIG).map(([key, config]) => {

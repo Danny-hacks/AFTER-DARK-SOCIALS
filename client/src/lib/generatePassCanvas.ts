@@ -4,6 +4,7 @@ interface PassData {
   name: string;
   table: string;
   date: string;
+  venue?: string;
   passId: string;
   photoUrl?: string;
 }
@@ -234,7 +235,7 @@ export async function generatePassPDF(data: PassData): Promise<void> {
   ctx.font = '400 14px "DM Mono", monospace';
   ctx.fillStyle = "rgba(0,0,0,0.28)";
   ctx.textAlign = "center";
-  ctx.fillText("Club Sixty Nine", CARD_W / 2, footerY + 82);
+  ctx.fillText(data.venue || "Club Sixty Nine", CARD_W / 2, footerY + 82);
   ctx.textAlign = "left";
   ctx.restore();
 

@@ -6,7 +6,7 @@ import { PassportCard, type PassFields } from "@/components/passport-card";
 import { generatePassPDF } from "@/lib/generatePassCanvas";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { AccessTableInventory } from "@shared/schema";
+import type { AccessTableInventory, AccessEvent } from "@shared/schema";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Guest {
@@ -49,13 +49,13 @@ function parseGuests(json: string): Guest[] {
   try { return JSON.parse(json); } catch { return []; }
 }
 
-function buildWaUrl(guest: Guest, tableLabel: string): string {
+function buildWaUrl(guest: Guest, tableLabel: string, eventDate: string): string {
   const clean = (guest.phone ?? "").replace(/[\s\-\+\(\)]/g, "");
   const msg =
     `Your ACCESS pass is confirmed.\n\n` +
     `Name: ${guest.name.toUpperCase()}\n` +
     `Table: ${tableLabel.toUpperCase()}\n` +
-    `Date: 3 July 2026\n` +
+    `Date: ${eventDate}\n` +
     `Pass ID: ${guest.passId}\n\n` +
     `Your pass has been attached to this message.\n\n` +
     `After Dark Socials · @afterdarksocials.mu`;
@@ -88,6 +88,12 @@ export default function AdminAccessPage() {
     queryKey: ["/api/admin/access/inventory"],
     select: (d) => d.inventory ?? [],
   });
+
+  const { data: currentEventData } = useQuery<{ success: boolean; event: AccessEvent | null }>({
+    queryKey: ["/api/access/current"],
+  });
+  const currentEventDate = currentEventData?.event?.date || "3 July 2026";
+  const currentEventVenue = currentEventData?.event?.venue || "Club Sixty Nine";
   const inventoryMap: Record<string, AccessTableInventory> = {};
   for (const row of inventory) inventoryMap[row.tableType] = row;
   const TABLE_TYPES = ["single_entry", "table_4", "table_5", "section_8_12"];
@@ -203,7 +209,7 @@ export default function AdminAccessPage() {
     const passId: string = res.passId;
     const tableLabel: string = res.tableLabel ?? computedTableLabel;
     console.log("[handleDownloadPass] passId:", passId, "tableLabel:", tableLabel);
-    await generatePassPDF({ name: singleName, table: tableLabel, date: "3 July 2026", passId, photoUrl: singlePhoto || undefined });
+    await generatePassPDF({ name: singleName, table: tableLabel, date: currentEventDate, venue: currentEventVenue, passId, photoUrl: singlePhoto || undefined });
     resetSingleForm();
     toast({ title: "Pass saved & downloaded", description: `ACCESS-PASS-${passId}.pdf` });
   }
@@ -215,7 +221,7 @@ export default function AdminAccessPage() {
     const passId: string = res.passId;
     const tableLabel: string = res.tableLabel ?? computedTableLabel;
     console.log("[handleSendWhatsApp] passId:", passId, "tableLabel:", tableLabel);
-    await generatePassPDF({ name: singleName, table: tableLabel, date: "3 July 2026", passId, photoUrl: singlePhoto || undefined });
+    await generatePassPDF({ name: singleName, table: tableLabel, date: currentEventDate, venue: currentEventVenue, passId, photoUrl: singlePhoto || undefined });
     if (res.whatsappUrl) window.open(res.whatsappUrl, "_blank");
     resetSingleForm();
     toast({ title: "Pass sent", description: singlePhone ? "PDF downloaded · WhatsApp opened" : "PDF downloaded (no phone provided)" });
@@ -223,13 +229,13 @@ export default function AdminAccessPage() {
 
   // Per-guest download / send
   async function downloadGuestPass(guest: Guest, tableLabel: string) {
-    await generatePassPDF({ name: guest.name, table: tableLabel, date: "3 July 2026", passId: guest.passId, photoUrl: undefined });
+    await generatePassPDF({ name: guest.name, table: tableLabel, date: currentEventDate, venue: currentEventVenue, passId: guest.passId, photoUrl: undefined });
     toast({ title: "Downloading…", description: `ACCESS-PASS-${guest.passId}.pdf` });
   }
 
   function sendGuestWhatsApp(guest: Guest, tableLabel: string) {
     downloadGuestPass(guest, tableLabel);
-    setTimeout(() => window.open(buildWaUrl(guest, tableLabel), "_blank"), 400);
+    setTimeout(() => window.open(buildWaUrl(guest, tableLabel, currentEventDate), "_blank"), 400);
   }
 
   const reservations = data?.reservations ?? [];

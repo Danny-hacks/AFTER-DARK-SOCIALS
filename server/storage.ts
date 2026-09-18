@@ -1,7 +1,15 @@
-import { type User, type InsertUser, type Ticket, type InsertTicket, type TicketPurchase, type InsertTicketPurchase, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, type AccessReservation, type GalleryPhoto, type InsertGalleryPhoto, type AccessTableInventory, users, tickets, ticketPurchases, events, heroSlides, accessReservations, galleryPhotos, accessTableInventory } from "@shared/schema";
+import { type User, type InsertUser, type Ticket, type InsertTicket, type TicketPurchase, type InsertTicketPurchase, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, type AccessReservation, type GalleryPhoto, type InsertGalleryPhoto, type AccessTableInventory, type EventTicketTier, type InsertEventTicketTier, type AccessEvent, type InsertAccessEvent, users, tickets, ticketPurchases, events, heroSlides, accessReservations, galleryPhotos, accessTableInventory, eventTicketTiers, accessEvents } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ne } from "drizzle-orm";
 import { randomUUID } from "crypto";
+
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 export interface IStorage {
   // User operations
@@ -32,11 +40,18 @@ export interface IStorage {
 
   // Event operations
   getEvent(id: string): Promise<Event | undefined>;
+  getEventBySlug(slug: string): Promise<Event | undefined>;
   getAllEvents(): Promise<Event[]>;
   getPastEvents(): Promise<Event[]>;
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event | undefined>;
   deleteEvent(id: string): Promise<boolean>;
+
+  // Event ticket tier operations
+  getTiersByEvent(eventId: string): Promise<EventTicketTier[]>;
+  createTicketTier(tier: InsertEventTicketTier): Promise<EventTicketTier>;
+  updateTicketTier(id: string, tier: Partial<InsertEventTicketTier>): Promise<EventTicketTier | undefined>;
+  deleteTicketTier(id: string): Promise<boolean>;
 
   // Hero slide operations
   getHeroSlide(id: string): Promise<HeroSlide | undefined>;
@@ -68,6 +83,14 @@ export interface IStorage {
   getAllTableInventory(): Promise<AccessTableInventory[]>;
   getTableInventory(tableType: string): Promise<AccessTableInventory | undefined>;
   updateTableInventory(tableType: string, data: Partial<Omit<AccessTableInventory, "tableType">>): Promise<AccessTableInventory | undefined>;
+
+  // ACCESS event operations
+  getAccessEvent(id: string): Promise<AccessEvent | undefined>;
+  getAllAccessEvents(): Promise<AccessEvent[]>;
+  getUpcomingAccessEvent(): Promise<AccessEvent | undefined>;
+  createAccessEvent(event: InsertAccessEvent): Promise<AccessEvent>;
+  updateAccessEvent(id: string, event: Partial<InsertAccessEvent>): Promise<AccessEvent | undefined>;
+  deleteAccessEvent(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -212,6 +235,11 @@ export class DatabaseStorage implements IStorage {
     return event || undefined;
   }
 
+  async getEventBySlug(slug: string): Promise<Event | undefined> {
+    const [event] = await db.select().from(events).where(eq(events.slug, slug));
+    return event || undefined;
+  }
+
   async getAllEvents(): Promise<Event[]> {
     return db.select().from(events);
   }
@@ -221,9 +249,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEvent(insertEvent: InsertEvent): Promise<Event> {
+    let slug = insertEvent.slug?.trim() ? slugify(insertEvent.slug) : slugify(insertEvent.name);
+    if (slug) {
+      let candidate = slug;
+      let suffix = 2;
+      while (await this.getEventBySlug(candidate)) {
+        candidate = `${slug}-${suffix++}`;
+      }
+      slug = candidate;
+    }
     const [event] = await db
       .insert(events)
-      .values(insertEvent)
+      .values({ ...insertEvent, slug: slug || null })
       .returning();
     return event;
   }
@@ -241,6 +278,35 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(events)
       .where(eq(events.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Event ticket tier operations
+  async getTiersByEvent(eventId: string): Promise<EventTicketTier[]> {
+    return db.select().from(eventTicketTiers).where(eq(eventTicketTiers.eventId, eventId)).orderBy(eventTicketTiers.order);
+  }
+
+  async createTicketTier(insertTier: InsertEventTicketTier): Promise<EventTicketTier> {
+    const [tier] = await db
+      .insert(eventTicketTiers)
+      .values(insertTier)
+      .returning();
+    return tier;
+  }
+
+  async updateTicketTier(id: string, tierData: Partial<InsertEventTicketTier>): Promise<EventTicketTier | undefined> {
+    const [tier] = await db
+      .update(eventTicketTiers)
+      .set(tierData)
+      .where(eq(eventTicketTiers.id, id))
+      .returning();
+    return tier || undefined;
+  }
+
+  async deleteTicketTier(id: string): Promise<boolean> {
+    const result = await db
+      .delete(eventTicketTiers)
+      .where(eq(eventTicketTiers.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 
@@ -404,6 +470,52 @@ export class DatabaseStorage implements IStorage {
       .where(eq(accessTableInventory.tableType, tableType))
       .returning();
     return row || undefined;
+  }
+
+  // ACCESS event operations
+  async getAccessEvent(id: string): Promise<AccessEvent | undefined> {
+    const [event] = await db.select().from(accessEvents).where(eq(accessEvents.id, id));
+    return event || undefined;
+  }
+
+  async getAllAccessEvents(): Promise<AccessEvent[]> {
+    return db.select().from(accessEvents).orderBy(desc(accessEvents.date));
+  }
+
+  async getUpcomingAccessEvent(): Promise<AccessEvent | undefined> {
+    const all = await db.select().from(accessEvents);
+    const now = Date.now();
+    const upcoming = all
+      .filter((e) => {
+        const t = new Date(e.date).getTime();
+        return !isNaN(t) && t > now;
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return upcoming[0] ?? undefined;
+  }
+
+  async createAccessEvent(insertEvent: InsertAccessEvent): Promise<AccessEvent> {
+    const [event] = await db
+      .insert(accessEvents)
+      .values(insertEvent)
+      .returning();
+    return event;
+  }
+
+  async updateAccessEvent(id: string, eventData: Partial<InsertAccessEvent>): Promise<AccessEvent | undefined> {
+    const [event] = await db
+      .update(accessEvents)
+      .set(eventData)
+      .where(eq(accessEvents.id, id))
+      .returning();
+    return event || undefined;
+  }
+
+  async deleteAccessEvent(id: string): Promise<boolean> {
+    const result = await db
+      .delete(accessEvents)
+      .where(eq(accessEvents.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 }
 

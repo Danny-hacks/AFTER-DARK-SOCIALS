@@ -7,15 +7,19 @@ import { z } from "zod";
 import {
   ArrowLeft, Loader2, CheckCircle, XCircle, QrCode, Users, Ticket,
   ShoppingBag, Edit2, Save, Image as ImageIcon, Video as VideoIcon,
+  DollarSign, Plus, Trash2, Eye, X,
 } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AdminLayout } from "@/components/admin-layout";
 import { QRScanner } from "@/components/qr-scanner";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import type { Event, Ticket as TicketType, TicketPurchase } from "@shared/schema";
+import { TicketGenerator } from "@/components/ticket-generator";
+import type { Event, Ticket as TicketType, TicketPurchase, EventTicketTier } from "@shared/schema";
 
-type Tab = "overview" | "tickets" | "orders" | "checkin" | "scan";
+type Tab = "overview" | "pricing" | "tickets" | "orders" | "checkin" | "scan";
 
 const editSchema = z.object({
   name: z.string().min(1),
@@ -47,10 +51,11 @@ export default function AdminEventDetailPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const { toast } = useToast();
 
-  const { data: event, isLoading } = useQuery<{ success: boolean; event: Event }, Error, Event>({
+  const { data: eventData, isLoading } = useQuery<{ success: boolean; event: Event; tiers: EventTicketTier[] }>({
     queryKey: ["/api/events", id],
-    select: (data) => data.event,
   });
+  const event = eventData?.event;
+  const tiers = eventData?.tiers ?? [];
   const { data: purchases = [] } = useQuery<{ success: boolean; purchases: TicketPurchase[] }, Error, TicketPurchase[]>({
     queryKey: ["/api/admin/purchases"],
     select: (data) => data.purchases ?? [],
@@ -61,6 +66,58 @@ export default function AdminEventDetailPage() {
     select: (data) => data.tickets ?? [],
     enabled: tab === "tickets" || tab === "checkin",
   });
+
+  const [newTierName, setNewTierName] = useState("");
+  const [newTierPrice, setNewTierPrice] = useState("");
+
+  const createTierMutation = useMutation({
+    mutationFn: (data: { name: string; price: number; order: number }) =>
+      apiRequest("POST", `/api/admin/events/${id}/tiers`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events", id] });
+      setNewTierName("");
+      setNewTierPrice("");
+      toast({ title: "Tier added" });
+    },
+    onError: () => toast({ title: "Failed to add tier", variant: "destructive" }),
+  });
+
+  const deleteTierMutation = useMutation({
+    mutationFn: (tierId: string) => apiRequest("DELETE", `/api/admin/events/tiers/${tierId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events", id] });
+      toast({ title: "Tier removed" });
+    },
+    onError: () => toast({ title: "Failed to remove tier", variant: "destructive" }),
+  });
+
+  const deliverMutation = useMutation({
+    mutationFn: (ticketId: string) => apiRequest("PATCH", `/api/admin/tickets/${ticketId}/deliver`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] }),
+    onError: () => toast({ title: "Failed to mark delivered", variant: "destructive" }),
+  });
+
+  const [viewingTicket, setViewingTicket] = useState<TicketType | null>(null);
+
+  function buildTicketWaMessage(t: TicketType) {
+    return encodeURIComponent(
+      `🎉 Your ${event?.name ?? "AFTR"} ticket is ready! 🎉\n\n` +
+      `🎫 Reference: ${t.referenceCode}\n` +
+      `💰 Price: ${t.price}\n` +
+      `📅 Date: ${event?.date ?? ""}\n` +
+      `📍 Venue: ${event?.venue ?? ""}\n\n` +
+      `See you on the dance floor! 🎵🔥`,
+    );
+  }
+
+  function sendTicketWhatsApp(t: TicketType) {
+    if (!t.customerPhone) {
+      toast({ title: "No phone number on file for this ticket", variant: "destructive" });
+      return;
+    }
+    deliverMutation.mutate(t.id);
+    window.open(`https://wa.me/${t.customerPhone.replace(/\D/g, "")}?text=${buildTicketWaMessage(t)}`, "_blank");
+  }
 
   const eventPurchases = purchases.filter((p) => p.eventId === id);
   const eventTickets  = allTickets.filter((t)  => t.eventId  === id);
@@ -117,6 +174,7 @@ export default function AdminEventDetailPage() {
 
   const tabs: { key: Tab; label: string; icon: typeof Edit2 }[] = [
     { key: "overview", label: "Overview",  icon: Edit2 },
+    { key: "pricing",  label: "Pricing",   icon: DollarSign },
     { key: "orders",   label: "Orders",    icon: ShoppingBag },
     { key: "tickets",  label: "Tickets",   icon: Ticket },
     { key: "checkin",  label: "Check-in",  icon: CheckCircle },
@@ -218,6 +276,16 @@ export default function AdminEventDetailPage() {
                 <ImageIcon className="w-4 h-4" />
                 {editImageUrl ? "Replace Image" : "Upload Image"}
               </ObjectUploader>
+              {editImageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setValue("imageUrl", "")}
+                  className="flex items-center gap-1.5 border border-white/15 text-white/40 hover:border-red-500/50 hover:text-red-400 text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Remove
+                </button>
+              )}
             </div>
           </div>
           <div>
@@ -233,8 +301,18 @@ export default function AdminEventDetailPage() {
                 <VideoIcon className="w-4 h-4" />
                 {editVideoUrl ? "Replace Video" : "Upload Video"}
               </ObjectUploader>
+              {editVideoUrl && (
+                <button
+                  type="button"
+                  onClick={() => setValue("videoUrl", "")}
+                  className="flex items-center gap-1.5 border border-white/15 text-white/40 hover:border-red-500/50 hover:text-red-400 text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Remove
+                </button>
+              )}
             </div>
-            <p className="text-white/20 text-[10px] mt-1.5">MP4 only — other formats often won't play in browsers.</p>
+            <p className="text-white/20 text-[10px] mt-1.5">MP4 only — other formats often won't play in browsers. Remember to click Save Changes.</p>
           </div>
           <div className="flex items-center gap-3">
             <input {...register("isPast")} type="checkbox" id="isPast2" className="accent-[#c72d28] w-4 h-4" />
@@ -249,6 +327,73 @@ export default function AdminEventDetailPage() {
             Save Changes
           </button>
         </form>
+      )}
+
+      {/* ── Pricing / Ticket Tiers ── */}
+      {tab === "pricing" && (
+        <div className="max-w-xl space-y-6">
+          <p className="text-white/30 text-xs">
+            Add as many ticket tiers as this event needs — Early Bird, Phase 1, Phase 2, VIP, etc.
+            These appear as the ticket-type options on the public order form.
+          </p>
+
+          {tiers.length === 0 ? (
+            <p className="text-white/20 text-sm">No tiers yet — add one below.</p>
+          ) : (
+            <div className="space-y-px">
+              {tiers.map((t) => (
+                <div key={t.id} className="bg-[#0a0a0a] border border-white/10 p-4 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-white text-sm font-medium">{t.name}</p>
+                    <p className="text-[#c9962a] text-xs font-mono mt-0.5">Rs {t.price.toLocaleString()}</p>
+                  </div>
+                  <button
+                    onClick={() => deleteTierMutation.mutate(t.id)}
+                    disabled={deleteTierMutation.isPending}
+                    className="flex items-center gap-1.5 border border-white/15 text-white/40 hover:border-red-500/50 hover:text-red-400 text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="border border-white/10 p-5">
+            <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-4">Add Tier</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <input
+                value={newTierName}
+                onChange={(e) => setNewTierName(e.target.value)}
+                placeholder="e.g. Early Bird"
+                className={inputCls}
+              />
+              <input
+                type="number"
+                value={newTierPrice}
+                onChange={(e) => setNewTierPrice(e.target.value)}
+                placeholder="Price (Rs)"
+                className={inputCls}
+              />
+              <button
+                onClick={() => {
+                  const price = parseInt(newTierPrice, 10);
+                  if (!newTierName.trim() || isNaN(price)) {
+                    toast({ title: "Enter a name and price", variant: "destructive" });
+                    return;
+                  }
+                  createTierMutation.mutate({ name: newTierName.trim(), price, order: tiers.length });
+                }}
+                disabled={createTierMutation.isPending}
+                className="flex items-center justify-center gap-2 bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.2em] font-bold px-4 py-3 hover:bg-[#a82421] disabled:opacity-50 transition-colors"
+              >
+                {createTierMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Orders ── */}
@@ -296,19 +441,52 @@ export default function AdminEventDetailPage() {
             <p className="text-white/20 text-sm">No tickets issued yet.</p>
           ) : (
             eventTickets.map((t) => (
-              <div key={t.id} className="bg-[#0a0a0a] border border-white/10 p-4 flex items-center justify-between gap-4">
+              <div key={t.id} className="bg-[#0a0a0a] border border-white/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <p className="text-white text-sm font-medium font-mono">{t.referenceCode}</p>
-                  <p className="text-white/40 text-xs mt-0.5">{t.customerName} · {t.ticketType}</p>
+                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                    <p className="text-white text-sm font-medium font-mono">{t.referenceCode}</p>
+                    <span className={`text-[9px] uppercase tracking-[0.2em] px-2 py-0.5 border ${t.isUsed ? "border-white/10 text-white/20" : "border-green-500/30 text-green-400"}`}>
+                      {t.isUsed ? "Used" : "Valid"}
+                    </span>
+                    <span className={`text-[9px] uppercase tracking-[0.2em] px-2 py-0.5 border ${t.isDelivered ? "border-[#25D366]/30 text-[#25D366]" : "border-yellow-500/30 text-yellow-400"}`}>
+                      {t.isDelivered ? "Sent" : "Not Sent"}
+                    </span>
+                  </div>
+                  <p className="text-white/40 text-xs mt-0.5">{t.customerName} · {t.ticketType} · {t.price}</p>
+                  {t.customerPhone && <p className="text-white/25 text-xs">{t.customerPhone}</p>}
                 </div>
-                <span className={`text-[9px] uppercase tracking-[0.2em] px-2 py-1 border ${t.isUsed ? "border-white/10 text-white/20" : "border-green-500/30 text-green-400"}`}>
-                  {t.isUsed ? "Used" : "Valid"}
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setViewingTicket(t)}
+                    className="flex items-center gap-1.5 border border-white/15 text-white/50 hover:border-white/40 hover:text-white text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
+                  >
+                    <Eye className="w-3 h-3" />
+                    View
+                  </button>
+                  <button
+                    onClick={() => sendTicketWhatsApp(t)}
+                    disabled={deliverMutation.isPending}
+                    className="flex items-center gap-1.5 bg-[#25D366] text-black text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 hover:bg-[#1ebe5b] disabled:opacity-40 transition-colors"
+                  >
+                    <SiWhatsapp className="w-3 h-3" />
+                    {t.isDelivered ? "Resend" : "Send"}
+                  </button>
+                </div>
               </div>
             ))
           )}
         </div>
       )}
+
+      {/* ── Ticket view dialog ── */}
+      <Dialog open={!!viewingTicket} onOpenChange={(open) => !open && setViewingTicket(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#0a0a0a] border-white/15 rounded-none">
+          <DialogHeader>
+            <DialogTitle className="text-white">Ticket — {viewingTicket?.referenceCode}</DialogTitle>
+          </DialogHeader>
+          {viewingTicket && <TicketGenerator ticket={viewingTicket} />}
+        </DialogContent>
+      </Dialog>
 
       {/* ── Check-in ── */}
       {tab === "checkin" && (

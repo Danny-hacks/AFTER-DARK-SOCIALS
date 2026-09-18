@@ -74,6 +74,7 @@ const sideLinks = [
   { label: "Events",     href: "/admin/events",    icon: Calendar },
   { label: "Orders",     href: "/admin/orders",    icon: ShoppingBag },
   { label: "ACCESS",     href: "/admin/access",    icon: Crown },
+  { label: "ACCESS Events", href: "/admin/access/events", icon: Calendar },
   { label: "Gallery",    href: "/admin/gallery",   icon: Image },
   { label: "Hero",       href: "/admin/hero",      icon: Film },
 ];

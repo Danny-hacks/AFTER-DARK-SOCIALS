@@ -79,6 +79,7 @@ export const insertTicketSchema = createInsertSchema(tickets).pick({
 
 export const events = pgTable("events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").unique(),
   name: text("name").notNull(),
   date: text("date").notNull(),
   time: text("time"),
@@ -175,3 +176,40 @@ export const insertAccessTableInventorySchema = createInsertSchema(accessTableIn
 
 export type InsertAccessTableInventory = z.infer<typeof insertAccessTableInventorySchema>;
 export type AccessTableInventory = typeof accessTableInventory.$inferSelect;
+
+export const eventTicketTiers = pgTable("event_ticket_tiers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull(),
+  name: text("name").notNull(),
+  price: integer("price").notNull(),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertEventTicketTierSchema = createInsertSchema(eventTicketTiers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertEventTicketTier = z.infer<typeof insertEventTicketTierSchema>;
+export type EventTicketTier = typeof eventTicketTiers.$inferSelect;
+
+export const accessEvents = pgTable("access_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().default("ACCESS"),
+  date: text("date").notNull(),
+  time: text("time"),
+  venue: text("venue"),
+  description: text("description"),
+  posterUrl: text("poster_url"),
+  bannerUrl: text("banner_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAccessEventSchema = createInsertSchema(accessEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertAccessEvent = z.infer<typeof insertAccessEventSchema>;
+export type AccessEvent = typeof accessEvents.$inferSelect;

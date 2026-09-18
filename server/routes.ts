@@ -8,6 +8,8 @@ import {
   insertHeroSlideSchema,
   insertTicketPurchaseSchema,
   insertGalleryPhotoSchema,
+  insertEventTicketTierSchema,
+  insertAccessEventSchema,
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -294,11 +296,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/events/:id", async (req, res) => {
     try {
-      const event = await storage.getEvent(req.params.id);
+      const event = (await storage.getEventBySlug(req.params.id)) ?? (await storage.getEvent(req.params.id));
       if (!event) {
         return res.status(404).json({ error: "Event not found" });
       }
-      res.json({ success: true, event });
+      const tiers = await storage.getTiersByEvent(event.id);
+      res.json({ success: true, event, tiers });
     } catch (error) {
       console.error("Error fetching event:", error);
       res.status(500).json({ error: "Failed to fetch event" });
@@ -339,6 +342,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting event:", error);
       res.status(500).json({ error: "Failed to delete event" });
+    }
+  });
+
+  // Event ticket tier routes (protected — public reads happen via /api/events/:id)
+  app.post("/api/admin/events/:eventId/tiers", requireAuth, async (req, res) => {
+    try {
+      const tierData = insertEventTicketTierSchema.parse({ ...req.body, eventId: req.params.eventId });
+      const tier = await storage.createTicketTier(tierData);
+      res.json({ success: true, tier });
+    } catch (error) {
+      console.error("Error creating ticket tier:", error);
+      res.status(500).json({ error: "Failed to create ticket tier" });
+    }
+  });
+
+  app.patch("/api/admin/events/tiers/:tierId", requireAuth, async (req, res) => {
+    try {
+      const tier = await storage.updateTicketTier(req.params.tierId, req.body);
+      if (!tier) {
+        return res.status(404).json({ error: "Ticket tier not found" });
+      }
+      res.json({ success: true, tier });
+    } catch (error) {
+      console.error("Error updating ticket tier:", error);
+      res.status(500).json({ error: "Failed to update ticket tier" });
+    }
+  });
+
+  app.delete("/api/admin/events/tiers/:tierId", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteTicketTier(req.params.tierId);
+      if (!deleted) {
+        return res.status(404).json({ error: "Ticket tier not found" });
+      }
+      res.json({ success: true, message: "Ticket tier deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting ticket tier:", error);
+      res.status(500).json({ error: "Failed to delete ticket tier" });
     }
   });
 
@@ -464,11 +505,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tickets/purchase", async (req, res) => {
     try {
       const rawPurchase = insertTicketPurchaseSchema.parse(req.body);
-      // Enforce correct price per ticket type
-      const expectedTotal =
-        rawPurchase.ticketType === "Golden VIP"
-          ? 700 * (rawPurchase.quantity ?? 1)
-          : 350 * (rawPurchase.quantity ?? 1);
+      const quantity = rawPurchase.quantity ?? 1;
+
+      // Look up the real price from the event's ticket tiers; fall back to the
+      // legacy Golden VIP check for older purchases with no tiers configured.
+      let pricePerTicket = rawPurchase.ticketType === "Golden VIP" ? 700 : 350;
+      if (rawPurchase.eventId) {
+        const tiers = await storage.getTiersByEvent(rawPurchase.eventId);
+        const matchedTier = tiers.find((t) => t.name === rawPurchase.ticketType);
+        if (matchedTier) pricePerTicket = matchedTier.price;
+      }
+
+      const expectedTotal = pricePerTicket * quantity;
       const purchaseData = { ...rawPurchase, price: `Rs ${expectedTotal}` };
       const purchase = await storage.createTicketPurchase(purchaseData);
       res.json({
@@ -547,7 +595,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.markPurchaseProcessing(req.params.id);
 
       const quantity = purchase.quantity || 1;
-      const pricePerTicket = purchase.ticketType === "Golden VIP" ? 700 : 350;
+      // Honor the price the customer was actually quoted at purchase time
+      // (already tier-aware — see /api/tickets/purchase) rather than re-deriving it.
+      const totalPrice = parseInt(purchase.price.replace(/\D/g, ""), 10) || 350 * quantity;
+      const pricePerTicket = Math.round(totalPrice / quantity);
       const tickets = [];
 
       // Create multiple tickets based on quantity (each with unique reference/QR code)
@@ -860,6 +911,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reservation = await storage.approveAccessReservation(req.params.id);
       if (!reservation) return res.status(404).json({ error: "Reservation not found" });
 
+      const currentAccessEvent = await storage.getUpcomingAccessEvent();
+      const eventDate = currentAccessEvent?.date || "3 July 2026";
+      const eventVenue = currentAccessEvent?.venue || "Club Sixty Nine";
+
       // Build per-guest WhatsApp URLs for admin to dispatch manually
       const guests: { name: string; phone?: string; passId: string }[] = (() => {
         try { return JSON.parse(reservation.guestsJson); } catch { return []; }
@@ -873,8 +928,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `Your ACCESS pass has been confirmed.\n\n` +
             `Name: ${g.name.toUpperCase()}\n` +
             `Table: ${reservation.tableLabel.toUpperCase()}\n` +
-            `Date: 3 July 2026\n` +
-            `Venue: Club Sixty Nine\n` +
+            `Date: ${eventDate}\n` +
+            `Venue: ${eventVenue}\n` +
             `Pass ID: ${g.passId}\n\n` +
             `Present this pass at the door.\n` +
             `After Dark Socials · @afterdarksocials.mu`;
@@ -935,13 +990,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       let whatsappUrl: string | null = null;
       if (phone?.trim()) {
+        const currentAccessEvent = await storage.getUpcomingAccessEvent();
+        const eventDate = currentAccessEvent?.date || "3 July 2026";
+        const eventVenue = currentAccessEvent?.venue || "Club Sixty Nine";
         const clean = (phone as string).replace(/[\s\-\+\(\)]/g, "");
         const msg =
           `Your ACCESS pass is confirmed.\n\n` +
           `Name: ${(name as string).toUpperCase()}\n` +
           `Table: ${tableLabel.toUpperCase()}\n` +
-          `Date: 3 July 2026\n` +
-          `Venue: Club Sixty Nine\n` +
+          `Date: ${eventDate}\n` +
+          `Venue: ${eventVenue}\n` +
           `Pass ID: ${passId}\n\n` +
           `Your pass has been attached to this message.\n\n` +
           `After Dark Socials · @afterdarksocials.mu`;
@@ -998,6 +1056,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating table inventory:", error);
       res.status(500).json({ error: "Failed to update table inventory" });
+    }
+  });
+
+  // ─── ACCESS events (editions) ──────────────────────────────────────────────
+  app.get("/api/access/current", async (_req, res) => {
+    try {
+      const event = await storage.getUpcomingAccessEvent();
+      res.json({ success: true, event: event ?? null });
+    } catch (error) {
+      console.error("Error fetching current access event:", error);
+      res.status(500).json({ error: "Failed to fetch current access event" });
+    }
+  });
+
+  app.get("/api/admin/access/events", requireAuth, async (_req, res) => {
+    try {
+      const events = await storage.getAllAccessEvents();
+      res.json({ success: true, events });
+    } catch (error) {
+      console.error("Error fetching access events:", error);
+      res.status(500).json({ error: "Failed to fetch access events" });
+    }
+  });
+
+  app.post("/api/admin/access/events", requireAuth, async (req, res) => {
+    try {
+      const eventData = insertAccessEventSchema.parse(req.body);
+      const event = await storage.createAccessEvent(eventData);
+      res.json({ success: true, event });
+    } catch (error) {
+      console.error("Error creating access event:", error);
+      res.status(500).json({ error: "Failed to create access event" });
+    }
+  });
+
+  app.patch("/api/admin/access/events/:id", requireAuth, async (req, res) => {
+    try {
+      const event = await storage.updateAccessEvent(req.params.id, req.body);
+      if (!event) return res.status(404).json({ error: "Access event not found" });
+      res.json({ success: true, event });
+    } catch (error) {
+      console.error("Error updating access event:", error);
+      res.status(500).json({ error: "Failed to update access event" });
+    }
+  });
+
+  app.delete("/api/admin/access/events/:id", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteAccessEvent(req.params.id);
+      if (!deleted) return res.status(404).json({ error: "Access event not found" });
+      res.json({ success: true, message: "Access event deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting access event:", error);
+      res.status(500).json({ error: "Failed to delete access event" });
     }
   });
 

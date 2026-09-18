@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, ArrowLeft, Image as ImageIcon, Video as VideoIcon } from "lucide-react";
+import { Loader2, ArrowLeft, Image as ImageIcon, Video as VideoIcon, X } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -129,6 +129,16 @@ export default function AdminEventsNewPage() {
                 <ImageIcon className="w-4 h-4" />
                 {imageUrl ? "Replace Image" : "Upload Image"}
               </ObjectUploader>
+              {imageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setValue("imageUrl", "")}
+                  className="flex items-center gap-1.5 border border-white/15 text-white/40 hover:border-red-500/50 hover:text-red-400 text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Remove
+                </button>
+              )}
             </div>
           </div>
 
@@ -145,6 +155,16 @@ export default function AdminEventsNewPage() {
                 <VideoIcon className="w-4 h-4" />
                 {videoUrl ? "Replace Video" : "Upload Video"}
               </ObjectUploader>
+              {videoUrl && (
+                <button
+                  type="button"
+                  onClick={() => setValue("videoUrl", "")}
+                  className="flex items-center gap-1.5 border border-white/15 text-white/40 hover:border-red-500/50 hover:text-red-400 text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Remove
+                </button>
+              )}
             </div>
             <p className="text-white/20 text-[10px] mt-1.5">MP4 only — other formats often won't play in browsers.</p>
           </div>

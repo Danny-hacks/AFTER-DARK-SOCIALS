@@ -1,10 +1,20 @@
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { SiTiktok } from "react-icons/si";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { HeroSlide } from "@shared/schema";
+import { Link } from "wouter";
+import type { HeroSlide, Event } from "@shared/schema";
 import heroImage from "@assets/stock_images/dark_nightclub_rave__d23cebfd.jpg";
 import aftr2Image from "@assets/IMG_6112_1774435245159.jpg";
+
+interface DisplaySlide {
+  id: string;
+  type: string;
+  url: string;
+  title: string | null;
+  isAuto?: boolean;
+  event?: Event;
+}
 
 export default function HeroSection() {
   const [isVisible, setIsVisible] = useState(false);
@@ -14,14 +24,46 @@ export default function HeroSection() {
     queryKey: ['/api/hero-slides'],
   });
 
-  const processedSlides = (data?.slides || []).map(slide => {
+  const { data: eventsData } = useQuery<{ success: boolean; events: Event[] }>({
+    queryKey: ['/api/events'],
+  });
+
+  // Automatically surface the nearest upcoming event as the first slide,
+  // so the hero never needs manual updating just because a new event exists.
+  const upcomingEvent = useMemo(() => {
+    const events = eventsData?.events ?? [];
+    const now = Date.now();
+    const upcoming = events.filter((e) => {
+      if (e.isPast) return false;
+      const t = e.date ? new Date(e.date).getTime() : NaN;
+      return !isNaN(t) && t > now;
+    });
+    upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return upcoming[0] ?? null;
+  }, [eventsData]);
+
+  const adminSlides: DisplaySlide[] = (data?.slides || []).map(slide => {
     let processedUrl = slide.url;
     if (slide.url.includes('/assets/stock_images/')) processedUrl = heroImage;
     else if (slide.url.includes('AFTR_black_white')) processedUrl = aftr2Image;
     return { ...slide, url: processedUrl };
   });
 
+  const autoSlide: DisplaySlide | null =
+    upcomingEvent && (upcomingEvent.videoUrl || upcomingEvent.imageUrl)
+      ? {
+          id: `auto-${upcomingEvent.id}`,
+          type: upcomingEvent.videoUrl ? 'video' : 'image',
+          url: (upcomingEvent.videoUrl || upcomingEvent.imageUrl) as string,
+          title: upcomingEvent.name,
+          isAuto: true,
+          event: upcomingEvent,
+        }
+      : null;
+
+  const processedSlides: DisplaySlide[] = autoSlide ? [autoSlide, ...adminSlides] : adminSlides;
   const hasSlides = processedSlides.length > 0;
+  const activeSlide = processedSlides[currentSlide];
 
   useEffect(() => { setIsVisible(true); }, []);
 
@@ -120,6 +162,25 @@ export default function HeroSection() {
         >
           The Rave That Keeps The City Awake
         </p>
+
+        {/* Upcoming event callout — only while its auto-generated slide is active */}
+        {activeSlide?.isAuto && activeSlide.event && (
+          <div className="mb-8 max-w-md" data-testid="hero-upcoming-event">
+            <p className="text-[#c72d28] text-[10px] uppercase tracking-[0.3em] mb-2">Up Next</p>
+            <p className="text-white font-black leading-none mb-1" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(22px, 3vw, 32px)" }}>
+              {activeSlide.event.name}
+            </p>
+            <p className="text-white/40 text-xs mb-4">
+              {[activeSlide.event.date, activeSlide.event.venue].filter(Boolean).join(" · ")}
+            </p>
+            <Link
+              href={`/events/${activeSlide.event.slug ?? activeSlide.event.id}`}
+              className="inline-flex items-center gap-2 bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.2em] font-bold px-6 py-3 hover:bg-[#a82421] transition-colors"
+            >
+              Get Tickets
+            </Link>
+          </div>
+        )}
 
         <div className="flex items-center gap-6 flex-wrap">
           <div className="inline-flex items-center gap-2">

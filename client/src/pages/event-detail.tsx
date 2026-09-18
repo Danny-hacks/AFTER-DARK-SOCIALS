@@ -8,7 +8,10 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { apiRequest } from "@/lib/queryClient";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-import type { Event } from "@shared/schema";
+import type { Event, EventTicketTier } from "@shared/schema";
+
+const ADMIN_CONTACT = "+230 5820 5220";
+const ADMIN_PHONE = "23058205220";
 
 // ─── Countdown ───────────────────────────────────────────────────────────────
 function CountdownTimer({ targetDate }: { targetDate: Date }) {
@@ -58,19 +61,26 @@ function CountdownTimer({ targetDate }: { targetDate: Date }) {
 }
 
 // ─── Order Form ───────────────────────────────────────────────────────────────
-function OrderForm({ event }: { event: Event }) {
+function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] }) {
   const { toast } = useToast();
+  const hasTiers = tiers.length > 0;
+  const defaultTicketType = hasTiers ? tiers[0].name : "General";
+
   const [form, setForm] = useState({
     customerName: "", customerEmail: "", customerPhone: "",
-    ticketType: "Early Bird", quantity: "1", paymentMethod: "MCB Juice",
+    ticketType: defaultTicketType, quantity: "1", paymentMethod: "MCB Juice",
   });
+
+  const selectedTier = tiers.find((t) => t.name === form.ticketType);
+  const quantity = Number(form.quantity) || 1;
+  const total = selectedTier ? selectedTier.price * quantity : null;
 
   const mutation = useMutation({
     mutationFn: (data: Omit<typeof form, "quantity"> & { quantity: number; eventId: string }) =>
       apiRequest("POST", "/api/tickets/purchase", data),
     onSuccess: () => {
       toast({ title: "Request submitted!", description: "We'll confirm your ticket via WhatsApp." });
-      setForm({ customerName: "", customerEmail: "", customerPhone: "", ticketType: "Early Bird", quantity: "1", paymentMethod: "MCB Juice" });
+      setForm({ customerName: "", customerEmail: "", customerPhone: "", ticketType: defaultTicketType, quantity: "1", paymentMethod: "MCB Juice" });
     },
     onError: () => toast({ title: "Submission failed", variant: "destructive" }),
   });
@@ -82,7 +92,7 @@ function OrderForm({ event }: { event: Event }) {
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        mutation.mutate({ ...form, quantity: Number(form.quantity) || 1, eventId: event.id });
+        mutation.mutate({ ...form, quantity, eventId: event.id });
       }}
       className="space-y-7"
     >
@@ -108,14 +118,20 @@ function OrderForm({ event }: { event: Event }) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-7">
         <div>
           <label className={label}>Ticket Type</label>
-          <select value={form.ticketType} onChange={(e) => setForm({ ...form, ticketType: e.target.value })}
-            className={`${field} cursor-pointer bg-black`}
-            style={{ appearance: "none" }}
-          >
-            {["Early Bird", "Phase 2", "Door"].map((t) => (
-              <option key={t} value={t} style={{ background: "#0a0a0a" }}>{t}</option>
-            ))}
-          </select>
+          {hasTiers ? (
+            <select value={form.ticketType} onChange={(e) => setForm({ ...form, ticketType: e.target.value })}
+              className={`${field} cursor-pointer bg-black`}
+              style={{ appearance: "none" }}
+            >
+              {tiers.map((t) => (
+                <option key={t.id} value={t.name} style={{ background: "#0a0a0a" }}>
+                  {t.name} — Rs {t.price.toLocaleString()}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="text-white/30 text-sm py-3">General — price TBC</p>
+          )}
         </div>
         <div>
           <label className={label}>Quantity</label>
@@ -135,6 +151,16 @@ function OrderForm({ event }: { event: Event }) {
         </div>
       </div>
 
+      {total !== null && (
+        <div className="flex items-baseline gap-3 border-t border-white/10 pt-6">
+          <span className="text-white/30 text-[10px] uppercase tracking-[0.2em]">Total</span>
+          <span className="text-[#c72d28] font-mono font-medium text-2xl">Rs {total.toLocaleString()}</span>
+          {quantity > 1 && (
+            <span className="text-white/20 text-xs">({quantity} × Rs {selectedTier!.price.toLocaleString()})</span>
+          )}
+        </div>
+      )}
+
       <div className="pt-2">
         <button
           type="submit"
@@ -144,7 +170,26 @@ function OrderForm({ event }: { event: Event }) {
           {mutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <SiWhatsapp className="w-3.5 h-3.5" />}
           {mutation.isPending ? "Submitting..." : "Request Ticket"}
         </button>
-        <p className="mt-3 text-[9px] text-white/20 uppercase tracking-[0.15em]">Payment details sent via WhatsApp after submission</p>
+
+        <div className="mt-5 border border-white/10 p-5 max-w-md">
+          <p className="text-white/40 text-[9px] uppercase tracking-[0.25em] mb-3">What happens next</p>
+          <ol className="space-y-2 text-white/40 text-xs leading-relaxed list-decimal list-inside">
+            <li>Submit this form — no payment is taken here.</li>
+            <li>We'll WhatsApp you at the number above with payment details for your selected method.</li>
+            <li>Once payment is confirmed, your ticket is generated and sent to you on WhatsApp.</li>
+          </ol>
+          <p className="text-white/20 text-[10px] mt-3">
+            Questions? Message us directly on{" "}
+            <a
+              href={`https://wa.me/${ADMIN_PHONE}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#25D366] hover:underline"
+            >
+              WhatsApp ({ADMIN_CONTACT})
+            </a>.
+          </p>
+        </div>
       </div>
     </form>
   );
@@ -153,10 +198,11 @@ function OrderForm({ event }: { event: Event }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { data: event, isLoading, isError } = useQuery<{ success: boolean; event: Event }, Error, Event>({
+  const { data, isLoading, isError } = useQuery<{ success: boolean; event: Event; tiers: EventTicketTier[] }>({
     queryKey: ["/api/events", id],
-    select: (data) => data.event,
   });
+  const event = data?.event;
+  const tiers = data?.tiers ?? [];
 
   usePageTitle(event?.name);
 
@@ -288,7 +334,7 @@ export default function EventDetailPage() {
               </p>
             </div>
             <div className="lg:col-span-7">
-              <OrderForm event={event} />
+              <OrderForm event={event} tiers={tiers} />
             </div>
           </div>
         ) : (

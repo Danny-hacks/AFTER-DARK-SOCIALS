@@ -10,7 +10,7 @@ import type { Event } from "@shared/schema";
 
 function EventCard({ event }: { event: Event }) {
   return (
-    <Link href={`/events/${event.id}`} className="group block border border-white/10 hover:border-white/25 transition-all duration-300">
+    <Link href={`/events/${event.slug ?? event.id}`} className="group block border border-white/10 hover:border-white/25 transition-all duration-300">
       {event.imageUrl && (
         <div className="relative h-48 overflow-hidden">
           <img

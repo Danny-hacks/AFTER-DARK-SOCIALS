@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { CheckCircle, ExternalLink, Loader2, Search } from "lucide-react";
+import { CheckCircle, ExternalLink, Loader2, Search, Ticket } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AdminLayout } from "@/components/admin-layout";
@@ -121,6 +122,15 @@ export default function AdminOrdersPage() {
                     <CheckCircle className="w-3 h-3" />
                     Verify
                   </button>
+                )}
+                {p.status === "verified" && p.eventId && (
+                  <Link
+                    href={`/admin/events/${p.eventId}`}
+                    className="flex items-center gap-1.5 border border-[#25D366]/40 text-[#25D366] text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 hover:border-[#25D366] transition-colors"
+                  >
+                    <Ticket className="w-3 h-3" />
+                    Send Ticket
+                  </Link>
                 )}
               </div>
             </div>
