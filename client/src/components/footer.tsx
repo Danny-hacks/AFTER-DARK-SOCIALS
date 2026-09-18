@@ -3,10 +3,6 @@ import { Link } from "wouter";
 import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
 export default function Footer() {
-  const scrollToSection = (sectionId: string) => {
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth" });
-  };
-
   return (
     <footer
       className="bg-black border-t border-white/10 py-16"
@@ -19,7 +15,7 @@ export default function Footer() {
             <img
               src={logoImage}
               alt="After Dark Socials"
-              className="h-14 w-auto mb-6 opacity-80"
+              className="h-24 w-auto mb-6 opacity-80"
               data-testid="footer-brand-name"
             />
             <p
@@ -67,29 +63,22 @@ export default function Footer() {
             </p>
             <ul className="space-y-3">
               {[
-                { label: "About", id: "about" },
-                { label: "Services", id: "services" },
-                { label: "ACCESS", id: "access" },
-                { label: "Past Events", id: "past-events" },
-                { label: "Contact", id: "contact" },
+                { label: "About", href: "/about" },
+                { label: "Services", href: "/services" },
+                { label: "ACCESS", href: "/access" },
+                { label: "Past Events", href: "/events/past" },
+                { label: "Contact", href: "/contact" },
+                { label: "Gallery", href: "/gallery" },
               ].map((link) => (
-                <li key={link.id}>
-                  <button
-                    onClick={() => scrollToSection(link.id)}
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
                     className="text-white/30 hover:text-white text-sm transition-colors"
                   >
                     {link.label}
-                  </button>
+                  </Link>
                 </li>
               ))}
-              <li>
-                <Link
-                  href="/gallery"
-                  className="text-white/30 hover:text-white text-sm transition-colors"
-                >
-                  Gallery
-                </Link>
-              </li>
             </ul>
           </div>
 

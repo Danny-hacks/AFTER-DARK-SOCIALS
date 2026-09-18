@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Calendar, MapPin, Clock, ArrowUpRight } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
+import { usePageTitle } from "@/hooks/use-page-title";
+import { Reveal } from "@/components/reveal";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import type { Event } from "@shared/schema";
@@ -15,6 +17,7 @@ function EventCard({ event }: { event: Event }) {
             src={event.imageUrl}
             alt={event.name}
             className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+            loading="lazy"
           />
           <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-500" />
         </div>
@@ -60,6 +63,7 @@ function EventCard({ event }: { event: Event }) {
 }
 
 export default function EventsPage() {
+  usePageTitle("Events");
   const { data: events = [], isLoading } = useQuery<{ success: boolean; events: Event[] }, Error, Event[]>({
     queryKey: ["/api/events"],
     select: (data) => data.events ?? [],
@@ -78,7 +82,7 @@ export default function EventsPage() {
           <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.35em]">Events</span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-end border-b border-white/10 pb-16 mb-16">
+        <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-end border-b border-white/10 pb-16 mb-16">
           <h1
             className="font-black text-white leading-none"
             style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(52px, 8vw, 100px)" }}
@@ -92,7 +96,7 @@ export default function EventsPage() {
           <p className="text-white/40 text-sm leading-relaxed">
             Every AFTR night is a new chapter. Secure your spot before it sells out.
           </p>
-        </div>
+        </Reveal>
 
         {/* Event grid */}
         {isLoading ? (
@@ -103,10 +107,10 @@ export default function EventsPage() {
           </div>
         ) : upcoming.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white/10">
-            {upcoming.map((event) => (
-              <div key={event.id} className="bg-black">
+            {upcoming.map((event, idx) => (
+              <Reveal key={event.id} className="bg-black" delay={(idx % 3) * 0.08}>
                 <EventCard event={event} />
-              </div>
+              </Reveal>
             ))}
           </div>
         ) : (

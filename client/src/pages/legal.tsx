@@ -1,5 +1,6 @@
 import { ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 const legalContent: Record<string, { title: string; sections: { heading: string; body: string }[] }> = {
   terms: {
@@ -143,6 +144,7 @@ export default function LegalPage() {
   const [location] = useLocation();
   const slug = slugMap[location] || "terms";
   const content = legalContent[slug];
+  usePageTitle(content.title);
 
   return (
     <div className="min-h-screen bg-black text-white">

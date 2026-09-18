@@ -6,12 +6,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   ArrowLeft, Loader2, CheckCircle, XCircle, QrCode, Users, Ticket,
-  ShoppingBag, Edit2, Save,
+  ShoppingBag, Edit2, Save, Image as ImageIcon, Video as VideoIcon,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AdminLayout } from "@/components/admin-layout";
 import { QRScanner } from "@/components/qr-scanner";
+import { ObjectUploader } from "@/components/ObjectUploader";
 import type { Event, Ticket as TicketType, TicketPurchase } from "@shared/schema";
 
 type Tab = "overview" | "tickets" | "orders" | "checkin" | "scan";
@@ -22,10 +23,24 @@ const editSchema = z.object({
   time: z.string().optional(),
   venue: z.string().optional(),
   description: z.string().optional(),
+  subtitle: z.string().optional(),
+  volume: z.string().optional(),
+  artistsInput: z.string().optional(),
   imageUrl: z.string().optional(),
+  videoUrl: z.string().optional(),
   isPast: z.boolean().default(false),
 });
 type EditData = z.infer<typeof editSchema>;
+
+function parseArtists(json: string | null): string[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function AdminEventDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -50,20 +65,37 @@ export default function AdminEventDetailPage() {
   const eventPurchases = purchases.filter((p) => p.eventId === id);
   const eventTickets  = allTickets.filter((t)  => t.eventId  === id);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<EditData>({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<EditData>({
     resolver: zodResolver(editSchema),
     values: event ? {
       name: event.name, date: event.date, time: event.time ?? "",
       venue: event.venue ?? "", description: event.description ?? "",
-      imageUrl: event.imageUrl ?? "", isPast: event.isPast,
+      subtitle: event.subtitle ?? "", volume: event.volume ?? "",
+      artistsInput: parseArtists(event.artists).join(", "),
+      imageUrl: event.imageUrl ?? "", videoUrl: event.videoUrl ?? "",
+      isPast: event.isPast,
     } : undefined,
   });
 
+  const editImageUrl = watch("imageUrl");
+  const editVideoUrl = watch("videoUrl");
+
   const updateMutation = useMutation({
-    mutationFn: (data: EditData) => apiRequest("PATCH", `/api/admin/events/${id}`, data),
+    mutationFn: (data: EditData) => {
+      const artists = (data.artistsInput ?? "")
+        .split(",")
+        .map((a) => a.trim())
+        .filter(Boolean);
+      const { artistsInput, ...rest } = data;
+      return apiRequest("PATCH", `/api/admin/events/${id}`, {
+        ...rest,
+        artists: artists.length > 0 ? JSON.stringify(artists) : null,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events/past"] });
       toast({ title: "Event updated" });
     },
     onError: () => toast({ title: "Update failed", variant: "destructive" }),
@@ -159,8 +191,50 @@ export default function AdminEventDetailPage() {
             <textarea {...register("description")} rows={4} className={`${inputCls} resize-none`} />
           </div>
           <div>
-            <label className={labelCls}>Image URL</label>
-            <input {...register("imageUrl")} placeholder="https://..." className={inputCls} />
+            <label className={labelCls}>Subtitle</label>
+            <input {...register("subtitle")} placeholder="e.g. Full Capacity." className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>Volume Tag</label>
+            <input {...register("volume")} placeholder="e.g. VOL. 4" className={inputCls} />
+            <p className="text-white/20 text-[10px] mt-1.5">
+              Links this event's gallery photos — must match a Volume used in Gallery uploads.
+            </p>
+          </div>
+          <div>
+            <label className={labelCls}>Lineup (comma-separated)</label>
+            <input {...register("artistsInput")} placeholder="DJ Sweety, DJ Luvlesh" className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>Cover Image</label>
+            <div className="flex items-center gap-4">
+              {editImageUrl && <img src={editImageUrl} alt="" className="w-16 h-16 object-cover border border-white/10" />}
+              <ObjectUploader
+                maxFileSize={20 * 1024 * 1024}
+                allowedFileTypes={["image/*"]}
+                onComplete={(url) => setValue("imageUrl", url)}
+                buttonClassName="gap-2"
+              >
+                <ImageIcon className="w-4 h-4" />
+                {editImageUrl ? "Replace Image" : "Upload Image"}
+              </ObjectUploader>
+            </div>
+          </div>
+          <div>
+            <label className={labelCls}>Event Video</label>
+            <div className="flex items-center gap-4">
+              {editVideoUrl && <span className="text-white/30 text-xs">Video attached</span>}
+              <ObjectUploader
+                maxFileSize={500 * 1024 * 1024}
+                allowedFileTypes={["video/mp4"]}
+                onComplete={(url) => setValue("videoUrl", url)}
+                buttonClassName="gap-2"
+              >
+                <VideoIcon className="w-4 h-4" />
+                {editVideoUrl ? "Replace Video" : "Upload Video"}
+              </ObjectUploader>
+            </div>
+            <p className="text-white/20 text-[10px] mt-1.5">MP4 only — other formats often won't play in browsers.</p>
           </div>
           <div className="flex items-center gap-3">
             <input {...register("isPast")} type="checkbox" id="isPast2" className="accent-[#c72d28] w-4 h-4" />

@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/use-page-title";
 import Navbar from "@/components/navbar";
 import HeroSection from "@/components/hero-section";
 import AboutSection from "@/components/about-section";
@@ -39,6 +40,7 @@ function MarqueeTicker() {
 }
 
 export default function Home() {
+  usePageTitle();
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />

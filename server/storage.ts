@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Ticket, type InsertTicket, type TicketPurchase, type InsertTicketPurchase, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, type AccessReservation, users, tickets, ticketPurchases, events, heroSlides, accessReservations } from "@shared/schema";
+import { type User, type InsertUser, type Ticket, type InsertTicket, type TicketPurchase, type InsertTicketPurchase, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, type AccessReservation, type GalleryPhoto, type InsertGalleryPhoto, type AccessTableInventory, users, tickets, ticketPurchases, events, heroSlides, accessReservations, galleryPhotos, accessTableInventory } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ne } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -56,6 +56,18 @@ export interface IStorage {
   createAdminSinglePass(data: { tableType: string; tableLabel: string; guestsJson: string }): Promise<AccessReservation>;
   countAdminSinglePassesByType(tableType: string): Promise<number>;
   deleteAccessReservation(id: string): Promise<boolean>;
+
+  // Gallery photo operations
+  getGalleryPhoto(id: string): Promise<GalleryPhoto | undefined>;
+  getAllGalleryPhotos(): Promise<GalleryPhoto[]>;
+  createGalleryPhoto(photo: InsertGalleryPhoto): Promise<GalleryPhoto>;
+  updateGalleryPhoto(id: string, photo: Partial<InsertGalleryPhoto>): Promise<GalleryPhoto | undefined>;
+  deleteGalleryPhoto(id: string): Promise<boolean>;
+
+  // Access table inventory (pricing/capacity) operations
+  getAllTableInventory(): Promise<AccessTableInventory[]>;
+  getTableInventory(tableType: string): Promise<AccessTableInventory | undefined>;
+  updateTableInventory(tableType: string, data: Partial<Omit<AccessTableInventory, "tableType">>): Promise<AccessTableInventory | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -339,6 +351,59 @@ export class DatabaseStorage implements IStorage {
       .from(accessReservations)
       .where(and(eq(accessReservations.tableType, tableType), ne(accessReservations.status, "rejected")));
     return rows.length;
+  }
+
+  // Gallery photo operations
+  async getGalleryPhoto(id: string): Promise<GalleryPhoto | undefined> {
+    const [photo] = await db.select().from(galleryPhotos).where(eq(galleryPhotos.id, id));
+    return photo || undefined;
+  }
+
+  async getAllGalleryPhotos(): Promise<GalleryPhoto[]> {
+    return db.select().from(galleryPhotos).orderBy(galleryPhotos.order);
+  }
+
+  async createGalleryPhoto(insertPhoto: InsertGalleryPhoto): Promise<GalleryPhoto> {
+    const [photo] = await db
+      .insert(galleryPhotos)
+      .values(insertPhoto)
+      .returning();
+    return photo;
+  }
+
+  async updateGalleryPhoto(id: string, photoData: Partial<InsertGalleryPhoto>): Promise<GalleryPhoto | undefined> {
+    const [photo] = await db
+      .update(galleryPhotos)
+      .set(photoData)
+      .where(eq(galleryPhotos.id, id))
+      .returning();
+    return photo || undefined;
+  }
+
+  async deleteGalleryPhoto(id: string): Promise<boolean> {
+    const result = await db
+      .delete(galleryPhotos)
+      .where(eq(galleryPhotos.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Access table inventory operations
+  async getAllTableInventory(): Promise<AccessTableInventory[]> {
+    return db.select().from(accessTableInventory);
+  }
+
+  async getTableInventory(tableType: string): Promise<AccessTableInventory | undefined> {
+    const [row] = await db.select().from(accessTableInventory).where(eq(accessTableInventory.tableType, tableType));
+    return row || undefined;
+  }
+
+  async updateTableInventory(tableType: string, data: Partial<Omit<AccessTableInventory, "tableType">>): Promise<AccessTableInventory | undefined> {
+    const [row] = await db
+      .update(accessTableInventory)
+      .set(data)
+      .where(eq(accessTableInventory.tableType, tableType))
+      .returning();
+    return row || undefined;
   }
 }
 

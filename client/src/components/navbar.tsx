@@ -38,13 +38,13 @@ export default function Navbar() {
       data-testid="navbar"
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
-        <div className="flex items-center justify-between h-16 sm:h-20">
+        <div className="flex items-center justify-between h-20 sm:h-28">
           {/* Logo */}
           <Link href="/" className="flex items-center" data-testid="nav-logo">
             <img
               src={logoImage}
               alt="After Dark Socials"
-              className="h-14 lg:h-16 w-auto"
+              className="h-16 sm:h-24 w-auto"
             />
           </Link>
 
@@ -65,6 +65,13 @@ export default function Navbar() {
                 )}
               </Link>
             ))}
+            <Link
+              href="/events"
+              className="px-5 py-2 bg-[#c72d28] text-white text-xs uppercase tracking-[0.15em] font-bold hover:bg-[#a82421] transition-colors"
+              data-testid="nav-tickets-link"
+            >
+              Get Tickets
+            </Link>
             <a
               href="https://www.instagram.com/afterdarksocials.mu"
               target="_blank"
@@ -87,13 +94,22 @@ export default function Navbar() {
           </div>
 
           {/* Mobile toggle */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-white"
-            data-testid="mobile-menu-button"
-          >
-            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          <div className="md:hidden flex items-center gap-3">
+            <Link
+              href="/events"
+              className="px-3 py-1.5 bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.15em] font-bold hover:bg-[#a82421] transition-colors"
+              data-testid="mobile-nav-tickets-link"
+            >
+              Get Tickets
+            </Link>
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2 text-white"
+              data-testid="mobile-menu-button"
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile menu */}

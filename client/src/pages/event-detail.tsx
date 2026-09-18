@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Calendar, MapPin, Clock, ArrowLeft, Loader2 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
+import { usePageTitle } from "@/hooks/use-page-title";
 import { apiRequest } from "@/lib/queryClient";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
@@ -65,7 +66,7 @@ function OrderForm({ event }: { event: Event }) {
   });
 
   const mutation = useMutation({
-    mutationFn: (data: typeof form & { eventId: string }) =>
+    mutationFn: (data: Omit<typeof form, "quantity"> & { quantity: number; eventId: string }) =>
       apiRequest("POST", "/api/tickets/purchase", data),
     onSuccess: () => {
       toast({ title: "Request submitted!", description: "We'll confirm your ticket via WhatsApp." });
@@ -81,7 +82,7 @@ function OrderForm({ event }: { event: Event }) {
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        mutation.mutate({ ...form, eventId: event.id });
+        mutation.mutate({ ...form, quantity: Number(form.quantity) || 1, eventId: event.id });
       }}
       className="space-y-7"
     >
@@ -157,6 +158,8 @@ export default function EventDetailPage() {
     select: (data) => data.event,
   });
 
+  usePageTitle(event?.name);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -189,7 +192,20 @@ export default function EventDetailPage() {
       <Navbar />
 
       {/* Hero */}
-      {event.imageUrl ? (
+      {event.videoUrl ? (
+        <div className="relative h-[55vh] overflow-hidden">
+          <video
+            src={event.videoUrl}
+            className="absolute inset-0 w-full h-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster={event.imageUrl ?? undefined}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black" />
+        </div>
+      ) : event.imageUrl ? (
         <div className="relative h-[55vh] overflow-hidden">
           <img
             src={event.imageUrl}

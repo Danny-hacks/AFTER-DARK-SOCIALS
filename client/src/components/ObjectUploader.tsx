@@ -14,6 +14,60 @@ interface ObjectUploaderProps {
   children: ReactNode;
 }
 
+const MAX_IMAGE_DIMENSION = 1920;
+const IMAGE_QUALITY = 0.82;
+
+// Resize + re-encode an image client-side so uploads aren't shipped at full
+// camera resolution. Videos are left untouched — no client-side transcoding.
+function compressImage(file: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(img.width, img.height));
+      const width = Math.round(img.width * scale);
+      const height = Math.round(img.height * scale);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+          const compressed = new File(
+            [blob],
+            file.name.replace(/\.\w+$/, "") + ".jpg",
+            { type: "image/jpeg" },
+          );
+          resolve(compressed);
+        },
+        "image/jpeg",
+        IMAGE_QUALITY,
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Could not read image"));
+    };
+
+    img.src = url;
+  });
+}
+
 export function ObjectUploader({
   maxFileSize = 104857600, // 100MB default for videos
   allowedFileTypes = ["video/*"],
@@ -28,12 +82,19 @@ export function ObjectUploader({
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const wantsVideo = allowedFileTypes.some((t) => t.startsWith("video"));
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    let file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > maxFileSize) {
       setError(`File size exceeds ${Math.round(maxFileSize / 1024 / 1024)}MB limit`);
+      return;
+    }
+
+    if (file.type.startsWith("video/") && file.type !== "video/mp4") {
+      setError("Please export as MP4 — other formats (like .MOV) often won't play in browsers.");
       return;
     }
 
@@ -42,19 +103,23 @@ export function ObjectUploader({
     setProgress(0);
 
     try {
-      const extension = file.name.split('.').pop() || '';
-      const response = await apiRequest('POST', '/api/objects/upload', { fileExtension: extension });
+      if (file.type.startsWith("image/")) {
+        file = await compressImage(file);
+      }
+
+      const extension = file.name.split(".").pop() || "";
+      const response = await apiRequest("POST", "/api/objects/upload", { fileExtension: extension });
       const data = await response.json();
-      
+
       const xhr = new XMLHttpRequest();
-      xhr.upload.addEventListener('progress', (event) => {
+      xhr.upload.addEventListener("progress", (event) => {
         if (event.lengthComputable) {
           const percentComplete = Math.round((event.loaded / event.total) * 100);
           setProgress(percentComplete);
         }
       });
 
-      xhr.addEventListener('load', () => {
+      xhr.addEventListener("load", () => {
         if (xhr.status >= 200 && xhr.status < 300) {
           setSuccess(true);
           setUploading(false);
@@ -106,9 +171,9 @@ export function ObjectUploader({
       <Dialog open={showModal} onOpenChange={resetAndClose}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Upload Video</DialogTitle>
+            <DialogTitle>{wantsVideo ? "Upload Video" : "Upload Photo"}</DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {success ? (
               <div className="flex flex-col items-center justify-center py-8 text-green-500">
@@ -127,25 +192,28 @@ export function ObjectUploader({
               </div>
             ) : (
               <div className="space-y-4">
-                <label 
+                <label
                   className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
                   data-testid="file-drop-zone"
                 >
                   <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                  <span className="text-sm text-muted-foreground">Click to select a video file</span>
+                  <span className="text-sm text-muted-foreground">
+                    Click to select {wantsVideo ? "an MP4 video file" : "a photo"}
+                  </span>
                   <span className="text-xs text-muted-foreground mt-1">
                     Max {Math.round(maxFileSize / 1024 / 1024)}MB
+                    {!wantsVideo && " · auto-resized on upload"}
                   </span>
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept={allowedFileTypes.join(',')}
+                    accept={wantsVideo ? "video/mp4" : allowedFileTypes.join(',')}
                     onChange={handleFileSelect}
                     className="hidden"
                     data-testid="file-input"
                   />
                 </label>
-                
+
                 {error && (
                   <div className="flex items-center gap-2 text-destructive text-sm">
                     <X className="w-4 h-4" />

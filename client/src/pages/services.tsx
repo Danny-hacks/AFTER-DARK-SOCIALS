@@ -2,6 +2,8 @@ import { useState } from "react";
 import { ArrowUpRight, Loader2 } from "lucide-react";
 import { SiWhatsapp, SiInstagram } from "react-icons/si";
 import { Link } from "wouter";
+import { usePageTitle } from "@/hooks/use-page-title";
+import { Reveal } from "@/components/reveal";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 
@@ -172,6 +174,7 @@ function EnquiryForm() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ServicesPage() {
+  usePageTitle("Services");
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
@@ -182,7 +185,7 @@ export default function ServicesPage() {
           <span className="w-8 h-px bg-[#c72d28]" />
           <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.35em]">What We Do</span>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-end">
+        <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-end">
           <h1
             className="font-black text-white leading-none"
             style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(48px, 8vw, 100px)" }}
@@ -207,12 +210,12 @@ export default function ServicesPage() {
               <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </a>
           </div>
-        </div>
+        </Reveal>
       </div>
 
       {/* ── Services alternating ──────────────────────────────────────────── */}
       {services.map((svc) => (
-        <div key={svc.number} className="border-b border-white/10">
+        <Reveal key={svc.number} className="border-b border-white/10">
           <div className={`max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 ${svc.flip ? "lg:[direction:rtl]" : ""}`}>
             {/* Content */}
             <div className={`px-5 sm:px-6 lg:px-12 py-16 sm:py-20 flex flex-col justify-center ${svc.flip ? "lg:[direction:ltr]" : ""}`}>
@@ -276,26 +279,28 @@ export default function ServicesPage() {
               </div>
             </div>
           </div>
-        </div>
+        </Reveal>
       ))}
 
       {/* ── Process ───────────────────────────────────────────────────────── */}
       <div className="border-b border-white/10">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12 py-20 sm:py-28">
-          <div className="flex items-center gap-4 mb-14">
-            <span className="w-8 h-px bg-[#c72d28]" />
-            <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.35em]">How It Works</span>
-          </div>
-          <h2
-            className="font-black text-white leading-none mb-16"
-            style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(40px, 6vw, 80px)" }}
-          >
-            FROM BRIEF
-            <br />
-            <span style={{ WebkitTextStroke: "2px rgba(255,255,255,0.15)", color: "transparent" }}>
-              TO NIGHT.
-            </span>
-          </h2>
+          <Reveal>
+            <div className="flex items-center gap-4 mb-14">
+              <span className="w-8 h-px bg-[#c72d28]" />
+              <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.35em]">How It Works</span>
+            </div>
+            <h2
+              className="font-black text-white leading-none mb-16"
+              style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(40px, 6vw, 80px)" }}
+            >
+              FROM BRIEF
+              <br />
+              <span style={{ WebkitTextStroke: "2px rgba(255,255,255,0.15)", color: "transparent" }}>
+                TO NIGHT.
+              </span>
+            </h2>
+          </Reveal>
 
           {/* Desktop horizontal timeline */}
           <div className="hidden lg:grid grid-cols-4 relative">

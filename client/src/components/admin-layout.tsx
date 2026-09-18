@@ -3,12 +3,13 @@ import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { usePageTitle } from "@/hooks/use-page-title";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   LayoutDashboard, Calendar, ShoppingBag, Crown, Image, LogOut,
-  Menu, X, Loader2,
+  Menu, X, Loader2, Film,
 } from "lucide-react";
 import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
@@ -74,6 +75,7 @@ const sideLinks = [
   { label: "Orders",     href: "/admin/orders",    icon: ShoppingBag },
   { label: "ACCESS",     href: "/admin/access",    icon: Crown },
   { label: "Gallery",    href: "/admin/gallery",   icon: Image },
+  { label: "Hero",       href: "/admin/hero",      icon: Film },
 ];
 
 function AdminSidebar({ onClose }: { onClose?: () => void }) {
@@ -124,6 +126,7 @@ function AdminSidebar({ onClose }: { onClose?: () => void }) {
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 export function AdminLayout({ children, title }: { children: React.ReactNode; title?: string }) {
+  usePageTitle(title ? `Admin · ${title}` : "Admin");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const { data: authData, isLoading } = useQuery<{ isAuthenticated: boolean }>({

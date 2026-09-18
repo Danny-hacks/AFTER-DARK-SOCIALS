@@ -10,6 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { usePageTitle } from "@/hooks/use-page-title";
 import {
   Ticket, LogIn, LogOut, Plus, Users, CheckCircle, Eye, QrCode,
   Search, Trash, Calendar, Video, Upload, Music, MapPin, Clock,
@@ -125,6 +126,7 @@ function StatusBadge({ status }: { status: string }) {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function AdminPanel() {
+  usePageTitle("Admin · Dashboard");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);

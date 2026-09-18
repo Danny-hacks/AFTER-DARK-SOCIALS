@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Check, X, Clock, ChevronDown, ChevronUp, Download, MessageSquare, Plus, Trash2 } from "lucide-react";
+import { Loader2, Check, X, Clock, ChevronDown, ChevronUp, Download, MessageSquare, Plus, Trash2, Pencil, Save } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
-import { PassportCard } from "@/components/passport-card";
+import { PassportCard, type PassFields } from "@/components/passport-card";
 import { generatePassPDF } from "@/lib/generatePassCanvas";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import type { AccessTableInventory } from "@shared/schema";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Guest {
@@ -36,21 +37,6 @@ interface ReservationsResponse {
   reservations: Reservation[];
   counts: Record<string, TableCounts>;
 }
-
-// ─── Config ───────────────────────────────────────────────────────────────────
-const TABLE_CONFIG: Record<string, { label: string; price: number; capacity: number }> = {
-  single_entry: { label: "Single Entry",          price: 1500, capacity: 99 },
-  table_4:      { label: "Table for 4",           price: 4000, capacity: 5  },
-  table_5:      { label: "Table for 5",           price: 5000, capacity: 5  },
-  section_8_12: { label: "Section (8–12 guests)", price: 8000, capacity: 3  },
-};
-
-const TABLE_MAX_NUM: Record<string, number> = {
-  single_entry: 99,
-  table_4: 5,
-  table_5: 5,
-  section_8_12: 3,
-};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtDate(iso: string) {
@@ -97,6 +83,34 @@ export default function AdminAccessPage() {
     queryKey: ["/api/admin/access/reservations"],
     select: (d) => d,
   });
+
+  const { data: inventory = [] } = useQuery<{ success: boolean; inventory: AccessTableInventory[] }, Error, AccessTableInventory[]>({
+    queryKey: ["/api/admin/access/inventory"],
+    select: (d) => d.inventory ?? [],
+  });
+  const inventoryMap: Record<string, AccessTableInventory> = {};
+  for (const row of inventory) inventoryMap[row.tableType] = row;
+  const TABLE_TYPES = ["single_entry", "table_4", "table_5", "section_8_12"];
+
+  const [editingType, setEditingType] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<{ price: string; capacity: string }>({ price: "", capacity: "" });
+
+  const updateInventoryMutation = useMutation({
+    mutationFn: ({ tableType, price, capacity }: { tableType: string; price: number; capacity: number }) =>
+      apiRequest("PATCH", `/api/admin/access/inventory/${tableType}`, { price, pricePerPerson: price, capacity }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/access/inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/access/capacity"] });
+      toast({ title: "Pricing updated" });
+      setEditingType(null);
+    },
+    onError: () => toast({ title: "Failed to update pricing", variant: "destructive" }),
+  });
+
+  function startEditing(row: AccessTableInventory) {
+    setEditingType(row.tableType);
+    setEditValues({ price: String(row.price), capacity: String(row.capacity) });
+  }
 
   // ── Approve / reject mutations ──
   const approveMutation = useMutation({
@@ -146,7 +160,7 @@ export default function AdminAccessPage() {
 
   const computedTableLabel =
     singleType === "section_8_12" ? `Section ${singleTableNum}` :
-    TABLE_CONFIG[singleType]?.label ?? "";
+    inventoryMap[singleType]?.label ?? "";
 
   const livePassId =
     singleType === "single_entry" ? "ACC-SE???" :
@@ -223,6 +237,10 @@ export default function AdminAccessPage() {
   const pending  = reservations.filter((r) => r.status === "pending_payment");
   const approved = reservations.filter((r) => r.status === "approved");
   const rejected = reservations.filter((r) => r.status === "rejected");
+
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending_payment" | "approved" | "rejected">("all");
+  const visibleReservations =
+    statusFilter === "all" ? [...pending, ...approved, ...rejected] : reservations.filter((r) => r.status === statusFilter);
 
   const isBusy = singleMutation.isPending;
 
@@ -318,15 +336,15 @@ export default function AdminAccessPage() {
                   <div>
                     <label className="block text-[9px] text-[#c9962a]/60 uppercase tracking-[0.3em] mb-2">
                       {singleType === "section_8_12"
-                        ? `Section Number (1–${TABLE_MAX_NUM[singleType]})`
-                        : `Table Number (1–${TABLE_MAX_NUM[singleType]})`}
+                        ? `Section Number (1–${inventoryMap[singleType]?.capacity ?? 1})`
+                        : `Table Number (1–${inventoryMap[singleType]?.capacity ?? 1})`}
                     </label>
                     <input
                       type="number"
                       min={1}
-                      max={TABLE_MAX_NUM[singleType]}
+                      max={inventoryMap[singleType]?.capacity ?? 1}
                       value={singleTableNum}
-                      onChange={(e) => setSingleTableNum(Math.max(1, Math.min(TABLE_MAX_NUM[singleType], parseInt(e.target.value) || 1)))}
+                      onChange={(e) => setSingleTableNum(Math.max(1, Math.min(inventoryMap[singleType]?.capacity ?? 1, parseInt(e.target.value) || 1)))}
                       className="w-full bg-transparent border border-white/15 text-white text-sm px-4 py-3 focus:outline-none focus:border-[#c9962a]/50"
                     />
                     <p className="text-white/20 text-[9px] mt-1.5 uppercase tracking-[0.15em]">
@@ -457,19 +475,60 @@ export default function AdminAccessPage() {
         </div>
       ) : (
         <>
-          {/* ── Table inventory cards ── */}
+          {/* ── Table inventory cards — pricing & capacity, editable ── */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-            {Object.entries(TABLE_CONFIG).map(([key, config]) => {
+            {TABLE_TYPES.map((key) => {
+              const config = inventoryMap[key];
+              if (!config) return null;
               const confirmed    = counts[key]?.confirmed ?? 0;
               const pendingCount = counts[key]?.pending ?? 0;
               const remaining    = config.capacity - confirmed;
               const pct          = config.capacity > 0 ? Math.round((confirmed / config.capacity) * 100) : 0;
+              const isEditing    = editingType === key;
 
               return (
                 <div key={key} className="bg-[#0a0a0a] border border-white/10 p-6">
-                  <p className="text-[#c9962a] text-[9px] uppercase tracking-[0.3em] mb-1">
-                    MUR {config.price.toLocaleString()}
-                  </p>
+                  <div className="flex items-start justify-between mb-1">
+                    {isEditing ? (
+                      <div className="flex items-center gap-1 text-[#c9962a] text-[11px]">
+                        MUR
+                        <input
+                          type="number"
+                          value={editValues.price}
+                          onChange={(e) => setEditValues((v) => ({ ...v, price: e.target.value }))}
+                          className="w-20 bg-transparent border-b border-[#c9962a]/40 px-1 focus:outline-none"
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-[#c9962a] text-[9px] uppercase tracking-[0.3em]">
+                        MUR {config.price.toLocaleString()}
+                      </p>
+                    )}
+                    {isEditing ? (
+                      <button
+                        onClick={() =>
+                          updateInventoryMutation.mutate({
+                            tableType: key,
+                            price: parseInt(editValues.price, 10) || config.price,
+                            capacity: parseInt(editValues.capacity, 10) || config.capacity,
+                          })
+                        }
+                        disabled={updateInventoryMutation.isPending}
+                        className="text-green-400 hover:text-green-300 disabled:opacity-40"
+                        title="Save"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => startEditing(config)}
+                        className="text-white/20 hover:text-white/60"
+                        title="Edit pricing & capacity"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                   <h3
                     className="text-white font-black leading-none mb-4"
                     style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "26px" }}
@@ -491,7 +550,19 @@ export default function AdminAccessPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-yellow-400 text-[9px] uppercase tracking-[0.2em]">{pendingCount} pending</span>
-                      <span className="text-white/20 text-[9px] uppercase tracking-[0.2em]">{config.capacity} total</span>
+                      {isEditing ? (
+                        <div className="flex items-center gap-1 text-white/40 text-[9px]">
+                          capacity
+                          <input
+                            type="number"
+                            value={editValues.capacity}
+                            onChange={(e) => setEditValues((v) => ({ ...v, capacity: e.target.value }))}
+                            className="w-12 bg-transparent border-b border-white/20 px-1 focus:outline-none"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-white/20 text-[9px] uppercase tracking-[0.2em]">{config.capacity} total</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -499,31 +570,41 @@ export default function AdminAccessPage() {
             })}
           </div>
 
-          {/* ── Summary row ── */}
-          <div className="grid grid-cols-3 gap-4 mb-12">
+          {/* ── Summary row — clickable filters ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12">
             {[
-              { label: "Confirmed",       value: approved.length, color: "text-green-400" },
-              { label: "Pending Payment", value: pending.length,  color: "text-yellow-400" },
-              { label: "Rejected",        value: rejected.length, color: "text-[#c72d28]" },
+              { key: "all" as const,             label: "All",             value: reservations.length, color: "text-white" },
+              { key: "approved" as const,        label: "Confirmed",       value: approved.length,     color: "text-green-400" },
+              { key: "pending_payment" as const, label: "Pending Payment", value: pending.length,       color: "text-yellow-400" },
+              { key: "rejected" as const,        label: "Rejected",        value: rejected.length,      color: "text-[#c72d28]" },
             ].map((s) => (
-              <div key={s.label} className="bg-[#0a0a0a] border border-white/10 p-5">
+              <button
+                key={s.key}
+                onClick={() => setStatusFilter(s.key)}
+                className={`text-left bg-[#0a0a0a] border p-5 transition-colors ${
+                  statusFilter === s.key ? "border-[#c9962a]/60" : "border-white/10 hover:border-white/25"
+                }`}
+                data-testid={`access-filter-${s.key}`}
+              >
                 <p className={`font-black leading-none mb-1 ${s.color}`} style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "36px" }}>
                   {s.value}
                 </p>
                 <p className="text-white/25 text-[9px] uppercase tracking-[0.2em]">{s.label}</p>
-              </div>
+              </button>
             ))}
           </div>
 
           {/* ── Reservations list ── */}
           <div className="border-t border-white/10 pt-8">
-            <p className="text-[9px] text-white/25 uppercase tracking-[0.3em] mb-6">All Reservations</p>
+            <p className="text-[9px] text-white/25 uppercase tracking-[0.3em] mb-6">
+              {statusFilter === "all" ? "All Reservations" : `${visibleReservations.length} Reservation${visibleReservations.length !== 1 ? "s" : ""}`}
+            </p>
 
-            {reservations.length === 0 ? (
-              <p className="text-white/20 text-sm">No reservations yet.</p>
+            {visibleReservations.length === 0 ? (
+              <p className="text-white/20 text-sm">No reservations{statusFilter !== "all" ? " in this category" : ""} yet.</p>
             ) : (
               <div className="space-y-3">
-                {[...pending, ...approved, ...rejected].map((r) => {
+                {visibleReservations.map((r) => {
                   const guests     = parseGuests(r.guestsJson);
                   const isPending  = r.status === "pending_payment";
                   const isApproved = r.status === "approved";

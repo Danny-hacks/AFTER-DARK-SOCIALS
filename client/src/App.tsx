@@ -13,13 +13,14 @@ import EventDetailPage from "@/pages/event-detail";
 import GalleryPage from "@/pages/gallery";
 import AccessPage from "@/pages/access";
 import LegalPage from "@/pages/legal";
-import AdminDashboard from "@/pages/admin";
+import AdminDashboardPage from "@/pages/admin-dashboard";
 import AdminEventsPage from "@/pages/admin-events";
 import AdminEventsNewPage from "@/pages/admin-events-new";
 import AdminEventDetailPage from "@/pages/admin-event-detail";
 import AdminOrdersPage from "@/pages/admin-orders";
 import AdminAccessPage from "@/pages/admin-access";
 import AdminGalleryPage from "@/pages/admin-gallery";
+import AdminHeroPage from "@/pages/admin-hero";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -47,7 +48,8 @@ function Router() {
       <Route path="/admin/orders" component={AdminOrdersPage} />
       <Route path="/admin/access" component={AdminAccessPage} />
       <Route path="/admin/gallery" component={AdminGalleryPage} />
-      <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/hero" component={AdminHeroPage} />
+      <Route path="/admin" component={AdminDashboardPage} />
       <Route component={NotFound} />
     </Switch>
   );

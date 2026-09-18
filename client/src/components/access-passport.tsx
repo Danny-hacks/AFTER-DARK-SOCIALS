@@ -271,7 +271,7 @@ export function AccessPassport() {
       {/* ── Section 2: Banner Image ── */}
       <div className="my-12 px-5 sm:px-6 lg:px-12">
         <div className="relative h-[45vh] sm:h-[55vh] overflow-hidden">
-          <img src={`${R2}/Serge_59.jpg`} alt="ACCESS experience" className="absolute inset-0 w-full h-full object-cover" />
+          <img src={`${R2}/Serge_59.jpg`} alt="ACCESS experience" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
           <p className="absolute bottom-8 left-5 sm:left-6 lg:left-12 text-white/30 text-[9px] uppercase tracking-[0.3em]">ACCESS · 2026</p>
         </div>
@@ -286,6 +286,7 @@ export function AccessPassport() {
               src={POSTER_URL}
               alt="ACCESS event poster"
               className="shadow-2xl w-full max-w-[380px] object-cover"
+              loading="lazy"
               onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
             />
           </div>
@@ -627,6 +628,7 @@ export function AccessPassport() {
                   src={photo.src}
                   alt={photo.alt}
                   className={`absolute inset-0 w-full h-full object-cover ${photo.position} grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700`}
+                  loading="lazy"
                 />
               ) : (
                 <div className="absolute inset-0 bg-white/5 flex items-center justify-center">

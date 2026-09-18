@@ -84,6 +84,9 @@ export const events = pgTable("events", {
   time: text("time"),
   venue: text("venue"),
   description: text("description"),
+  subtitle: text("subtitle"),
+  artists: text("artists"), // JSON-encoded string[]
+  volume: text("volume"), // matches gallery_photos.volume, links a past event to its photo set
   videoUrl: text("video_url"),
   imageUrl: text("image_url"),
   isPast: boolean("is_past").notNull().default(false),
@@ -139,3 +142,36 @@ export type InsertHeroSlide = z.infer<typeof insertHeroSlideSchema>;
 export type HeroSlide = typeof heroSlides.$inferSelect;
 export type InsertAccessReservation = z.infer<typeof insertAccessReservationSchema>;
 export type AccessReservation = typeof accessReservations.$inferSelect;
+
+export const galleryPhotos = pgTable("gallery_photos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  url: text("url").notNull(),
+  alt: text("alt").notNull().default(""),
+  volume: text("volume").notNull(),
+  eventId: varchar("event_id"),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertGalleryPhotoSchema = createInsertSchema(galleryPhotos).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertGalleryPhoto = z.infer<typeof insertGalleryPhotoSchema>;
+export type GalleryPhoto = typeof galleryPhotos.$inferSelect;
+
+export const accessTableInventory = pgTable("access_table_inventory", {
+  tableType: varchar("table_type").primaryKey(),
+  label: text("label").notNull(),
+  price: integer("price").notNull(),
+  pricePerPerson: integer("price_per_person").notNull(),
+  capacity: integer("capacity").notNull(),
+  maxGuests: integer("max_guests").notNull(),
+  minGuests: integer("min_guests").notNull(),
+});
+
+export const insertAccessTableInventorySchema = createInsertSchema(accessTableInventory);
+
+export type InsertAccessTableInventory = z.infer<typeof insertAccessTableInventorySchema>;
+export type AccessTableInventory = typeof accessTableInventory.$inferSelect;

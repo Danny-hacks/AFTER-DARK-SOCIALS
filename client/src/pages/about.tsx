@@ -1,5 +1,7 @@
 import { Link } from "wouter";
 import { ArrowUpRight } from "lucide-react";
+import { usePageTitle } from "@/hooks/use-page-title";
+import { Reveal } from "@/components/reveal";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import aftrVol1Image from "@assets/AFTR-1_1757155940525.jpg";
@@ -64,6 +66,7 @@ const values = [
 ];
 
 export default function AboutPage() {
+  usePageTitle("About");
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
@@ -96,7 +99,7 @@ export default function AboutPage() {
 
       {/* ── Story ─────────────────────────────────────────────────────────── */}
       <div className="border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12 py-20 sm:py-28">
+        <Reveal className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12 py-20 sm:py-28">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
             <div className="space-y-5">
               <p className="text-white/60 text-base leading-[1.9]">
@@ -124,23 +127,25 @@ export default function AboutPage() {
               </p>
             </div>
           </div>
-        </div>
+        </Reveal>
       </div>
 
       {/* ── Timeline ──────────────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12 py-20 sm:py-28">
-        <div className="flex items-center gap-4 mb-14">
-          <span className="w-8 h-px bg-[#c72d28]" />
-          <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.35em]">Timeline</span>
-        </div>
-        <h2
-          className="font-black text-white leading-none mb-16"
-          style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(48px, 8vw, 100px)" }}
-        >
-          THE NIGHTS
-          <br />
-          <span style={{ WebkitTextStroke: "2px rgba(255,255,255,0.15)", color: "transparent" }}>SO FAR.</span>
-        </h2>
+        <Reveal>
+          <div className="flex items-center gap-4 mb-14">
+            <span className="w-8 h-px bg-[#c72d28]" />
+            <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.35em]">Timeline</span>
+          </div>
+          <h2
+            className="font-black text-white leading-none mb-16"
+            style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(48px, 8vw, 100px)" }}
+          >
+            THE NIGHTS
+            <br />
+            <span style={{ WebkitTextStroke: "2px rgba(255,255,255,0.15)", color: "transparent" }}>SO FAR.</span>
+          </h2>
+        </Reveal>
 
         {/* Desktop 5-col grid */}
         <div className="hidden lg:block">
@@ -182,6 +187,7 @@ export default function AboutPage() {
                   src={ev.image}
                   alt={ev.imageAlt}
                   className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                  loading="lazy"
                 />
                 <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors duration-500" />
               </div>
@@ -202,6 +208,7 @@ export default function AboutPage() {
                   src={ev.image}
                   alt={ev.imageAlt}
                   className="absolute inset-0 w-full h-full object-cover grayscale"
+                  loading="lazy"
                 />
                 <div className="absolute inset-0 bg-black/40" />
               </div>
@@ -218,10 +225,12 @@ export default function AboutPage() {
       {/* ── Brand Values ──────────────────────────────────────────────────── */}
       <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12 py-20 sm:py-28">
-          <div className="flex items-center gap-4 mb-14">
-            <span className="w-8 h-px bg-[#c72d28]" />
-            <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.35em]">What We Stand For</span>
-          </div>
+          <Reveal>
+            <div className="flex items-center gap-4 mb-14">
+              <span className="w-8 h-px bg-[#c72d28]" />
+              <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.35em]">What We Stand For</span>
+            </div>
+          </Reveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 border border-white/10">
             {values.map((v, i) => (
               <div
@@ -253,7 +262,7 @@ export default function AboutPage() {
 
       {/* ── CTA ───────────────────────────────────────────────────────────── */}
       <div className="border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12 py-20 sm:py-24">
+        <Reveal className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12 py-20 sm:py-24">
           <h2
             className="font-black text-white leading-none mb-10"
             style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(48px, 7vw, 88px)" }}
@@ -280,7 +289,7 @@ export default function AboutPage() {
               <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </Link>
           </div>
-        </div>
+        </Reveal>
       </div>
 
       <Footer />

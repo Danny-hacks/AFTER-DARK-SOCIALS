@@ -7,6 +7,7 @@ import {
   insertEventSchema,
   insertHeroSlideSchema,
   insertTicketPurchaseSchema,
+  insertGalleryPhotoSchema,
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -43,19 +44,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error("Price correction failed (non-blocking):", e);
   }
 
-  // Ensure capacity_settings table exists and has default rows
+  // Seed access table inventory (pricing/capacity) with defaults if empty
   try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS capacity_settings (
-        pass_type TEXT PRIMARY KEY,
-        max_capacity INTEGER NOT NULL
-      );
-      INSERT INTO capacity_settings (pass_type, max_capacity) VALUES
-        ('General Entry', 100), ('Table', 20), ('VIP', 10)
-      ON CONFLICT (pass_type) DO NOTHING;
-    `);
+    const existing = await storage.getAllTableInventory();
+    if (existing.length === 0) {
+      const defaults = [
+        { tableType: "single_entry", label: "Single Entry", price: 500, pricePerPerson: 500, capacity: 99, maxGuests: 1, minGuests: 1 },
+        { tableType: "table_4", label: "Table for 4", price: 2000, pricePerPerson: 500, capacity: 5, maxGuests: 4, minGuests: 1 },
+        { tableType: "table_5", label: "Table for 5", price: 2500, pricePerPerson: 500, capacity: 5, maxGuests: 5, minGuests: 1 },
+        { tableType: "section_8_12", label: "Section (8–12 guests)", price: 4000, pricePerPerson: 500, capacity: 3, maxGuests: 12, minGuests: 8 },
+      ];
+      for (const row of defaults) {
+        await pool.query(
+          `INSERT INTO access_table_inventory (table_type, label, price, price_per_person, capacity, max_guests, min_guests)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT (table_type) DO NOTHING`,
+          [row.tableType, row.label, row.price, row.pricePerPerson, row.capacity, row.maxGuests, row.minGuests],
+        );
+      }
+    }
   } catch (e) {
-    console.error("Capacity settings init failed (non-blocking):", e);
+    console.error("Access table inventory seed failed (non-blocking):", e);
   }
 
   // Configure PostgreSQL session store for persistence
@@ -392,6 +401,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Gallery photo routes (public)
+  app.get("/api/gallery", async (req, res) => {
+    try {
+      const photos = await storage.getAllGalleryPhotos();
+      res.json({ success: true, photos });
+    } catch (error) {
+      console.error("Error fetching gallery photos:", error);
+      res.status(500).json({ error: "Failed to fetch gallery photos" });
+    }
+  });
+
+  // Gallery photo management routes (protected)
+  app.get("/api/admin/gallery", requireAuth, async (req, res) => {
+    try {
+      const photos = await storage.getAllGalleryPhotos();
+      res.json({ success: true, photos });
+    } catch (error) {
+      console.error("Error fetching gallery photos:", error);
+      res.status(500).json({ error: "Failed to fetch gallery photos" });
+    }
+  });
+
+  app.post("/api/admin/gallery", requireAuth, async (req, res) => {
+    try {
+      const photoData = insertGalleryPhotoSchema.parse(req.body);
+      const photo = await storage.createGalleryPhoto(photoData);
+      res.json({ success: true, photo });
+    } catch (error) {
+      console.error("Error creating gallery photo:", error);
+      res.status(500).json({ error: "Failed to create gallery photo" });
+    }
+  });
+
+  app.patch("/api/admin/gallery/:id", requireAuth, async (req, res) => {
+    try {
+      const photo = await storage.updateGalleryPhoto(req.params.id, req.body);
+      if (!photo) {
+        return res.status(404).json({ error: "Gallery photo not found" });
+      }
+      res.json({ success: true, photo });
+    } catch (error) {
+      console.error("Error updating gallery photo:", error);
+      res.status(500).json({ error: "Failed to update gallery photo" });
+    }
+  });
+
+  app.delete("/api/admin/gallery/:id", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteGalleryPhoto(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Gallery photo not found" });
+      }
+      res.json({ success: true, message: "Gallery photo deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting gallery photo:", error);
+      res.status(500).json({ error: "Failed to delete gallery photo" });
+    }
+  });
+
   // Public Ticket Purchase routes
   app.post("/api/tickets/purchase", async (req, res) => {
     try {
@@ -714,22 +782,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ─── Table-based ACCESS routes ────────────────────────────────────────────
-  const TABLE_INVENTORY: Record<string, { label: string; price: number; pricePerPerson: number; capacity: number; maxGuests: number; minGuests: number }> = {
-    single_entry: { label: "Single Entry",          price: 500,  pricePerPerson: 500,  capacity: 99, maxGuests: 1,  minGuests: 1 },
-    table_4:      { label: "Table for 4",           price: 2000, pricePerPerson: 500,  capacity: 5,  maxGuests: 4,  minGuests: 1 },
-    table_5:      { label: "Table for 5",           price: 2500, pricePerPerson: 500,  capacity: 5,  maxGuests: 5,  minGuests: 1 },
-    section_8_12: { label: "Section (8–12 guests)", price: 4000, pricePerPerson: 500,  capacity: 3,  maxGuests: 12, minGuests: 8 },
-  };
-  const VALID_TABLE_TYPES_NEW = new Set(Object.keys(TABLE_INVENTORY));
+  // Pricing/capacity now lives in the access_table_inventory table (admin-editable
+  // via /api/admin/access/inventory) instead of a hardcoded const.
 
   app.get("/api/access/capacity", async (_req, res) => {
     try {
+      const inventory = await storage.getAllTableInventory();
       const counts = await storage.getAccessReservationCounts();
       const result: Record<string, object> = {};
-      for (const [key, config] of Object.entries(TABLE_INVENTORY)) {
-        const confirmed = counts[key]?.confirmed ?? 0;
-        const pending = counts[key]?.pending ?? 0;
-        result[key] = {
+      for (const config of inventory) {
+        const confirmed = counts[config.tableType]?.confirmed ?? 0;
+        const pending = counts[config.tableType]?.pending ?? 0;
+        result[config.tableType] = {
           ...config,
           used: confirmed,
           confirmed,
@@ -746,14 +810,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/access/apply", async (req, res) => {
     const { tableType, guests } = req.body;
-    if (!tableType || !VALID_TABLE_TYPES_NEW.has(tableType)) {
-      return res.status(400).json({ error: "Invalid table type" });
-    }
     if (!Array.isArray(guests) || guests.length === 0) {
       return res.status(400).json({ error: "Guests required" });
     }
-    const config = TABLE_INVENTORY[tableType];
     try {
+      const config = tableType ? await storage.getTableInventory(tableType) : undefined;
+      if (!config) {
+        return res.status(400).json({ error: "Invalid table type" });
+      }
       const counts = await storage.getAccessReservationCounts();
       if ((counts[tableType]?.confirmed ?? 0) >= config.capacity) {
         return res.status(400).json({ error: "This table type is fully booked" });
@@ -831,7 +895,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/access/single", requireAuth, async (req, res) => {
     const { name, phone, tableType, tableNumber, notes } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: "Name required" });
-    if (!tableType || !VALID_TABLE_TYPES_NEW.has(tableType)) {
+    const inventoryConfig = tableType ? await storage.getTableInventory(tableType) : undefined;
+    if (!inventoryConfig) {
       return res.status(400).json({ error: "Invalid table type" });
     }
 
@@ -852,7 +917,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tableLabel = `Section ${tNum}`;
       } else {
         passId = `ACC-${tNum}001`;
-        tableLabel = TABLE_INVENTORY[tableType].label;
+        tableLabel = inventoryConfig.label;
       }
     }
 
@@ -908,6 +973,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error rejecting reservation:", error);
       res.status(500).json({ error: "Failed to reject" });
+    }
+  });
+
+  // ─── ACCESS table pricing/capacity management (protected) ─────────────────
+  app.get("/api/admin/access/inventory", requireAuth, async (_req, res) => {
+    try {
+      const inventory = await storage.getAllTableInventory();
+      res.json({ success: true, inventory });
+    } catch (error) {
+      console.error("Error fetching table inventory:", error);
+      res.status(500).json({ error: "Failed to fetch table inventory" });
+    }
+  });
+
+  app.patch("/api/admin/access/inventory/:tableType", requireAuth, async (req, res) => {
+    try {
+      const { label, price, pricePerPerson, capacity, maxGuests, minGuests } = req.body;
+      const row = await storage.updateTableInventory(req.params.tableType, {
+        label, price, pricePerPerson, capacity, maxGuests, minGuests,
+      });
+      if (!row) return res.status(404).json({ error: "Table type not found" });
+      res.json({ success: true, inventory: row });
+    } catch (error) {
+      console.error("Error updating table inventory:", error);
+      res.status(500).json({ error: "Failed to update table inventory" });
     }
   });
 

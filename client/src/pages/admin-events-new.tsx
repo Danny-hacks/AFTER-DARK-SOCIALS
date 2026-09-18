@@ -3,11 +3,12 @@ import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Image as ImageIcon, Video as VideoIcon } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AdminLayout } from "@/components/admin-layout";
+import { ObjectUploader } from "@/components/ObjectUploader";
 
 const schema = z.object({
   name: z.string().min(1, "Event name is required"),
@@ -15,7 +16,11 @@ const schema = z.object({
   time: z.string().optional(),
   venue: z.string().optional(),
   description: z.string().optional(),
+  subtitle: z.string().optional(),
+  volume: z.string().optional(),
+  artistsInput: z.string().optional(),
   imageUrl: z.string().optional(),
+  videoUrl: z.string().optional(),
   isPast: z.boolean().default(false),
 });
 type FormData = z.infer<typeof schema>;
@@ -24,15 +29,29 @@ export default function AdminEventsNewPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { isPast: false },
   });
 
+  const imageUrl = watch("imageUrl");
+  const videoUrl = watch("videoUrl");
+
   const mutation = useMutation({
-    mutationFn: (data: FormData) => apiRequest("POST", "/api/admin/events", data),
+    mutationFn: (data: FormData) => {
+      const artists = (data.artistsInput ?? "")
+        .split(",")
+        .map((a) => a.trim())
+        .filter(Boolean);
+      const { artistsInput, ...rest } = data;
+      return apiRequest("POST", "/api/admin/events", {
+        ...rest,
+        artists: artists.length > 0 ? JSON.stringify(artists) : null,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events/past"] });
       toast({ title: "Event created" });
       navigate("/admin/events");
     },
@@ -55,6 +74,11 @@ export default function AdminEventsNewPage() {
             <label className={labelCls}>Event Name *</label>
             <input {...register("name")} placeholder="e.g. AFTR Vol. 4" className={inputCls} />
             {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name.message}</p>}
+          </div>
+
+          <div>
+            <label className={labelCls}>Subtitle</label>
+            <input {...register("subtitle")} placeholder="e.g. Full Capacity." className={inputCls} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -80,8 +104,49 @@ export default function AdminEventsNewPage() {
           </div>
 
           <div>
-            <label className={labelCls}>Image URL</label>
-            <input {...register("imageUrl")} placeholder="https://..." className={inputCls} />
+            <label className={labelCls}>Volume Tag</label>
+            <input {...register("volume")} placeholder="e.g. VOL. 4" className={inputCls} />
+            <p className="text-white/20 text-[10px] mt-1.5">
+              Links this event's gallery photos — must match a Volume used in Gallery uploads.
+            </p>
+          </div>
+
+          <div>
+            <label className={labelCls}>Lineup (comma-separated)</label>
+            <input {...register("artistsInput")} placeholder="DJ Sweety, DJ Luvlesh" className={inputCls} />
+          </div>
+
+          <div>
+            <label className={labelCls}>Cover Image</label>
+            <div className="flex items-center gap-4">
+              {imageUrl && <img src={imageUrl} alt="" className="w-16 h-16 object-cover border border-white/10" />}
+              <ObjectUploader
+                maxFileSize={20 * 1024 * 1024}
+                allowedFileTypes={["image/*"]}
+                onComplete={(url) => setValue("imageUrl", url)}
+                buttonClassName="gap-2"
+              >
+                <ImageIcon className="w-4 h-4" />
+                {imageUrl ? "Replace Image" : "Upload Image"}
+              </ObjectUploader>
+            </div>
+          </div>
+
+          <div>
+            <label className={labelCls}>Event Video</label>
+            <div className="flex items-center gap-4">
+              {videoUrl && <span className="text-white/30 text-xs">Video attached</span>}
+              <ObjectUploader
+                maxFileSize={500 * 1024 * 1024}
+                allowedFileTypes={["video/mp4"]}
+                onComplete={(url) => setValue("videoUrl", url)}
+                buttonClassName="gap-2"
+              >
+                <VideoIcon className="w-4 h-4" />
+                {videoUrl ? "Replace Video" : "Upload Video"}
+              </ObjectUploader>
+            </div>
+            <p className="text-white/20 text-[10px] mt-1.5">MP4 only — other formats often won't play in browsers.</p>
           </div>
 
           <div className="flex items-center gap-3">

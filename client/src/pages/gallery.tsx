@@ -1,62 +1,19 @@
-import { useState } from "react";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { usePageTitle } from "@/hooks/use-page-title";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import type { GalleryPhoto } from "@shared/schema";
 
-// Vol 3 — event photos
-import vol3_1 from "@assets/Serge_74_1777968315600.jpg";
-import vol3_2 from "@assets/Serge_75_1777968402515.jpg";
-import vol3_3 from "@assets/Serge_83_1777968402525.jpg";
-import vol3_4 from "@assets/Serge_103_1777968402526.jpg";
-
-// Vol 2 — professional event photos
-import vol2_1 from "@assets/vol2_4T7A9200.jpg";
-import vol2_2 from "@assets/vol2_4T7A9259.jpg";
-import vol2_3 from "@assets/vol2_4T7A9366.jpg";
-import vol2_4 from "@assets/vol2_4T7A9396.jpg";
-import vol2_5 from "@assets/vol2_4T7A9397.jpg";
-import vol2_6 from "@assets/vol2_4T7A9398.jpg";
-import vol2_7 from "@assets/vol2_4T7A9422.jpg";
-import aftrBwImage from "@assets/IMG_6112_1774435245159.jpg";
-
-// Vol 1 — event photos
-import vol1_ss1 from "@assets/vol1_Screenshot_2026-03-25_at_19.43.10.png";
-import vol1_ss2 from "@assets/vol1_Screenshot_2026-03-25_at_19.43.41.png";
-import vol1_ss3 from "@assets/vol1_Screenshot_2026-03-25_at_20.01.14.png";
-import djAlvinImage from "@assets/DJ ALVIN_1757156832389.jpg";
-import djLuvleshImage from "@assets/DJ LUVLESH_1757156832389.jpg";
-import djStevoImage from "@assets/STEVOTHEDJ_1757156832391.jpg";
-import djSwayImage from "@assets/DJ SWAY_1757156832390.jpg";
-import djAfrokeyzImage from "@assets/DJ AFROKEYZ_1757156832386.jpg";
-
-const galleryItems = [
-  // Vol 3 — most recent first
-  { id: 17, src: vol3_1, alt: "AFTR Vol. 3 — The Stage",      vol: "VOL. 3", date: "Apr 2026" },
-  { id: 18, src: vol3_2, alt: "AFTR Vol. 3 — The Crowd",      vol: "VOL. 3", date: "Apr 2026" },
-  { id: 19, src: vol3_3, alt: "AFTR Vol. 3 — The Green",      vol: "VOL. 3", date: "Apr 2026" },
-  { id: 20, src: vol3_4, alt: "AFTR Vol. 3 — The Vibe",       vol: "VOL. 3", date: "Apr 2026" },
-  // Vol 2
-  { id: 1,  src: vol2_1,       alt: "AFTR Vol. 2 — The Crowd",      vol: "VOL. 2", date: "Jan 2026" },
-  { id: 2,  src: vol2_2,       alt: "AFTR Vol. 2 — On Stage",       vol: "VOL. 2", date: "Jan 2026" },
-  { id: 3,  src: vol2_3,       alt: "AFTR Vol. 2 — The Night",      vol: "VOL. 2", date: "Jan 2026" },
-  { id: 4,  src: vol2_4,       alt: "AFTR Vol. 2 — The Energy",     vol: "VOL. 2", date: "Jan 2026" },
-  { id: 5,  src: vol2_5,       alt: "AFTR Vol. 2 — The Dancefloor", vol: "VOL. 2", date: "Jan 2026" },
-  { id: 6,  src: vol2_6,       alt: "AFTR Vol. 2 — The Vibes",      vol: "VOL. 2", date: "Jan 2026" },
-  { id: 7,  src: vol2_7,       alt: "AFTR Vol. 2 — The Moment",     vol: "VOL. 2", date: "Jan 2026" },
-  { id: 8,  src: aftrBwImage,  alt: "AFTR Vol. 2 — Flyer",          vol: "VOL. 2", date: "Jan 2026" },
-  // Vol 1
-  { id: 9,  src: vol1_ss1,     alt: "AFTR Vol. 1 — The Night",      vol: "VOL. 1", date: "Sept 2025" },
-  { id: 10, src: vol1_ss2,     alt: "AFTR Vol. 1 — The Energy",     vol: "VOL. 1", date: "Sept 2025" },
-  { id: 11, src: vol1_ss3,     alt: "AFTR Vol. 1 — The Crowd",      vol: "VOL. 1", date: "Sept 2025" },
-  { id: 12, src: djAlvinImage, alt: "DJ ALVIN — Vol. 1",             vol: "VOL. 1", date: "Sept 2025" },
-  { id: 13, src: djLuvleshImage, alt: "DJ LUVLESH — Vol. 1",        vol: "VOL. 1", date: "Sept 2025" },
-  { id: 14, src: djStevoImage, alt: "STEVOTHEDJ — Vol. 1",           vol: "VOL. 1", date: "Sept 2025" },
-  { id: 15, src: djSwayImage,  alt: "DJ SWAY — Vol. 1",              vol: "VOL. 1", date: "Sept 2025" },
-  { id: 16, src: djAfrokeyzImage, alt: "DJ AFROKEYZ — Vol. 1",      vol: "VOL. 1", date: "Sept 2025" },
-];
+function fmtDate(iso: string | Date | null) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+}
 
 function Lightbox({ items, index, onClose, onPrev, onNext }: {
-  items: typeof galleryItems;
+  items: GalleryPhoto[];
   index: number;
   onClose: () => void;
   onPrev: () => void;
@@ -64,10 +21,14 @@ function Lightbox({ items, index, onClose, onPrev, onNext }: {
 }) {
   const item = items[index];
   return (
-    <div
+    <motion.div
       className="fixed inset-0 z-[100] bg-black/97 flex items-center justify-center"
       onClick={onClose}
       data-testid="lightbox-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
     >
       <button
         className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors z-10"
@@ -89,16 +50,23 @@ function Lightbox({ items, index, onClose, onPrev, onNext }: {
         className="max-w-4xl max-h-[85vh] mx-16 sm:mx-20 w-full"
         onClick={(e) => e.stopPropagation()}
       >
-        <img
-          src={item.src}
-          alt={item.alt}
-          className="w-full h-full object-contain max-h-[78vh]"
-          data-testid="lightbox-image"
-        />
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={item.id}
+            src={item.url}
+            alt={item.alt}
+            className="w-full h-full object-contain max-h-[78vh]"
+            data-testid="lightbox-image"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+          />
+        </AnimatePresence>
         <div className="mt-4 flex items-center gap-3">
-          <span className="text-[#c72d28] text-[9px] uppercase tracking-[0.25em] font-bold">{item.vol}</span>
+          <span className="text-[#c72d28] text-[9px] uppercase tracking-[0.25em] font-bold">{item.volume}</span>
           <span className="text-white/20 text-[10px]">·</span>
-          <span className="text-white/30 text-[10px] uppercase tracking-wider">{item.date}</span>
+          <span className="text-white/30 text-[10px] uppercase tracking-wider">{fmtDate(item.createdAt)}</span>
           <span className="text-white/15 text-[10px] ml-auto">{index + 1} / {items.length}</span>
         </div>
       </div>
@@ -110,28 +78,44 @@ function Lightbox({ items, index, onClose, onPrev, onNext }: {
       >
         <ChevronRight className="w-8 h-8" />
       </button>
-    </div>
+    </motion.div>
   );
 }
 
+const PAGE_SIZE = 12;
+
+function getInitialVolume(): string {
+  if (typeof window === "undefined") return "all";
+  return new URLSearchParams(window.location.search).get("vol") || "all";
+}
+
 export default function GalleryPage() {
+  usePageTitle("Gallery");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'vol1' | 'vol2' | 'vol3'>('all');
+  const [activeFilter, setActiveFilter] = useState<string>(getInitialVolume);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  const filters = [
-    { key: 'all' as const, label: 'All' },
-    { key: 'vol3' as const, label: 'Vol. 3' },
-    { key: 'vol2' as const, label: 'Vol. 2' },
-    { key: 'vol1' as const, label: 'Vol. 1' },
-  ];
+  const { data: photos = [], isLoading } = useQuery<{ success: boolean; photos: GalleryPhoto[] }, Error, GalleryPhoto[]>({
+    queryKey: ["/api/gallery"],
+    select: (data) => data.photos ?? [],
+  });
 
-  const filtered = activeFilter === 'all'
-    ? galleryItems
-    : activeFilter === 'vol3'
-    ? galleryItems.filter(i => i.vol === 'VOL. 3')
-    : activeFilter === 'vol2'
-    ? galleryItems.filter(i => i.vol === 'VOL. 2')
-    : galleryItems.filter(i => i.vol === 'VOL. 1');
+  const volumes = useMemo(
+    () => Array.from(new Set(photos.map((p) => p.volume))).sort().reverse(),
+    [photos],
+  );
+  const filters = [{ key: "all", label: "All" }, ...volumes.map((v) => ({ key: v, label: v }))];
+
+  const filtered = activeFilter === "all" ? photos : photos.filter((p) => p.volume === activeFilter);
+
+  const displayed = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
+
+  const selectFilter = (key: string) => {
+    setActiveFilter(key);
+    setLightboxIndex(null);
+    setVisibleCount(PAGE_SIZE);
+  };
 
   const openLightbox = (idx: number) => setLightboxIndex(idx);
   const closeLightbox = () => setLightboxIndex(null);
@@ -142,7 +126,7 @@ export default function GalleryPage() {
     <div className="min-h-screen bg-black text-white">
       <Navbar />
 
-      <main className="pt-20">
+      <main className="pt-24 sm:pt-32">
         {/* Hero */}
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16 sm:py-20">
           <div className="flex items-center gap-4 mb-8">
@@ -162,54 +146,81 @@ export default function GalleryPage() {
           </p>
 
           {/* Filters */}
-          <div className="flex gap-0 border border-white/10 w-fit" data-testid="gallery-filters">
-            {filters.map((f) => (
-              <button
-                key={f.key}
-                onClick={() => { setActiveFilter(f.key); setLightboxIndex(null); }}
-                className={`px-6 py-2.5 text-[10px] uppercase tracking-[0.2em] font-bold transition-colors border-r border-white/10 last:border-0 ${
-                  activeFilter === f.key
-                    ? 'bg-[#c72d28] text-white'
-                    : 'text-white/40 hover:text-white hover:bg-white/5'
-                }`}
-                data-testid={`gallery-filter-${f.key}`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
+          {volumes.length > 0 && (
+            <div className="flex gap-0 border border-white/10 w-fit flex-wrap" data-testid="gallery-filters">
+              {filters.map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => selectFilter(f.key)}
+                  className={`px-6 py-2.5 text-[10px] uppercase tracking-[0.2em] font-bold transition-colors border-r border-white/10 last:border-0 ${
+                    activeFilter === f.key
+                      ? 'bg-[#c72d28] text-white'
+                      : 'text-white/40 hover:text-white hover:bg-white/5'
+                  }`}
+                  data-testid={`gallery-filter-${f.key}`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Gallery Grid */}
         <div className="max-w-7xl mx-auto px-6 lg:px-12 pb-24">
-          <div
-            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1"
-            data-testid="gallery-grid"
-          >
-            {filtered.map((item, idx) => (
-              <div
-                key={item.id}
-                className="relative group cursor-pointer overflow-hidden bg-[#0a0a0a] aspect-square"
-                onClick={() => openLightbox(idx)}
-                data-testid={`gallery-item-${item.id}`}
-              >
-                <img
-                  src={item.src}
-                  alt={item.alt}
-                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                  <span className="text-[#c72d28] text-[9px] uppercase tracking-[0.25em] font-bold">{item.vol}</span>
-                  <span className="text-white/50 text-[10px] uppercase tracking-wider mt-0.5">{item.date}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-24">
+              <Loader2 className="w-5 h-5 text-white/30 animate-spin" />
+            </div>
+          ) : (
+            <div
+              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1"
+              data-testid="gallery-grid"
+            >
+              {displayed.map((item, idx) => (
+                <motion.div
+                  key={item.id}
+                  className="relative group cursor-pointer overflow-hidden bg-[#0a0a0a] aspect-square"
+                  onClick={() => openLightbox(filtered.indexOf(item))}
+                  data-testid={`gallery-item-${item.id}`}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ duration: 0.4, delay: (idx % 4) * 0.06 }}
+                >
+                  <img
+                    src={item.url}
+                    alt={item.alt}
+                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                    <span className="text-[#c72d28] text-[9px] uppercase tracking-[0.25em] font-bold">{item.volume}</span>
+                    <span className="text-white/50 text-[10px] uppercase tracking-wider mt-0.5">{fmtDate(item.createdAt)}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
 
-          {filtered.length === 0 && (
+          {!isLoading && filtered.length === 0 && (
             <div className="text-center py-24 text-white/20 text-sm uppercase tracking-widest">
               No photos in this category yet.
+            </div>
+          )}
+
+          {hasMore && (
+            <div className="flex flex-col items-center gap-3 mt-12">
+              <button
+                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                className="border border-white/15 text-white/50 hover:text-white hover:border-white/40 text-[10px] uppercase tracking-[0.25em] font-bold px-8 py-3.5 transition-colors w-full sm:w-auto"
+                data-testid="gallery-load-more"
+              >
+                Load More
+              </button>
+              <span className="text-white/20 text-[9px] uppercase tracking-[0.2em]">
+                {displayed.length} of {filtered.length}
+              </span>
             </div>
           )}
         </div>
@@ -218,15 +229,17 @@ export default function GalleryPage() {
       <Footer />
 
       {/* Lightbox */}
-      {lightboxIndex !== null && (
-        <Lightbox
-          items={filtered}
-          index={lightboxIndex}
-          onClose={closeLightbox}
-          onPrev={prevImage}
-          onNext={nextImage}
-        />
-      )}
+      <AnimatePresence>
+        {lightboxIndex !== null && (
+          <Lightbox
+            items={filtered}
+            index={lightboxIndex}
+            onClose={closeLightbox}
+            onPrev={prevImage}
+            onNext={nextImage}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
