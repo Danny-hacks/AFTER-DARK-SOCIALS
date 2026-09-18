@@ -1,24 +1,18 @@
 import type { Event, Ticket } from "@shared/schema";
 
-// Emoji are written as \u{...} escapes (pure ASCII in this source file) rather
-// than literal multi-byte characters — the literal form was getting mangled
-// into replacement characters somewhere in the deploy pipeline.
-const PARTY = "\u{1F389}";
-const TICKET_EMOJI = "\u{1F3AB}";
-const MONEY = "\u{1F4B0}";
-const CALENDAR = "\u{1F4C5}";
-const PIN = "\u{1F4CD}";
-const NOTE = "\u{1F3B5}";
-const FIRE = "\u{1F525}";
+// Plain text only, deliberately — \u{...} escapes for emoji were tried here
+// before and still came through as a replacement character in the actual
+// delivered WhatsApp message, so whatever mangles them isn't source encoding.
+// Not worth re-investigating for decorative characters; just don't use them.
 
 /** Delivery message sent to a customer once their ticket is ready — always built from the ticket's own event, never hardcoded. */
 export function buildTicketWaMessage(ticket: Ticket, event?: Event | null): string {
   return encodeURIComponent(
-    `${PARTY} Your ${event?.name ?? "AFTR"} ticket is ready! ${PARTY}\n\n` +
-      `${TICKET_EMOJI} Reference: ${ticket.referenceCode}\n` +
-      `${MONEY} Price: ${ticket.price}\n` +
-      `${CALENDAR} Date: ${event?.date ?? ""}\n` +
-      `${PIN} Venue: ${event?.venue ?? ""}\n\n` +
-      `See you on the dance floor! ${NOTE}${FIRE}`,
+    `Your ${event?.name ?? "AFTR"} ticket is ready!\n\n` +
+      `Reference: ${ticket.referenceCode}\n` +
+      `Price: ${ticket.price}\n` +
+      `Date: ${event?.date ?? ""}\n` +
+      `Venue: ${event?.venue ?? ""}\n\n` +
+      `See you on the dance floor!`,
   );
 }

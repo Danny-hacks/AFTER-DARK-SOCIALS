@@ -94,14 +94,13 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
     // Notify the admin on WhatsApp immediately with the full order — this is as
     // "automatic" as a browser can make it without a paid WhatsApp Business API:
     // it opens the chat pre-filled, no typing required on the admin's end.
-    const TICKET_EMOJI = "\u{1F3AB}", MONEY = "\u{1F4B0}";
     const adminMessage =
-      `${TICKET_EMOJI} New ticket request — ${event.name}\n\n` +
+      `New ticket request — ${event.name}\n\n` +
       `Name: ${form.customerName}\n` +
       `Phone: ${form.customerPhone}\n` +
       (form.customerEmail ? `Email: ${form.customerEmail}\n` : "") +
       `Ticket: ${form.ticketType} x${quantity}\n` +
-      (total !== null ? `${MONEY} Total: Rs ${total.toLocaleString()}\n` : "") +
+      (total !== null ? `Total: Rs ${total.toLocaleString()}\n` : "") +
       `Payment method: ${form.paymentMethod}`;
     window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(adminMessage)}`, "_blank");
 
