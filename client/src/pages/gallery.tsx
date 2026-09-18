@@ -126,7 +126,7 @@ export default function GalleryPage() {
     <div className="min-h-screen bg-black text-white">
       <Navbar />
 
-      <main className="pt-24 sm:pt-32">
+      <main className="pt-28 sm:pt-36">
         {/* Hero */}
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16 sm:py-20">
           <div className="flex items-center gap-4 mb-8">

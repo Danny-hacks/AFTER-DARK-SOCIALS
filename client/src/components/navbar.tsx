@@ -38,13 +38,13 @@ export default function Navbar() {
       data-testid="navbar"
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
-        <div className="flex items-center justify-between h-20 sm:h-28">
+        <div className="flex items-center justify-between h-24 sm:h-32">
           {/* Logo */}
           <Link href="/" className="flex items-center" data-testid="nav-logo">
             <img
               src={logoImage}
               alt="After Dark Socials"
-              className="h-16 sm:h-24 w-auto"
+              className="h-20 sm:h-28 w-auto"
             />
           </Link>
 
@@ -65,13 +65,6 @@ export default function Navbar() {
                 )}
               </Link>
             ))}
-            <Link
-              href="/events"
-              className="px-5 py-2 bg-[#c72d28] text-white text-xs uppercase tracking-[0.15em] font-bold hover:bg-[#a82421] transition-colors"
-              data-testid="nav-tickets-link"
-            >
-              Get Tickets
-            </Link>
             <a
               href="https://www.instagram.com/afterdarksocials.mu"
               target="_blank"
@@ -82,6 +75,13 @@ export default function Navbar() {
             >
               <SiInstagram className="w-4 h-4" />
             </a>
+            <Link
+              href="/events"
+              className="px-5 py-2 bg-[#c72d28] text-white text-xs uppercase tracking-[0.15em] font-bold hover:bg-[#a82421] transition-colors"
+              data-testid="nav-tickets-link"
+            >
+              Get Tickets
+            </Link>
             <a
               href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO"
               target="_blank"

@@ -8,7 +8,7 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <div className="pt-24 sm:pt-32">
+      <div className="pt-28 sm:pt-36">
         <ContactSection />
       </div>
       <Footer />
