@@ -10,15 +10,38 @@ import { TicketGenerator } from "@/components/ticket-generator";
 import { buildTicketWaMessage } from "@/lib/ticket-messages";
 import type { Event, Ticket as TicketType, TicketPurchase } from "@shared/schema";
 
+const UPCOMING_SCOPE = "__upcoming__";
+const ALL_SCOPE = "__all__";
+
 export default function AdminOrdersPage() {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "pending" | "verified" | "rejected">("all");
+  const [eventScope, setEventScope] = useState<string>(UPCOMING_SCOPE);
 
   const { data: purchases = [], isLoading } = useQuery<{ success: boolean; purchases: TicketPurchase[] }, Error, TicketPurchase[]>({
     queryKey: ["/api/admin/purchases"],
     select: (data) => data.purchases ?? [],
   });
+
+  const { data: allEvents = [] } = useQuery<{ success: boolean; events: Event[] }, Error, Event[]>({
+    queryKey: ["/api/events"],
+    select: (data) => data.events ?? [],
+  });
+  const upcomingEvents = useMemo(() => allEvents.filter((e) => !e.isPast), [allEvents]);
+  const pastEvents = useMemo(() => allEvents.filter((e) => e.isPast), [allEvents]);
+  const eventNameById = useMemo(() => new Map(allEvents.map((e) => [e.id, e.name])), [allEvents]);
+
+  // Scope orders to a specific event, every upcoming event, or everything —
+  // defaults to upcoming so stats aren't diluted by long-settled past orders.
+  const scopedPurchases = useMemo(() => {
+    if (eventScope === ALL_SCOPE) return purchases;
+    if (eventScope === UPCOMING_SCOPE) {
+      const upcomingIds = new Set(upcomingEvents.map((e) => e.id));
+      return purchases.filter((p) => p.eventId && upcomingIds.has(p.eventId));
+    }
+    return purchases.filter((p) => p.eventId === eventScope);
+  }, [purchases, eventScope, upcomingEvents]);
 
   const { data: tickets = [] } = useQuery<{ success: boolean; tickets: TicketType[] }, Error, TicketType[]>({
     queryKey: ["/api/admin/tickets"],
@@ -68,7 +91,7 @@ export default function AdminOrdersPage() {
     window.open(`https://wa.me/${t.customerPhone.replace(/\D/g, "")}?text=${buildTicketWaMessage(t, event)}`, "_blank");
   }
 
-  const filtered = purchases.filter((p) => {
+  const filtered = scopedPurchases.filter((p) => {
     const matchesFilter = filter === "all" || p.status === filter;
     const s = search.toLowerCase();
     const matchesSearch = !s || p.customerName.toLowerCase().includes(s) || (p.customerPhone || "").includes(s) || (p.customerEmail || "").toLowerCase().includes(s);
@@ -76,10 +99,10 @@ export default function AdminOrdersPage() {
   });
 
   const counts = {
-    all: purchases.length,
-    pending: purchases.filter((p) => p.status === "pending").length,
-    verified: purchases.filter((p) => p.status === "verified").length,
-    rejected: purchases.filter((p) => p.status === "rejected").length,
+    all: scopedPurchases.length,
+    pending: scopedPurchases.filter((p) => p.status === "pending").length,
+    verified: scopedPurchases.filter((p) => p.status === "verified").length,
+    rejected: scopedPurchases.filter((p) => p.status === "rejected").length,
   };
 
   return (
@@ -98,16 +121,40 @@ export default function AdminOrdersPage() {
         ))}
       </div>
 
-      {/* Search */}
-      <div className="relative mb-6">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, phone, email..."
-          className="w-full bg-[#0a0a0a] border border-white/15 text-white placeholder:text-white/20 text-sm pl-10 pr-4 py-3 focus:outline-none focus:border-white/40 transition-colors max-w-md"
-        />
+      {/* Search + event scope */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, phone, email..."
+            className="w-full bg-[#0a0a0a] border border-white/15 text-white placeholder:text-white/20 text-sm pl-10 pr-4 py-3 focus:outline-none focus:border-white/40 transition-colors"
+          />
+        </div>
+        <select
+          value={eventScope}
+          onChange={(e) => setEventScope(e.target.value)}
+          className="bg-[#0a0a0a] border border-white/15 text-white text-sm px-3 py-3 focus:outline-none focus:border-white/40 transition-colors sm:max-w-xs"
+        >
+          <option value={UPCOMING_SCOPE}>Upcoming Events</option>
+          <option value={ALL_SCOPE}>All Events</option>
+          {upcomingEvents.length > 0 && (
+            <optgroup label="Upcoming">
+              {upcomingEvents.map((e) => (
+                <option key={e.id} value={e.id}>{e.name}</option>
+              ))}
+            </optgroup>
+          )}
+          {pastEvents.length > 0 && (
+            <optgroup label="Past">
+              {pastEvents.map((e) => (
+                <option key={e.id} value={e.id}>{e.name}</option>
+              ))}
+            </optgroup>
+          )}
+        </select>
       </div>
 
       {isLoading ? (
@@ -135,6 +182,9 @@ export default function AdminOrdersPage() {
                       }`}>{p.status}</span>
                     </div>
                     <div className="flex flex-wrap gap-4 text-white/30 text-xs">
+                      {p.eventId && eventNameById.get(p.eventId) && (
+                        <span className="text-white/50">{eventNameById.get(p.eventId)}</span>
+                      )}
                       <span>{p.ticketType}</span>
                       <span>{p.paymentMethod}</span>
                       <span>{p.quantity}x ticket{p.quantity !== 1 ? "s" : ""}</span>
