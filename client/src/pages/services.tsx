@@ -7,12 +7,14 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { Reveal } from "@/components/reveal";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-import privateBookingsImage from "@assets/vol2_4T7A9259.jpg";
 import type { AccessEvent } from "@shared/schema";
 
-// Same fallback used on the ACCESS page itself, so this panel always matches
-// whatever's currently live there.
-const DEFAULT_ACCESS_BANNER_URL = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictures/Serge_59.jpg";
+const R2 = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictures";
+// Same banner fallback used on the ACCESS page itself, so this panel always
+// matches whatever's currently live there.
+const DEFAULT_ACCESS_BANNER_URL = `${R2}/Serge_59.jpg`;
+// One of the "Past Editions" gallery photos from the ACCESS page.
+const PRIVATE_BOOKINGS_IMAGE = `${R2}/Serge_53.jpg`;
 
 // ─── Service data ─────────────────────────────────────────────────────────────
 const services = [
@@ -189,7 +191,7 @@ export default function ServicesPage() {
   const accessBannerUrl = accessData?.event?.bannerUrl || DEFAULT_ACCESS_BANNER_URL;
 
   const panelImages: Record<string, string> = {
-    "Private Bookings": privateBookingsImage,
+    "Private Bookings": PRIVATE_BOOKINGS_IMAGE,
     "ACCESS": accessBannerUrl,
   };
 
