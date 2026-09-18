@@ -218,6 +218,12 @@ export function AccessPassport() {
       return;
     }
 
+    // Open the tab synchronously, before the request below — mobile browsers
+    // (Safari especially) revoke "this came from a tap" permission the
+    // moment we await anything, so opening after the fetch gets silently
+    // blocked. Navigating an already-open window afterward isn't blocked.
+    const waWindow = window.open("", "_blank");
+
     setSending(true);
     try {
       await fetch("/api/access/apply", {
@@ -250,7 +256,12 @@ export function AccessPassport() {
       guestLines +
       `\n\nAwaiting payment confirmation.`;
 
-    window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(adminMsg)}`, "_blank");
+    const waUrl = `https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(adminMsg)}`;
+    if (waWindow) {
+      waWindow.location.href = waUrl;
+    } else {
+      window.open(waUrl, "_blank");
+    }
 
     setSending(false);
     toast({

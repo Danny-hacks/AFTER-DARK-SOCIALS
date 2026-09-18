@@ -105,11 +105,20 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+
+    // Open the tab synchronously, right in the click handler — mobile
+    // browsers (Safari especially) revoke "this came from a tap" permission
+    // the moment we `await` anything, so a window.open() after the request
+    // below gets silently blocked. Opening blank now and navigating it once
+    // the request finishes keeps it tied to the original tap.
+    const waWindow = window.open("", "_blank");
+
     const trimmedGuestNames = guestNames.map((n) => n.trim());
     const guestNamesJson = trimmedGuestNames.some(Boolean) ? JSON.stringify(trimmedGuestNames) : null;
     try {
       await mutation.mutateAsync({ ...form, quantity, eventId: event.id, guestNamesJson });
     } catch {
+      waWindow?.close();
       return;
     }
 
@@ -128,7 +137,14 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
       (otherGuests.length > 0 ? `Other guests: ${otherGuests.join(", ")}\n` : "") +
       (total !== null ? `Total: Rs ${total.toLocaleString()}\n` : "") +
       `Payment method: ${form.paymentMethod}`;
-    window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(adminMessage)}`, "_blank");
+    const waUrl = `https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(adminMessage)}`;
+    if (waWindow) {
+      waWindow.location.href = waUrl;
+    } else {
+      // The synchronous open was blocked too (e.g. a strict popup blocker) —
+      // fall back to a normal window.open, which is the best we can do.
+      window.open(waUrl, "_blank");
+    }
 
     setForm({ customerName: "", customerEmail: "", customerPhone: "", ticketType: defaultTicketType, quantity: "1", paymentMethod: "MCB Juice" });
     setGuestNames([]);
