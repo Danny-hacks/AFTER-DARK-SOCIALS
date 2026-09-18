@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Loader2 } from "lucide-react";
 import { SiWhatsapp, SiInstagram } from "react-icons/si";
 import { Link } from "wouter";
@@ -6,6 +7,12 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { Reveal } from "@/components/reveal";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import privateBookingsImage from "@assets/vol2_4T7A9259.jpg";
+import type { AccessEvent } from "@shared/schema";
+
+// Same fallback used on the ACCESS page itself, so this panel always matches
+// whatever's currently live there.
+const DEFAULT_ACCESS_BANNER_URL = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictures/Serge_59.jpg";
 
 // ─── Service data ─────────────────────────────────────────────────────────────
 const services = [
@@ -175,6 +182,17 @@ function EnquiryForm() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ServicesPage() {
   usePageTitle("Services");
+
+  const { data: accessData } = useQuery<{ success: boolean; event: AccessEvent | null }>({
+    queryKey: ["/api/access/current"],
+  });
+  const accessBannerUrl = accessData?.event?.bannerUrl || DEFAULT_ACCESS_BANNER_URL;
+
+  const panelImages: Record<string, string> = {
+    "Private Bookings": privateBookingsImage,
+    "ACCESS": accessBannerUrl,
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
@@ -214,7 +232,9 @@ export default function ServicesPage() {
       </div>
 
       {/* ── Services alternating ──────────────────────────────────────────── */}
-      {services.map((svc) => (
+      {services.map((svc) => {
+        const panelImage = panelImages[svc.title];
+        return (
         <Reveal key={svc.number} className="border-b border-white/10">
           <div className={`max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 ${svc.flip ? "lg:[direction:rtl]" : ""}`}>
             {/* Content */}
@@ -258,8 +278,15 @@ export default function ServicesPage() {
             </div>
 
             {/* Visual panel */}
-            <div className={`relative bg-[#080808] flex flex-col items-center justify-center min-h-[280px] lg:min-h-0 border-t lg:border-t-0 border-white/10 ${svc.flip ? "lg:border-r lg:[direction:ltr]" : "lg:border-l"}`}>
-              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
+            <div className={`relative bg-[#080808] flex flex-col items-center justify-center min-h-[280px] lg:min-h-0 overflow-hidden border-t lg:border-t-0 border-white/10 ${svc.flip ? "lg:border-r lg:[direction:ltr]" : "lg:border-l"}`}>
+              {panelImage ? (
+                <>
+                  <img src={panelImage} alt={svc.title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/20" />
+                </>
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
+              )}
               <div className="relative px-10 sm:px-14 text-center">
                 <p
                   className="font-black text-white leading-tight"
@@ -280,7 +307,8 @@ export default function ServicesPage() {
             </div>
           </div>
         </Reveal>
-      ))}
+        );
+      })}
 
       {/* ── Process ───────────────────────────────────────────────────────── */}
       <div className="border-b border-white/10">
