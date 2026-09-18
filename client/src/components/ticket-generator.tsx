@@ -1,6 +1,10 @@
 import { useRef, useState } from "react";
-import html2canvas from "html2canvas";
-import { toPng } from "html-to-image";
+// html-to-image (not html2canvas) for all exports — html2canvas doesn't
+// support CSS background-clip:text, so the gold gradient wordmark rendered
+// as a solid block in downloaded/shared tickets even though it looked right
+// on screen. html-to-image renders through an SVG foreignObject instead, so
+// it matches the live preview.
+import { toCanvas, toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Share, Mail, MessageCircle } from "lucide-react";
@@ -36,12 +40,9 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
   const downloadTicket = async () => {
     if (ticketRef.current) {
       try {
-        const canvas = await html2canvas(ticketRef.current, {
-          scale: 2,
+        const canvas = await toCanvas(ticketRef.current, {
+          pixelRatio: 2,
           backgroundColor: '#0a0a0a',
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
         });
         
         const imgData = canvas.toDataURL('image/png');
@@ -94,12 +95,9 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
 
     try {
       // Generate ticket PDF
-      const canvas = await html2canvas(ticketRef.current, {
-        scale: 2,
+      const canvas = await toCanvas(ticketRef.current, {
+        pixelRatio: 2,
         backgroundColor: '#0a0a0a',
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
       });
 
       const imgData = canvas.toDataURL('image/png');
@@ -198,12 +196,9 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
     
     try {
       // Generate ticket PDF
-      const canvas = await html2canvas(ticketRef.current, {
-        scale: 2,
+      const canvas = await toCanvas(ticketRef.current, {
+        pixelRatio: 2,
         backgroundColor: '#0a0a0a',
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
       });
       
       const imgData = canvas.toDataURL('image/png');
@@ -377,7 +372,7 @@ IMPORTANT: Please find your ticket PDF attached to this email. This PDF is your 
           field labels — position and type do that job. Punched-hole notches
           are colored to match whatever sits behind the ticket (the dialog's
           bg-[#0a0a0a]) so they read as real cut-outs, not a colored shape —
-          html2canvas/toPng calls above are set to the same color for the
+          the toCanvas/toPng calls above are set to the same color for the
           same reason when exporting. */}
       <div
         ref={ticketRef}
