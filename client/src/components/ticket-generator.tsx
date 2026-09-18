@@ -29,18 +29,16 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
   const eventSubtitle = event?.subtitle ?? "";
   const eventDateVenue = [event?.date, event?.venue].filter(Boolean).join(" · ");
 
-  const isGoldenVIP = ticket.ticketType === 'Golden VIP';
-  const accentColor = isGoldenVIP ? '#C9A84C' : '#c72d28';
-  const cardBg = isGoldenVIP ? '#0f0b00' : '#000000';
-  const borderColor = isGoldenVIP ? '#C9A84C' : '#ffffff';
-  const displayPrice = isGoldenVIP && ticket.price === 'Rs 350' ? 'Rs 700' : ticket.price;
+  // One unified ticket style — data correction for old mispriced Golden VIP
+  // tickets is still needed, but no separate visual treatment for it anymore.
+  const displayPrice = ticket.ticketType === 'Golden VIP' && ticket.price === 'Rs 350' ? 'Rs 700' : ticket.price;
 
   const downloadTicket = async () => {
     if (ticketRef.current) {
       try {
         const canvas = await html2canvas(ticketRef.current, {
           scale: 2,
-          backgroundColor: '#1a1a1a',
+          backgroundColor: '#0a0a0a',
           useCORS: true,
           allowTaint: true,
           logging: false,
@@ -98,7 +96,7 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       // Generate ticket PDF
       const canvas = await html2canvas(ticketRef.current, {
         scale: 2,
-        backgroundColor: '#1a1a1a',
+        backgroundColor: '#0a0a0a',
         useCORS: true,
         allowTaint: true,
         logging: false,
@@ -202,7 +200,7 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       // Generate ticket PDF
       const canvas = await html2canvas(ticketRef.current, {
         scale: 2,
-        backgroundColor: '#1a1a1a',
+        backgroundColor: '#0a0a0a',
         useCORS: true,
         allowTaint: true,
         logging: false,
@@ -332,7 +330,7 @@ IMPORTANT: Please find your ticket PDF attached to this email. This PDF is your 
           quality: 0.95,
           width: 800,
           height: 600,
-          backgroundColor: '#1a1a1a',
+          backgroundColor: '#0a0a0a',
         });
         
         // Convert dataURL to blob
@@ -374,97 +372,103 @@ IMPORTANT: Please find your ticket PDF attached to this email. This PDF is your 
 
   return (
     <div className="space-y-4">
-      {/* Digital Ticket */}
+      {/* Digital Ticket — one flat dark background throughout, gold used only
+          as accent (wordmark, ticket type, reference line). Values only, no
+          field labels — position and type do that job. Punched-hole notches
+          are colored to match whatever sits behind the ticket (the dialog's
+          bg-[#0a0a0a]) so they read as real cut-outs, not a colored shape —
+          html2canvas/toPng calls above are set to the same color for the
+          same reason when exporting. */}
       <div
         ref={ticketRef}
-        className="w-full max-w-2xl mx-auto rounded-2xl p-7 sm:p-8 text-white relative overflow-hidden"
-        style={{ backgroundColor: cardBg, border: `2px solid ${borderColor}` }}
+        className="w-full max-w-3xl mx-auto rounded-lg text-white relative"
+        style={{ backgroundColor: "#0d0d0d", boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}
       >
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-0 left-0 w-full h-full" style={{
-            backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 35px, ${borderColor} 35px, ${borderColor} 36px)`,
-          }}></div>
-        </div>
+        {/* Punched holes along the outer top/bottom edges */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            left: 6, right: 6, height: 26, top: -13,
+            backgroundImage: "radial-gradient(circle, #0a0a0a 8px, transparent 8.5px)",
+            backgroundSize: "26px 26px", backgroundRepeat: "repeat-x", backgroundPosition: "13px center",
+          }}
+        />
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            left: 6, right: 6, height: 26, bottom: -13,
+            backgroundImage: "radial-gradient(circle, #0a0a0a 8px, transparent 8.5px)",
+            backgroundSize: "26px 26px", backgroundRepeat: "repeat-x", backgroundPosition: "13px center",
+          }}
+        />
 
-        {/* Header */}
-        <div className="relative z-10 text-center mb-6 pb-5" style={{ borderBottom: `1px solid ${isGoldenVIP ? 'rgba(201,168,76,0.2)' : 'rgba(255,255,255,0.1)'}` }}>
-          <h1
-            className="text-white leading-none mb-2"
-            style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(28px, 6vw, 42px)", letterSpacing: "0.01em" }}
-          >
-            {eventName}
-          </h1>
-          {eventSubtitle && (
-            <p className="text-xs sm:text-sm font-bold tracking-[0.15em]" style={{ color: isGoldenVIP ? '#C9A84C' : accentColor }}>
-              {eventSubtitle.toUpperCase()}
-            </p>
-          )}
-          {isGoldenVIP && (
-            <p className="text-xs uppercase tracking-[0.3em] mt-1" style={{ color: '#C9A84C' }}>Golden VIP</p>
-          )}
-          {eventDateVenue && <p className="text-[11px] text-gray-400 mt-2 uppercase tracking-[0.15em]">{eventDateVenue}</p>}
-        </div>
-
-        {/* Main Content */}
-        <div className="relative z-10 flex justify-between items-start gap-5">
-          <div className="flex-1 min-w-0">
-            <div className="space-y-3">
-              <div>
-                <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em]">Ticket Holder</p>
-                <p className="text-xl font-bold text-white truncate">{ticket.customerName}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="min-w-0">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em]">Reference</p>
-                  <p className="text-sm font-mono font-bold truncate" style={{ color: accentColor }}>{ticket.referenceCode}</p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em]">Price</p>
-                  <p className="text-sm font-bold text-white">{displayPrice}</p>
-                </div>
-              </div>
-
-              {(event?.venue || event?.time) && (
-                <div className="min-w-0">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-0.5">Details</p>
-                  {event?.venue && <p className="text-xs text-gray-300 truncate">{event.venue}</p>}
-                  {event?.time && <p className="text-xs text-gray-300">{event.time}</p>}
-                </div>
-              )}
+        <div className="flex">
+          {/* Main info */}
+          <div className="relative flex-1 min-w-0 p-6 sm:p-7 flex flex-col justify-center gap-3">
+            <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.35em] m-0">E-Ticket</p>
+            <h1
+              className="leading-none truncate"
+              style={{
+                fontFamily: "'Bebas Neue', Impact, sans-serif",
+                fontSize: "clamp(28px, 5.5vw, 40px)",
+                letterSpacing: "0.015em",
+                lineHeight: 0.92,
+                background: "linear-gradient(180deg, #f5d76e 0%, #c9962a 55%, #8a6a1f 100%)",
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                textShadow: "0 1px 0 rgba(255,255,255,0.15), 0 2px 1px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.5)",
+              }}
+            >
+              {eventName}
+            </h1>
+            {(eventDateVenue || event?.time) && (
+              <p className="text-[11px] font-semibold text-white/65 uppercase tracking-[0.06em] truncate">
+                {[eventDateVenue, event?.time].filter(Boolean).join(" · ")}
+              </p>
+            )}
+            <div className="flex items-baseline justify-between gap-4 pt-3" style={{ borderTop: "1px dashed rgba(255,255,255,0.15)" }}>
+              <span className="text-base sm:text-lg font-bold truncate">{ticket.customerName}</span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.08em] shrink-0" style={{ color: "#f0c869" }}>
+                {ticket.ticketType}
+              </span>
             </div>
+            <p className="font-mono text-[11px] text-white/40 tracking-wide m-0">
+              {ticket.referenceCode} &nbsp;&bull;&nbsp; {displayPrice}
+            </p>
           </div>
 
-          {/* QR Code Section */}
-          <div className="flex flex-col items-center space-y-2 shrink-0">
-            <div className="bg-white p-3 rounded-lg">
+          {/* Straight dashed tear line with punched notches at the seam */}
+          <div
+            className="relative shrink-0"
+            style={{
+              width: 20,
+              backgroundImage: "repeating-linear-gradient(to bottom, #c9962a 0 5px, transparent 5px 10px)",
+              backgroundSize: "2px 10px",
+              backgroundRepeat: "repeat-y",
+              backgroundPosition: "center",
+            }}
+          >
+            <div className="absolute rounded-full" style={{ left: "50%", top: 0, transform: "translate(-50%, -50%)", width: 26, height: 26, background: "#0a0a0a" }} />
+            <div className="absolute rounded-full" style={{ left: "50%", top: "100%", transform: "translate(-50%, -50%)", width: 26, height: 26, background: "#0a0a0a" }} />
+          </div>
+
+          {/* QR stub */}
+          <div className="shrink-0 flex items-center justify-center" style={{ width: 220, padding: 22 }}>
+            <div className="bg-white p-2.5 rounded">
               <img
-                src={qrCodeUrl} 
-                alt="Ticket QR Code" 
-                className="w-24 h-24"
+                src={qrCodeUrl}
+                alt="Ticket QR Code"
+                className="block"
+                style={{ width: 170, height: 170 }}
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzMzMzMzMyIvPjx0ZXh0IHg9IjYwIiB5PSI2MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMiIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkFGVFI8L3RleHQ+PC9zdmc+';
                 }}
               />
             </div>
-            <p className="text-xs text-gray-500 text-center">Scan for Entry</p>
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="relative z-10 mt-8 pt-4" style={{ borderTop: `1px solid ${isGoldenVIP ? '#C9A84C33' : '#374151'}` }}>
-          <div className="flex justify-between items-center text-xs text-gray-500">
-            <p className="font-medium">After Dark Socials</p>
-            <p style={{ color: isGoldenVIP ? '#C9A84C' : undefined }}>{ticket.ticketType} • Valid for entry</p>
-            <p className="font-mono">ID: {ticket.id.slice(-8)}</p>
-          </div>
-        </div>
-
-        {/* Decorative Corner Elements */}
-        <div className="absolute top-4 right-4 w-8 h-8 opacity-30" style={{ borderTop: `2px solid ${borderColor}`, borderRight: `2px solid ${borderColor}` }}></div>
-        <div className="absolute bottom-4 left-4 w-8 h-8 opacity-30" style={{ borderBottom: `2px solid ${borderColor}`, borderLeft: `2px solid ${borderColor}` }}></div>
       </div>
 
       {/* Action Buttons */}
