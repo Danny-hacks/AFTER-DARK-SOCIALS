@@ -108,6 +108,7 @@ export default function AdminEventDetailPage() {
   });
 
   const [viewingTicket, setViewingTicket] = useState<TicketType | null>(null);
+  const [autoShareTicket, setAutoShareTicket] = useState(false);
   const [scannedTicket, setScannedTicket] = useState<TicketType | null>(null);
   const [showCreateTicket, setShowCreateTicket] = useState(false);
   const [manualTicket, setManualTicket] = useState({
@@ -545,7 +546,7 @@ export default function AdminEventDetailPage() {
 
           <p className="text-white/30 text-xs mb-1">{eventTickets.length} ticket{eventTickets.length !== 1 ? "s" : ""} issued</p>
           <p className="text-white/15 text-[10px] mb-6">
-            View → generates the ticket PDF and lets you attach it to WhatsApp/email. Mark Sent just tracks delivery status.
+            View / Share opens the ticket preview to send it the first time. Mark Sent just tracks delivery status — once sent, Resend fires the WhatsApp share again directly.
           </p>
           {eventTickets.length === 0 ? (
             <p className="text-white/20 text-sm">No tickets issued yet.</p>
@@ -567,25 +568,32 @@ export default function AdminEventDetailPage() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button
-                    onClick={() => setViewingTicket(t)}
+                    onClick={() => { setViewingTicket(t); setAutoShareTicket(false); }}
                     className="flex items-center gap-1.5 border border-white/15 text-white/50 hover:border-white/40 hover:text-white text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
                   >
                     <Eye className="w-3 h-3" />
-                    View
+                    View / Share
                   </button>
-                  <button
-                    onClick={() => markTicketSent(t)}
-                    disabled={deliverMutation.isPending}
-                    title="Marks this ticket as sent — send the actual PDF first via View → Share Ticket"
-                    className={`flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 transition-colors disabled:opacity-40 ${
-                      t.isDelivered
-                        ? "border border-[#25D366]/40 text-[#25D366] hover:border-[#25D366]"
-                        : "bg-[#25D366] text-black hover:bg-[#1ebe5b]"
-                    }`}
-                  >
-                    <SiWhatsapp className="w-3 h-3" />
-                    {t.isDelivered ? "Sent" : "Mark Sent"}
-                  </button>
+                  {t.isDelivered ? (
+                    <button
+                      onClick={() => { setViewingTicket(t); setAutoShareTicket(true); }}
+                      title="Sends the ticket again via WhatsApp, same as Share Ticket inside the preview"
+                      className="flex items-center gap-1.5 border border-[#25D366]/40 text-[#25D366] hover:border-[#25D366] text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 transition-colors"
+                    >
+                      <SiWhatsapp className="w-3 h-3" />
+                      Resend
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => markTicketSent(t)}
+                      disabled={deliverMutation.isPending}
+                      title="Marks this ticket as sent — send the actual PDF first via View / Share"
+                      className="flex items-center gap-1.5 bg-[#25D366] text-black text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 hover:bg-[#1ebe5b] disabled:opacity-40 transition-colors"
+                    >
+                      <SiWhatsapp className="w-3 h-3" />
+                      Mark Sent
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -594,12 +602,12 @@ export default function AdminEventDetailPage() {
       )}
 
       {/* ── Ticket view dialog ── */}
-      <Dialog open={!!viewingTicket} onOpenChange={(open) => !open && setViewingTicket(null)}>
+      <Dialog open={!!viewingTicket} onOpenChange={(open) => { if (!open) { setViewingTicket(null); setAutoShareTicket(false); } }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#0a0a0a] border-white/15 rounded-none">
           <DialogHeader>
             <DialogTitle className="text-white">Ticket — {viewingTicket?.referenceCode}</DialogTitle>
           </DialogHeader>
-          {viewingTicket && <TicketGenerator ticket={viewingTicket} />}
+          {viewingTicket && <TicketGenerator ticket={viewingTicket} autoShare={autoShareTicket} />}
         </DialogContent>
       </Dialog>
 

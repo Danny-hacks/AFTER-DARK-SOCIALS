@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 // html-to-image (not html2canvas) for all exports — html2canvas doesn't
 // support CSS background-clip:text, so the gold gradient wordmark rendered
 // as a solid block in downloaded/shared tickets even though it looked right
@@ -16,15 +16,20 @@ import type { Event, Ticket } from "@shared/schema";
 
 interface TicketGeneratorProps {
   ticket: Ticket;
+  /** Immediately trigger the WhatsApp share flow on mount — used by the
+   * Resend button so it behaves exactly like clicking Share Ticket ->
+   * WhatsApp inside this preview, without an extra click once it's open. */
+  autoShare?: boolean;
 }
 
-export function TicketGenerator({ ticket }: TicketGeneratorProps) {
+export function TicketGenerator({ ticket, autoShare }: TicketGeneratorProps) {
   const ticketRef = useRef<HTMLDivElement>(null);
+  const autoSharedRef = useRef(false);
   const { toast } = useToast();
 
   // The ticket only stores an eventId — always pull the event's own name/date/venue
   // rather than hardcoding a specific event's details here.
-  const { data: eventData } = useQuery<{ success: boolean; event: Event }>({
+  const { data: eventData, isLoading: eventLoading } = useQuery<{ success: boolean; event: Event }>({
     queryKey: ["/api/events", ticket.eventId],
     enabled: !!ticket.eventId,
   });
@@ -190,6 +195,17 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       });
     }
   };
+
+  useEffect(() => {
+    // Wait for the event query to settle first — firing immediately on
+    // mount could capture the "AFTR" placeholder instead of the real event
+    // name/date/venue if this resolves before that fetch does.
+    if (autoShare && !eventLoading && !autoSharedRef.current) {
+      autoSharedRef.current = true;
+      shareViaWhatsApp();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoShare, eventLoading]);
 
   const shareViaEmail = async () => {
     if (!ticketRef.current) return;
