@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   LayoutDashboard, Calendar, ShoppingBag, Crown, Image, LogOut,
-  Menu, X, Loader2, Film,
+  Menu, X, Loader2, Film, QrCode,
 } from "lucide-react";
 import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
@@ -73,6 +73,7 @@ const sideLinks = [
   { label: "Dashboard",  href: "/admin",          icon: LayoutDashboard },
   { label: "Events",     href: "/admin/events",    icon: Calendar },
   { label: "Orders",     href: "/admin/orders",    icon: ShoppingBag },
+  { label: "QR Scanner", href: "/admin/scan",      icon: QrCode },
   { label: "ACCESS",     href: "/admin/access",    icon: Crown },
   { label: "ACCESS Events", href: "/admin/access/events", icon: Calendar },
   { label: "Gallery",    href: "/admin/gallery",   icon: Image },

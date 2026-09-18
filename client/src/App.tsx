@@ -18,6 +18,7 @@ import AdminEventsPage from "@/pages/admin-events";
 import AdminEventsNewPage from "@/pages/admin-events-new";
 import AdminEventDetailPage from "@/pages/admin-event-detail";
 import AdminOrdersPage from "@/pages/admin-orders";
+import AdminScanPage from "@/pages/admin-scan";
 import AdminAccessPage from "@/pages/admin-access";
 import AdminAccessEventsPage from "@/pages/admin-access-events";
 import AdminGalleryPage from "@/pages/admin-gallery";
@@ -47,6 +48,7 @@ function Router() {
       <Route path="/admin/events/:id" component={AdminEventDetailPage} />
       <Route path="/admin/events" component={AdminEventsPage} />
       <Route path="/admin/orders" component={AdminOrdersPage} />
+      <Route path="/admin/scan" component={AdminScanPage} />
       <Route path="/admin/access/events" component={AdminAccessEventsPage} />
       <Route path="/admin/access" component={AdminAccessPage} />
       <Route path="/admin/gallery" component={AdminGalleryPage} />

@@ -12,22 +12,37 @@ interface QRScannerProps {
   onClose: () => void;
 }
 
+const QR_PREFIX = "AFTR-TICKET-";
+
 export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [qrScanner, setQrScanner] = useState<QrScanner | null>(null);
+  const scannerRef = useRef<QrScanner | null>(null);
+  // The scan-detection callback is created once, at mount, when the
+  // QrScanner instance is constructed — reading these through refs (kept
+  // in sync every render below) means it always calls the LATEST
+  // onTicketFound/onClose without needing to tear down and recreate the
+  // camera/scanner every time the parent re-renders and passes a new
+  // inline function, which was happening on every single successful scan
+  // (setScannedTicket in the parent -> new onTicketFound identity -> this
+  // effect re-ran -> old scanner often failed to actually stop, since its
+  // cleanup was reading stale state instead of the instance it just made).
+  const onTicketFoundRef = useRef(onTicketFound);
+  const onCloseRef = useRef(onClose);
+  onTicketFoundRef.current = onTicketFound;
+  onCloseRef.current = onClose;
+
+  const [ready, setReady] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [lastScanResult, setLastScanResult] = useState<string>("");
   const [scanStatus, setScanStatus] = useState<"idle" | "success" | "error">("idle");
   const { toast } = useToast();
 
   useEffect(() => {
-    let mounted = true;
-    
+    let cancelled = false;
     if (!videoRef.current) return;
 
     const initializeScanner = async () => {
       try {
-        // Check if camera is available first
         const hasCamera = await QrScanner.hasCamera();
         if (!hasCamera) {
           toast({
@@ -41,15 +56,12 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
         const scanner = new QrScanner(
           videoRef.current!,
           async (result) => {
-            if (!mounted) return; // Prevent processing if component unmounted
-            
             console.log("QR Code detected:", result.data);
             setLastScanResult(result.data);
-            
-            // Parse the QR code data (format: AFTR-TICKET-{qrCode}). qrCode is
-            // itself a UUID (contains hyphens), so the lookup value is
+
+            // Parse the QR code data (format: AFTR-TICKET-{qrCode}). qrCode
+            // is itself a UUID (contains hyphens), so the lookup value is
             // everything after the fixed prefix — not a naive split("-").
-            const QR_PREFIX = "AFTR-TICKET-";
             if (result.data.startsWith(QR_PREFIX)) {
               // Stop scanning temporarily to prevent multiple scans
               scanner.stop();
@@ -67,27 +79,15 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
 
                   if (response.ok) {
                     const data = await response.json();
-                    setScanStatus("success");
-
-                    // Check if ticket is already used
-                    if (data.ticket.isUsed) {
-                      toast({
-                        title: "Ticket Already Used",
-                        description: `This ticket for ${data.ticket.customerName} has already been scanned`,
-                        variant: "destructive",
-                      });
-                      setScanStatus("error");
-                      onTicketFound(null);
-                    } else {
-                      onTicketFound(data.ticket);
-                      toast({
-                        title: "Valid Ticket Found!",
-                        description: `Welcome ${data.ticket.customerName} - ${data.ticket.ticketType}`,
-                      });
-                    }
+                    // Pass the ticket through either way — an already-used
+                    // ticket is a real, found ticket, not an invalid scan,
+                    // so the caller can show "Already Checked In" rather
+                    // than lumping it in with a not-found/invalid result.
+                    setScanStatus(data.ticket.isUsed ? "error" : "success");
+                    onTicketFoundRef.current(data.ticket);
                   } else {
                     setScanStatus("error");
-                    onTicketFound(null);
+                    onTicketFoundRef.current(null);
                     const errorData = await response.json().catch(() => ({}));
                     toast({
                       title: "Ticket Not Found",
@@ -98,7 +98,7 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
                   }
                 } else {
                   setScanStatus("error");
-                  onTicketFound(null);
+                  onTicketFoundRef.current(null);
                   toast({
                     title: "Invalid QR Code Format",
                     description: "This QR code is not a valid AFTR ticket",
@@ -108,7 +108,7 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
               } catch (error) {
                 console.error("Error processing QR code:", error);
                 setScanStatus("error");
-                onTicketFound(null);
+                onTicketFoundRef.current(null);
                 toast({
                   title: "Scan Error",
                   description: "Failed to process QR code. Please try again.",
@@ -117,20 +117,16 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
               }
             } else {
               setScanStatus("error");
-              onTicketFound(null);
+              onTicketFoundRef.current(null);
               toast({
                 title: "Invalid QR Code",
                 description: "This is not an AFTR ticket QR code",
                 variant: "destructive",
               });
             }
-            
+
             // Reset scan status after a delay
-            setTimeout(() => {
-              if (mounted) {
-                setScanStatus("idle");
-              }
-            }, 3000);
+            setTimeout(() => setScanStatus("idle"), 3000);
           },
           {
             onDecodeError: (error) => {
@@ -145,12 +141,15 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
           }
         );
 
-        if (mounted) {
-          setQrScanner(scanner);
+        if (cancelled) {
+          scanner.destroy();
+          return;
         }
+        scannerRef.current = scanner;
+        setReady(true);
       } catch (error) {
         console.error("Error initializing scanner:", error);
-        if (mounted) {
+        if (!cancelled) {
           toast({
             title: "Scanner Initialization Failed",
             description: "Could not access camera. Please check permissions and try again.",
@@ -163,19 +162,24 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
     initializeScanner();
 
     return () => {
-      mounted = false;
-      if (qrScanner) {
+      cancelled = true;
+      if (scannerRef.current) {
         try {
-          qrScanner.destroy();
+          scannerRef.current.destroy();
         } catch (error) {
           console.error("Error destroying scanner:", error);
         }
+        scannerRef.current = null;
       }
     };
-  }, [onTicketFound, toast]);
+    // Runs once on mount — onTicketFound/onClose are read through refs above
+    // so a new inline function from the parent (e.g. after every scan)
+    // never tears down and recreates the camera.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startScanning = async () => {
-    if (!qrScanner) {
+    if (!scannerRef.current) {
       toast({
         title: "Scanner Not Ready",
         description: "Camera scanner is still initializing. Please wait a moment.",
@@ -185,36 +189,35 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
     }
 
     try {
-      // Clear any previous scan results
       setLastScanResult("");
       setScanStatus("idle");
-      
+
       // Request camera permissions first with better options
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
           facingMode: { ideal: "environment" },
           width: { ideal: 640 },
           height: { ideal: 480 }
-        } 
+        }
       });
-      
+
       // Clean up the permission test stream
       stream.getTracks().forEach(track => track.stop());
-      
-      await qrScanner.start();
+
+      await scannerRef.current.start();
       setScanning(true);
-      
+
       toast({
         title: "Scanner Active",
         description: "Hold the camera steady over a QR code",
       });
-      
+
     } catch (error: any) {
       console.error("Error starting scanner:", error);
-      
+
       let errorMessage = "Unable to access camera. Please check permissions.";
       let title = "Camera Error";
-      
+
       if (error.name === "NotAllowedError") {
         title = "Camera Permission Denied";
         errorMessage = "Please allow camera access in your browser settings and refresh the page.";
@@ -228,7 +231,7 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
         title = "Camera Compatibility Issue";
         errorMessage = "Your camera doesn't support the required settings. Try a different device.";
       }
-      
+
       toast({
         title,
         description: errorMessage,
@@ -238,8 +241,8 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
   };
 
   const stopScanning = () => {
-    if (qrScanner) {
-      qrScanner.stop();
+    if (scannerRef.current) {
+      scannerRef.current.stop();
       setScanning(false);
       setScanStatus("idle");
     }
@@ -247,7 +250,7 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
 
   const handleClose = () => {
     stopScanning();
-    onClose();
+    onCloseRef.current();
   };
 
   return (
@@ -266,7 +269,7 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
           <X className="w-4 h-4" />
         </Button>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* Video Preview */}
         <div className="relative">
@@ -276,14 +279,14 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
             playsInline
             muted
           />
-          
+
           {/* Scan Status Overlay */}
           {scanning && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-48 h-48 border-2 border-primary rounded-lg opacity-50"></div>
             </div>
           )}
-          
+
           {/* Status Indicator */}
           {scanStatus !== "idle" && (
             <div className="absolute top-2 right-2">
@@ -307,11 +310,12 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
           {!scanning ? (
             <Button
               onClick={startScanning}
+              disabled={!ready}
               className="flex-1"
               data-testid="button-start-scanner"
             >
               <Camera className="w-4 h-4 mr-2" />
-              Start Scanning
+              {ready ? "Start Scanning" : "Initializing..."}
             </Button>
           ) : (
             <Button
@@ -338,7 +342,7 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
           <ul className="text-xs space-y-1">
             <li>• Point camera at the QR code on the ticket</li>
             <li>• Hold steady until the code is detected</li>
-            <li>• Valid tickets will show customer information</li>
+            <li>• Valid tickets are checked in automatically</li>
           </ul>
         </div>
       </CardContent>

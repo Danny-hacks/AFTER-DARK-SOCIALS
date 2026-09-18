@@ -110,6 +110,7 @@ export default function AdminEventDetailPage() {
   const [viewingTicket, setViewingTicket] = useState<TicketType | null>(null);
   const [autoShareTicket, setAutoShareTicket] = useState(false);
   const [scannedTicket, setScannedTicket] = useState<TicketType | null>(null);
+  const [scanWasAlreadyUsed, setScanWasAlreadyUsed] = useState(false);
   const [showCreateTicket, setShowCreateTicket] = useState(false);
   const [manualTicket, setManualTicket] = useState({
     referenceCode: "", customerName: "", customerEmail: "", customerPhone: "",
@@ -195,6 +196,10 @@ export default function AdminEventDetailPage() {
   const useMutation2 = useMutation({
     mutationFn: (tid: string) => apiRequest("PATCH", `/api/admin/tickets/${tid}/use`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] }),
+    onError: () => {
+      toast({ title: "Check-in failed — tap Check In to retry", variant: "destructive" });
+      setScannedTicket((prev) => (prev ? { ...prev, isUsed: false } : prev));
+    },
   });
 
   const inputCls = "w-full bg-transparent border border-white/15 text-white placeholder:text-white/25 text-sm px-4 py-3 focus:outline-none focus:border-white/40 transition-colors";
@@ -652,12 +657,21 @@ export default function AdminEventDetailPage() {
         <div className="max-w-lg space-y-6">
           <QRScanner
             onTicketFound={(ticket) => {
-              setScannedTicket(ticket);
-              if (ticket) {
-                toast({ title: `Valid — ${ticket.customerName}`, description: ticket.referenceCode });
-              } else {
+              if (!ticket) {
                 toast({ title: "Invalid ticket", variant: "destructive" });
+                return;
               }
+              if (ticket.isUsed) {
+                setScannedTicket(ticket);
+                setScanWasAlreadyUsed(true);
+                toast({ title: `Already checked in — ${ticket.customerName}`, description: ticket.referenceCode, variant: "destructive" });
+                return;
+              }
+              // Check in immediately on a valid scan — no extra click needed.
+              setScannedTicket({ ...ticket, isUsed: true });
+              setScanWasAlreadyUsed(false);
+              toast({ title: `Checked in — ${ticket.customerName}`, description: ticket.referenceCode });
+              useMutation2.mutate(ticket.id);
             }}
             onClose={() => setTab("checkin")}
           />
@@ -667,8 +681,10 @@ export default function AdminEventDetailPage() {
               <div>
                 <p className="text-white text-sm font-medium">{scannedTicket.customerName}</p>
                 <p className="text-white/30 text-xs font-mono mt-0.5">{scannedTicket.referenceCode}</p>
-                <span className={`inline-block mt-2 text-[9px] uppercase tracking-[0.2em] px-2 py-0.5 border ${scannedTicket.isUsed ? "border-white/10 text-white/20" : "border-green-500/30 text-green-400"}`}>
-                  {scannedTicket.isUsed ? "Already Used" : "Valid"}
+                <span className={`inline-block mt-2 text-[9px] uppercase tracking-[0.2em] px-2 py-0.5 border ${
+                  scanWasAlreadyUsed ? "border-yellow-500/30 text-yellow-400" : scannedTicket.isUsed ? "border-green-500/30 text-green-400" : "border-yellow-500/30 text-yellow-400"
+                }`}>
+                  {scanWasAlreadyUsed ? "Already Checked In" : scannedTicket.isUsed ? "Checked In" : "Pending"}
                 </span>
               </div>
               {!scannedTicket.isUsed && (
