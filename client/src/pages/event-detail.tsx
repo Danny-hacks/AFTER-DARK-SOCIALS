@@ -239,10 +239,10 @@ export default function EventDetailPage() {
 
       {/* Hero */}
       {event.videoUrl ? (
-        <div className="relative h-[55vh] overflow-hidden">
+        <div className="relative h-[32vh] sm:h-[55vh] overflow-hidden">
           <video
             src={event.videoUrl}
-            className="absolute inset-0 w-full h-full object-cover object-top"
+            className="absolute inset-0 w-full h-full object-cover"
             autoPlay
             muted
             loop
@@ -252,11 +252,11 @@ export default function EventDetailPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black" />
         </div>
       ) : event.imageUrl ? (
-        <div className="relative h-[55vh] overflow-hidden">
+        <div className="relative h-[32vh] sm:h-[55vh] overflow-hidden">
           <img
             src={event.imageUrl}
             alt={event.name}
-            className="absolute inset-0 w-full h-full object-cover object-top"
+            className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black" />
         </div>

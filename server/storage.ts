@@ -248,16 +248,20 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(events).where(eq(events.isPast, true));
   }
 
-  async createEvent(insertEvent: InsertEvent): Promise<Event> {
-    let slug = insertEvent.slug?.trim() ? slugify(insertEvent.slug) : slugify(insertEvent.name);
-    if (slug) {
-      let candidate = slug;
-      let suffix = 2;
-      while (await this.getEventBySlug(candidate)) {
-        candidate = `${slug}-${suffix++}`;
-      }
-      slug = candidate;
+  private async generateUniqueSlug(base: string, excludeId?: string): Promise<string> {
+    const base_ = slugify(base);
+    if (!base_) return "";
+    let candidate = base_;
+    let suffix = 2;
+    while (true) {
+      const existing = await this.getEventBySlug(candidate);
+      if (!existing || existing.id === excludeId) return candidate;
+      candidate = `${base_}-${suffix++}`;
     }
+  }
+
+  async createEvent(insertEvent: InsertEvent): Promise<Event> {
+    const slug = await this.generateUniqueSlug(insertEvent.slug?.trim() || insertEvent.name);
     const [event] = await db
       .insert(events)
       .values({ ...insertEvent, slug: slug || null })
@@ -266,9 +270,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateEvent(id: string, eventData: Partial<InsertEvent>): Promise<Event | undefined> {
+    const data: Partial<InsertEvent> = { ...eventData };
+    if (data.slug?.trim()) {
+      data.slug = await this.generateUniqueSlug(data.slug, id);
+    } else {
+      delete data.slug;
+      const current = await this.getEvent(id);
+      if (current && !current.slug) {
+        const generated = await this.generateUniqueSlug(data.name || current.name, id);
+        if (generated) data.slug = generated;
+      }
+    }
     const [event] = await db
       .update(events)
-      .set(eventData)
+      .set(data)
       .where(eq(events.id, id))
       .returning();
     return event || undefined;

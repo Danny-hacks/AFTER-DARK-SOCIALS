@@ -102,7 +102,7 @@ export default function HeroSection() {
             {slide.type === 'video' ? (
               <video
                 src={slide.url}
-                className={`w-full h-full object-cover ${slide.isAuto ? "object-top" : ""}`}
+                className="w-full h-full object-cover"
                 autoPlay muted loop playsInline
                 data-testid={`hero-video-${index}`}
               />
@@ -110,7 +110,7 @@ export default function HeroSection() {
               <img
                 src={slide.url}
                 alt={slide.title || 'Hero background'}
-                className={`w-full h-full object-cover ${slide.isAuto ? "object-top" : ""}`}
+                className="w-full h-full object-cover"
                 data-testid={`hero-image-${index}`}
               />
             )}

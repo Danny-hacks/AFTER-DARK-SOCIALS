@@ -69,6 +69,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error("Access table inventory seed failed (non-blocking):", e);
   }
 
+  // Backfill slugs for events created before slug generation existed,
+  // so their public URLs stop showing a raw UUID.
+  try {
+    const allEvents = await storage.getAllEvents();
+    for (const ev of allEvents) {
+      if (!ev.slug) {
+        await storage.updateEvent(ev.id, {});
+      }
+    }
+  } catch (e) {
+    console.error("Event slug backfill failed (non-blocking):", e);
+  }
+
   // Configure PostgreSQL session store for persistence
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
