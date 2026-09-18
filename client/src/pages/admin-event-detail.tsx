@@ -546,7 +546,7 @@ export default function AdminEventDetailPage() {
 
           <p className="text-white/30 text-xs mb-1">{eventTickets.length} ticket{eventTickets.length !== 1 ? "s" : ""} issued</p>
           <p className="text-white/15 text-[10px] mb-6">
-            View / Share opens the ticket preview to send it the first time. Mark Sent just tracks delivery status — once sent, Resend fires the WhatsApp share again directly.
+            View/Share Ticket opens the ticket preview to send it the first time. Mark Sent just tracks delivery status — once sent, Resend fires the WhatsApp share again directly.
           </p>
           {eventTickets.length === 0 ? (
             <p className="text-white/20 text-sm">No tickets issued yet.</p>
@@ -572,7 +572,7 @@ export default function AdminEventDetailPage() {
                     className="flex items-center gap-1.5 border border-white/15 text-white/50 hover:border-white/40 hover:text-white text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
                   >
                     <Eye className="w-3 h-3" />
-                    View / Share
+                    View/Share Ticket
                   </button>
                   {t.isDelivered ? (
                     <button
@@ -587,7 +587,7 @@ export default function AdminEventDetailPage() {
                     <button
                       onClick={() => markTicketSent(t)}
                       disabled={deliverMutation.isPending}
-                      title="Marks this ticket as sent — send the actual PDF first via View / Share"
+                      title="Marks this ticket as sent — send the actual PDF first via View/Share Ticket"
                       className="flex items-center gap-1.5 bg-[#25D366] text-black text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 hover:bg-[#1ebe5b] disabled:opacity-40 transition-colors"
                     >
                       <SiWhatsapp className="w-3 h-3" />

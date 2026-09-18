@@ -243,7 +243,7 @@ export default function AdminOrdersPage() {
                             className="flex items-center gap-1.5 border border-white/15 text-white/50 hover:border-white/40 hover:text-white text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
                           >
                             <Eye className="w-3 h-3" />
-                            View / Share
+                            View/Share Ticket
                           </button>
                           {t.isDelivered ? (
                             <button
@@ -258,7 +258,7 @@ export default function AdminOrdersPage() {
                             <button
                               onClick={() => markTicketSent(t)}
                               disabled={deliverMutation.isPending}
-                              title="Marks this ticket as sent — send the actual PDF first via View / Share"
+                              title="Marks this ticket as sent — send the actual PDF first via View/Share Ticket"
                               className="flex items-center gap-1.5 bg-[#25D366] text-black text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 hover:bg-[#1ebe5b] disabled:opacity-40 transition-colors"
                             >
                               <SiWhatsapp className="w-3 h-3" />
