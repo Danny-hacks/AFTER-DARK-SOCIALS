@@ -102,7 +102,7 @@ export default function HeroSection() {
             {slide.type === 'video' ? (
               <video
                 src={slide.url}
-                className="w-full h-full object-cover"
+                className={`w-full h-full object-cover ${slide.isAuto ? "object-top" : ""}`}
                 autoPlay muted loop playsInline
                 data-testid={`hero-video-${index}`}
               />
@@ -110,7 +110,7 @@ export default function HeroSection() {
               <img
                 src={slide.url}
                 alt={slide.title || 'Hero background'}
-                className="w-full h-full object-cover"
+                className={`w-full h-full object-cover ${slide.isAuto ? "object-top" : ""}`}
                 data-testid={`hero-image-${index}`}
               />
             )}
@@ -148,38 +148,46 @@ export default function HeroSection() {
         {/* Red accent line */}
         <div className="w-10 h-0.5 bg-[#c72d28] mb-6" />
 
-        <h1
-          className="font-display text-[min(22vw,180px)] leading-none tracking-tight text-white mb-4"
-          style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
-          data-testid="brand-title"
-        >
-          AFTR
-        </h1>
-
-        <p
-          className="text-sm sm:text-base text-white/50 font-light tracking-[0.3em] uppercase mb-8 max-w-sm"
-          data-testid="brand-tagline"
-        >
-          The Rave That Keeps The City Awake
-        </p>
-
-        {/* Upcoming event callout — only while its auto-generated slide is active */}
-        {activeSlide?.isAuto && activeSlide.event && (
-          <div className="mb-8 max-w-md" data-testid="hero-upcoming-event">
-            <p className="text-[#c72d28] text-[10px] uppercase tracking-[0.3em] mb-2">Up Next</p>
-            <p className="text-white font-black leading-none mb-1" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(22px, 3vw, 32px)" }}>
+        {activeSlide?.isAuto && activeSlide.event ? (
+          /* Upcoming event — the primary content while its auto-generated slide is active */
+          <div className="mb-8 max-w-lg" data-testid="hero-upcoming-event">
+            <p className="text-[#c72d28] text-[10px] uppercase tracking-[0.3em] mb-3">Up Next</p>
+            <h1
+              className="font-display leading-none tracking-tight text-white mb-4"
+              style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(44px, 9vw, 110px)" }}
+              data-testid="hero-event-title"
+            >
               {activeSlide.event.name}
-            </p>
-            <p className="text-white/40 text-xs mb-4">
+            </h1>
+            <p className="text-sm sm:text-base text-white/50 font-light tracking-[0.2em] uppercase mb-6">
               {[activeSlide.event.date, activeSlide.event.venue].filter(Boolean).join(" · ")}
             </p>
             <Link
               href={`/events/${activeSlide.event.slug ?? activeSlide.event.id}`}
-              className="inline-flex items-center gap-2 bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.2em] font-bold px-6 py-3 hover:bg-[#a82421] transition-colors"
+              className="inline-flex items-center gap-2 bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.2em] font-bold px-6 py-3.5 hover:bg-[#a82421] transition-colors"
             >
               Get Tickets
             </Link>
           </div>
+        ) : (
+          /* Generic brand content — shown when there's no upcoming event, or while
+             browsing a non-event admin slide */
+          <>
+            <h1
+              className="font-display text-[min(22vw,180px)] leading-none tracking-tight text-white mb-4"
+              style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
+              data-testid="brand-title"
+            >
+              AFTR
+            </h1>
+
+            <p
+              className="text-sm sm:text-base text-white/50 font-light tracking-[0.3em] uppercase mb-8 max-w-sm"
+              data-testid="brand-tagline"
+            >
+              The Rave That Keeps The City Awake
+            </p>
+          </>
         )}
 
         <div className="flex items-center gap-6 flex-wrap">

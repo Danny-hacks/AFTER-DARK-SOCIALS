@@ -242,7 +242,7 @@ export default function EventDetailPage() {
         <div className="relative h-[55vh] overflow-hidden">
           <video
             src={event.videoUrl}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover object-top"
             autoPlay
             muted
             loop
@@ -256,7 +256,7 @@ export default function EventDetailPage() {
           <img
             src={event.imageUrl}
             alt={event.name}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover object-top"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black" />
         </div>
@@ -264,7 +264,7 @@ export default function EventDetailPage() {
         <div className="h-32 sm:h-40" />
       )}
 
-      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12 py-16 sm:py-24">
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12 pt-6 sm:pt-8 pb-16 sm:pb-24">
         {/* Back */}
         <Link href="/events" className="inline-flex items-center gap-2 text-white/30 hover:text-white text-[10px] uppercase tracking-[0.2em] transition-colors mb-10 group">
           <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />

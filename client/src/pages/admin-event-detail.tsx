@@ -7,7 +7,7 @@ import { z } from "zod";
 import {
   ArrowLeft, Loader2, CheckCircle, XCircle, QrCode, Users, Ticket,
   ShoppingBag, Edit2, Save, Image as ImageIcon, Video as VideoIcon,
-  DollarSign, Plus, Trash2, Eye, X,
+  DollarSign, Plus, Trash2, Eye, X, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -98,15 +98,51 @@ export default function AdminEventDetailPage() {
   });
 
   const [viewingTicket, setViewingTicket] = useState<TicketType | null>(null);
+  const [scannedTicket, setScannedTicket] = useState<TicketType | null>(null);
+  const [showCreateTicket, setShowCreateTicket] = useState(false);
+  const [manualTicket, setManualTicket] = useState({
+    referenceCode: "", customerName: "", customerEmail: "", customerPhone: "",
+    ticketType: "", paymentMethod: "MCB Juice",
+  });
 
+  const createTicketMutation = useMutation({
+    mutationFn: (data: typeof manualTicket & { eventId: string; price: string; deliveryMethod: string }) =>
+      apiRequest("POST", "/api/admin/tickets", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] });
+      setManualTicket({ referenceCode: "", customerName: "", customerEmail: "", customerPhone: "", ticketType: "", paymentMethod: "MCB Juice" });
+      toast({ title: "Ticket created" });
+    },
+    onError: () => toast({ title: "Failed to create ticket", variant: "destructive" }),
+  });
+
+  function submitManualTicket() {
+    if (!manualTicket.referenceCode.trim() || !manualTicket.customerName.trim() || !manualTicket.ticketType) {
+      toast({ title: "Reference code, name, and ticket type are required", variant: "destructive" });
+      return;
+    }
+    const matchedTier = tiers.find((t) => t.name === manualTicket.ticketType);
+    createTicketMutation.mutate({
+      ...manualTicket,
+      eventId: id!,
+      price: matchedTier ? `Rs ${matchedTier.price}` : "Rs 0",
+      deliveryMethod: "whatsapp",
+    });
+  }
+
+  // Emoji are written as \u{...} escapes (pure ASCII in this source file) rather
+  // than literal multi-byte characters — the literal form was getting mangled
+  // into replacement characters somewhere in the deploy pipeline.
   function buildTicketWaMessage(t: TicketType) {
+    const PARTY = "\u{1F389}", TICKET = "\u{1F3AB}", MONEY = "\u{1F4B0}";
+    const CALENDAR = "\u{1F4C5}", PIN = "\u{1F4CD}", NOTE = "\u{1F3B5}", FIRE = "\u{1F525}";
     return encodeURIComponent(
-      `🎉 Your ${event?.name ?? "AFTR"} ticket is ready! 🎉\n\n` +
-      `🎫 Reference: ${t.referenceCode}\n` +
-      `💰 Price: ${t.price}\n` +
-      `📅 Date: ${event?.date ?? ""}\n` +
-      `📍 Venue: ${event?.venue ?? ""}\n\n` +
-      `See you on the dance floor! 🎵🔥`,
+      `${PARTY} Your ${event?.name ?? "AFTR"} ticket is ready! ${PARTY}\n\n` +
+      `${TICKET} Reference: ${t.referenceCode}\n` +
+      `${MONEY} Price: ${t.price}\n` +
+      `${CALENDAR} Date: ${event?.date ?? ""}\n` +
+      `${PIN} Venue: ${event?.venue ?? ""}\n\n` +
+      `See you on the dance floor! ${NOTE}${FIRE}`,
     );
   }
 
@@ -436,7 +472,89 @@ export default function AdminEventDetailPage() {
       {/* ── Tickets ── */}
       {tab === "tickets" && (
         <div className="space-y-3">
-          <p className="text-white/30 text-xs mb-6">{eventTickets.length} ticket{eventTickets.length !== 1 ? "s" : ""} issued</p>
+          {/* Manual ticket creation — collapsible */}
+          <div className="border border-white/10 mb-6">
+            <button
+              onClick={() => setShowCreateTicket((v) => !v)}
+              className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-white/[0.02] transition-colors"
+            >
+              <span className="flex items-center gap-2 text-white/60 text-[10px] uppercase tracking-[0.2em] font-bold">
+                <Plus className="w-3 h-3" />
+                Create Ticket Manually
+              </span>
+              {showCreateTicket ? <ChevronUp className="w-3.5 h-3.5 text-white/30" /> : <ChevronDown className="w-3.5 h-3.5 text-white/30" />}
+            </button>
+            {showCreateTicket && (
+              <div className="border-t border-white/10 p-5">
+                <p className="text-white/20 text-[10px] mb-5">
+                  For walk-ins, manual sales, or anything outside the normal purchase flow.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <input
+                    value={manualTicket.referenceCode}
+                    onChange={(e) => setManualTicket({ ...manualTicket, referenceCode: e.target.value })}
+                    placeholder="Reference Code *"
+                    className={inputCls}
+                  />
+                  <input
+                    value={manualTicket.customerName}
+                    onChange={(e) => setManualTicket({ ...manualTicket, customerName: e.target.value })}
+                    placeholder="Customer Name *"
+                    className={inputCls}
+                  />
+                  <input
+                    value={manualTicket.customerEmail}
+                    onChange={(e) => setManualTicket({ ...manualTicket, customerEmail: e.target.value })}
+                    placeholder="Email (optional)"
+                    className={inputCls}
+                  />
+                  <input
+                    value={manualTicket.customerPhone}
+                    onChange={(e) => setManualTicket({ ...manualTicket, customerPhone: e.target.value })}
+                    placeholder="WhatsApp / Phone (optional)"
+                    className={inputCls}
+                  />
+                  <select
+                    value={manualTicket.ticketType}
+                    onChange={(e) => setManualTicket({ ...manualTicket, ticketType: e.target.value })}
+                    className={`${inputCls} bg-black cursor-pointer`}
+                  >
+                    <option value="">Select ticket type *</option>
+                    {tiers.map((t) => (
+                      <option key={t.id} value={t.name}>{t.name} — Rs {t.price.toLocaleString()}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={manualTicket.paymentMethod}
+                    onChange={(e) => setManualTicket({ ...manualTicket, paymentMethod: e.target.value })}
+                    className={`${inputCls} bg-black cursor-pointer`}
+                  >
+                    {["MCB Juice", "Juice by Emtel", "MyT Money", "Bank Transfer", "Cash"].map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+                {tiers.length === 0 && (
+                  <p className="text-yellow-400/70 text-[10px] mb-4">
+                    No ticket tiers configured for this event yet — add one under the Pricing tab first.
+                  </p>
+                )}
+                <button
+                  onClick={submitManualTicket}
+                  disabled={createTicketMutation.isPending}
+                  className="flex items-center gap-2 bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.2em] font-bold px-6 py-3 hover:bg-[#a82421] disabled:opacity-50 transition-colors"
+                >
+                  {createTicketMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                  Create Ticket
+                </button>
+              </div>
+            )}
+          </div>
+
+          <p className="text-white/30 text-xs mb-1">{eventTickets.length} ticket{eventTickets.length !== 1 ? "s" : ""} issued</p>
+          <p className="text-white/15 text-[10px] mb-6">
+            View → generates the ticket PDF and lets you attach it to WhatsApp/email. Mark Sent just tracks delivery status.
+          </p>
           {eventTickets.length === 0 ? (
             <p className="text-white/20 text-sm">No tickets issued yet.</p>
           ) : (
@@ -466,10 +584,15 @@ export default function AdminEventDetailPage() {
                   <button
                     onClick={() => sendTicketWhatsApp(t)}
                     disabled={deliverMutation.isPending}
-                    className="flex items-center gap-1.5 bg-[#25D366] text-black text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 hover:bg-[#1ebe5b] disabled:opacity-40 transition-colors"
+                    title="Marks this ticket as sent and opens WhatsApp with a reminder message — the actual PDF is generated from View → Share Ticket"
+                    className={`flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 transition-colors disabled:opacity-40 ${
+                      t.isDelivered
+                        ? "border border-[#25D366]/40 text-[#25D366] hover:border-[#25D366]"
+                        : "bg-[#25D366] text-black hover:bg-[#1ebe5b]"
+                    }`}
                   >
                     <SiWhatsapp className="w-3 h-3" />
-                    {t.isDelivered ? "Resend" : "Send"}
+                    {t.isDelivered ? "Resend" : "Mark Sent"}
                   </button>
                 </div>
               </div>
@@ -524,9 +647,10 @@ export default function AdminEventDetailPage() {
 
       {/* ── QR Scanner ── */}
       {tab === "scan" && (
-        <div className="max-w-lg">
+        <div className="max-w-lg space-y-6">
           <QRScanner
             onTicketFound={(ticket) => {
+              setScannedTicket(ticket);
               if (ticket) {
                 toast({ title: `Valid — ${ticket.customerName}`, description: ticket.referenceCode });
               } else {
@@ -535,6 +659,31 @@ export default function AdminEventDetailPage() {
             }}
             onClose={() => setTab("checkin")}
           />
+
+          {scannedTicket && (
+            <div className="border border-white/10 p-5 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-white text-sm font-medium">{scannedTicket.customerName}</p>
+                <p className="text-white/30 text-xs font-mono mt-0.5">{scannedTicket.referenceCode}</p>
+                <span className={`inline-block mt-2 text-[9px] uppercase tracking-[0.2em] px-2 py-0.5 border ${scannedTicket.isUsed ? "border-white/10 text-white/20" : "border-green-500/30 text-green-400"}`}>
+                  {scannedTicket.isUsed ? "Already Used" : "Valid"}
+                </span>
+              </div>
+              {!scannedTicket.isUsed && (
+                <button
+                  onClick={() => {
+                    useMutation2.mutate(scannedTicket.id);
+                    setScannedTicket({ ...scannedTicket, isUsed: true });
+                  }}
+                  disabled={useMutation2.isPending}
+                  className="flex items-center gap-1.5 bg-green-700 text-white text-[9px] uppercase tracking-[0.15em] font-bold px-4 py-2.5 hover:bg-green-600 disabled:opacity-40 transition-colors shrink-0"
+                >
+                  {useMutation2.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                  Check In
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </AdminLayout>

@@ -38,13 +38,13 @@ export default function Navbar() {
       data-testid="navbar"
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
-        <div className="flex items-center justify-between h-24 sm:h-32">
+        <div className="flex items-center justify-between h-28 sm:h-32">
           {/* Logo */}
           <Link href="/" className="flex items-center" data-testid="nav-logo">
             <img
               src={logoImage}
               alt="After Dark Socials"
-              className="h-20 sm:h-28 w-auto"
+              className="h-24 sm:h-28 w-auto"
             />
           </Link>
 
@@ -97,7 +97,7 @@ export default function Navbar() {
           <div className="md:hidden flex items-center gap-3">
             <Link
               href="/events"
-              className="px-3 py-1.5 bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.15em] font-bold hover:bg-[#a82421] transition-colors"
+              className="px-4 py-2.5 bg-[#c72d28] text-white text-xs uppercase tracking-[0.15em] font-bold hover:bg-[#a82421] transition-colors"
               data-testid="mobile-nav-tickets-link"
             >
               Get Tickets
@@ -107,22 +107,24 @@ export default function Navbar() {
               className="p-2 text-white"
               data-testid="mobile-menu-button"
             >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {isMobileMenuOpen ? <X className="w-8 h-8" /> : <Menu className="w-8 h-8" />}
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Mobile menu */}
-        {isMobileMenuOpen && (
-          <div
-            className="md:hidden bg-black border-t border-white/10 py-6"
-            data-testid="mobile-menu"
-          >
+      {/* Mobile menu — full-screen opaque overlay, independent of the nav's own scroll-based background */}
+      {isMobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-x-0 top-28 bottom-0 bg-black overflow-y-auto"
+          data-testid="mobile-menu"
+        >
+          <div className="px-6 py-6">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`block w-full text-left px-0 py-3 text-xs uppercase tracking-[0.2em] font-medium transition-colors border-b border-white/5 ${
+                className={`block w-full text-left px-0 py-4 text-sm uppercase tracking-[0.2em] font-medium transition-colors border-b border-white/10 ${
                   isActive(link.href) ? "text-white" : "text-white/50"
                 }`}
                 data-testid={`mobile-nav-link-${link.label.toLowerCase()}`}
@@ -134,14 +136,14 @@ export default function Navbar() {
               href="https://chat.whatsapp.com/LSCbHsSjnDt17WyJF0KXtO"
               target="_blank"
               rel="noopener noreferrer"
-              className="block mt-6 px-5 py-3 bg-[#c72d28] text-white text-xs uppercase tracking-[0.15em] font-bold text-center hover:bg-[#a82421] transition-colors"
+              className="block mt-6 px-5 py-4 bg-[#c72d28] text-white text-sm uppercase tracking-[0.15em] font-bold text-center hover:bg-[#a82421] transition-colors"
               data-testid="mobile-nav-join-link"
             >
               Join Us
             </a>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </nav>
   );
 }
