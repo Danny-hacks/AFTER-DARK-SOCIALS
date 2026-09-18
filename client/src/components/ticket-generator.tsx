@@ -2,12 +2,13 @@ import { useRef, useState } from "react";
 import html2canvas from "html2canvas";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
+import { useQuery } from "@tanstack/react-query";
 import { Download, Share, Mail, MessageCircle } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { Ticket } from "@shared/schema";
+import type { Event, Ticket } from "@shared/schema";
 
 interface TicketGeneratorProps {
   ticket: Ticket;
@@ -16,6 +17,17 @@ interface TicketGeneratorProps {
 export function TicketGenerator({ ticket }: TicketGeneratorProps) {
   const ticketRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // The ticket only stores an eventId — always pull the event's own name/date/venue
+  // rather than hardcoding a specific event's details here.
+  const { data: eventData } = useQuery<{ success: boolean; event: Event }>({
+    queryKey: ["/api/events", ticket.eventId],
+    enabled: !!ticket.eventId,
+  });
+  const event = eventData?.event;
+  const eventName = event?.name ?? "AFTR";
+  const eventSubtitle = event?.subtitle ?? "";
+  const eventDateVenue = [event?.date, event?.venue].filter(Boolean).join(" · ");
 
   const isGoldenVIP = ticket.ticketType === 'Golden VIP';
   const accentColor = isGoldenVIP ? '#C9A84C' : '#c72d28';
@@ -81,7 +93,7 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
 
   const shareViaWhatsApp = async () => {
     if (!ticketRef.current) return;
-    
+
     try {
       // Generate ticket PDF
       const canvas = await html2canvas(ticketRef.current, {
@@ -91,70 +103,87 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
         allowTaint: true,
         logging: false,
       });
-      
+
       const imgData = canvas.toDataURL('image/png');
-      
+
       // Use A4 landscape for better compatibility and quality
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
         format: 'a4'
       });
-      
+
       // Calculate dimensions to maintain aspect ratio
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const canvasAspectRatio = canvas.width / canvas.height;
-      
+
       let imgWidth = pdfWidth - 20; // 10mm margin on each side
       let imgHeight = imgWidth / canvasAspectRatio;
-      
+
       // If height exceeds page, adjust width
       if (imgHeight > pdfHeight - 20) {
         imgHeight = pdfHeight - 20;
         imgWidth = imgHeight * canvasAspectRatio;
       }
-      
+
       // Center the image
       const xOffset = (pdfWidth - imgWidth) / 2;
       const yOffset = (pdfHeight - imgHeight) / 2;
-      
+
       pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgWidth, imgHeight);
-      
+
       const pdfBlob = pdf.output('blob');
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      
-      const message = `Your AFTR Vol. 3: Full Capacity Ticket is Ready!\n\n` +
+      const fileName = `AFTR-Ticket-${ticket.referenceCode}.pdf`;
+
+      const message =
+        `Your ${eventName} Ticket is Ready!\n\n` +
         `Customer: ${ticket.customerName}\n` +
         `Reference: ${ticket.referenceCode}\n` +
         `Price: ${displayPrice}\n` +
-        `Date: 18th April 2026\n` +
-        `Venue: Shotz, Flic en Flac\n` +
-        `Doors: 10:00 PM\n\n` +
-        `Your digital ticket PDF will be downloaded automatically.\n\n` +
-        `See you on the dance floor!`;
-      
-      // Always download the PDF first
+        (eventDateVenue ? `${eventDateVenue}\n` : "") +
+        (event?.time ? `Time: ${event.time}\n` : "") +
+        `\nSee you on the dance floor!`;
+
+      // A URL scheme can't attach a file to a WhatsApp message — WhatsApp doesn't
+      // expose that outside its own paid Business API. The Web Share API is the
+      // one browser mechanism that CAN hand a real file to WhatsApp: on a phone,
+      // it opens the native share sheet with the PDF already attached, and
+      // picking WhatsApp there sends it as a document, no manual upload needed.
+      const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+      if (navigator.share && navigator.canShare?.({ files: [pdfFile] })) {
+        await navigator.share({
+          title: `${eventName} Ticket - ${ticket.customerName}`,
+          text: message,
+          files: [pdfFile],
+        });
+        toast({
+          title: "Ready to send",
+          description: "Pick WhatsApp in the share sheet — the ticket PDF is attached.",
+        });
+        return;
+      }
+
+      // Desktop fallback: WhatsApp Web has no way to receive a file from a link,
+      // so download the PDF and open a prefilled chat for a manual attach.
+      const pdfUrl = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
-      link.download = `AFTR-Ticket-${ticket.referenceCode}.pdf`;
+      link.download = fileName;
       link.href = pdfUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      // Clean up the blob URL
       setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
-      
-      // Then open WhatsApp with message
+
       setTimeout(() => {
         const encodedMessage = encodeURIComponent(message);
         const phoneNumber = ticket.customerPhone ? ticket.customerPhone.replace(/[\s\-\+\(\)]/g, '') : '';
         window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
       }, 500);
-      
+
       toast({
-        title: "WhatsApp Ready!",
-        description: "Ticket PDF downloaded! WhatsApp opening with message - just upload the PDF.",
+        title: "PDF downloaded",
+        description: "WhatsApp Web can't auto-attach files — drag the downloaded PDF into the chat that just opened.",
       });
     } catch (error) {
       console.error('Error sharing via WhatsApp:', error);
@@ -211,19 +240,15 @@ export function TicketGenerator({ ticket }: TicketGeneratorProps) {
       const pdfBlob = pdf.output('blob');
       const pdfUrl = URL.createObjectURL(pdfBlob);
       
-      const subject = `Your AFTR Vol. 3 Ticket is Ready - ${ticket.referenceCode}`;
-      const body = `AFTR VOL. 3 — FULL CAPACITY
+      const subject = `Your ${eventName} Ticket is Ready - ${ticket.referenceCode}`;
+      const body = `${eventName.toUpperCase()}${eventSubtitle ? ` — ${eventSubtitle.toUpperCase()}` : ""}
 
 Hello ${ticket.customerName},
 
-Your ticket for AFTR Vol. 3: Full Capacity is ready.
+Your ticket for ${eventName} is ready.
 
 EVENT DETAILS
-Date:   18th April 2026
-Venue:  Shotz, Flic en Flac
-Time:   10:00 PM
-Theme:  FULL CAPACITY
-
+${event?.date ? `Date:   ${event.date}\n` : ""}${event?.venue ? `Venue:  ${event.venue}\n` : ""}${event?.time ? `Time:   ${event.time}\n` : ""}
 YOUR TICKET REFERENCE
 Reference Code: ${ticket.referenceCode}
 Ticket Type:    ${ticket.ticketType}
@@ -316,8 +341,8 @@ IMPORTANT: Please find your ticket PDF attached to this email. This PDF is your 
         
         if (navigator.share && navigator.canShare({ files: [new File([blob], `AFTR-Ticket-${ticket.referenceCode}.png`, { type: 'image/png' })] })) {
           await navigator.share({
-            title: `AFTR Vol. 3 Ticket - ${ticket.customerName}`,
-            text: `Your ticket for AFTR Vol. 3: Full Capacity on 18th April 2026!`,
+            title: `${eventName} Ticket - ${ticket.customerName}`,
+            text: `Your ticket for ${eventName}${event?.date ? ` on ${event.date}` : ""}!`,
             files: [new File([blob], `AFTR-Ticket-${ticket.referenceCode}.png`, { type: 'image/png' })]
           });
         } else {
@@ -361,14 +386,16 @@ IMPORTANT: Please find your ticket PDF attached to this email. This PDF is your 
         
         {/* Header */}
         <div className="relative z-10 text-center mb-6">
-          <h1 className="text-5xl font-black text-white mb-1 tracking-tight">AFTR</h1>
-          <p className="text-xl font-bold tracking-widest" style={{ color: isGoldenVIP ? '#C9A84C' : 'white' }}>
-            VOL. 3 — FULL CAPACITY
-          </p>
+          <h1 className="text-5xl font-black text-white mb-1 tracking-tight">{eventName}</h1>
+          {eventSubtitle && (
+            <p className="text-xl font-bold tracking-widest" style={{ color: isGoldenVIP ? '#C9A84C' : 'white' }}>
+              {eventSubtitle.toUpperCase()}
+            </p>
+          )}
           {isGoldenVIP && (
             <p className="text-xs uppercase tracking-[0.3em] mt-1" style={{ color: '#C9A84C' }}>Golden VIP</p>
           )}
-          <p className="text-sm text-gray-400 mt-2">18th April 2026 • Shotz, Flic en Flac</p>
+          {eventDateVenue && <p className="text-sm text-gray-400 mt-2">{eventDateVenue}</p>}
         </div>
 
         {/* Main Content */}
@@ -391,12 +418,13 @@ IMPORTANT: Please find your ticket PDF attached to this email. This PDF is your 
                 </div>
               </div>
               
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider">Event Details</p>
-                <p className="text-sm text-gray-300">Doors: 10:00 PM</p>
-                <p className="text-sm text-gray-300">Event ends: 4:00 AM</p>
-                <p className="text-sm text-gray-300">Duration: 6 hours non-stop</p>
-              </div>
+              {(event?.venue || event?.time) && (
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider">Event Details</p>
+                  {event?.venue && <p className="text-sm text-gray-300">Venue: {event.venue}</p>}
+                  {event?.time && <p className="text-sm text-gray-300">Time: {event.time}</p>}
+                </div>
+              )}
             </div>
           </div>
 

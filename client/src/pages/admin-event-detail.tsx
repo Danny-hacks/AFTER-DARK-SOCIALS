@@ -17,6 +17,7 @@ import { AdminLayout } from "@/components/admin-layout";
 import { QRScanner } from "@/components/qr-scanner";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { TicketGenerator } from "@/components/ticket-generator";
+import { buildTicketWaMessage } from "@/lib/ticket-messages";
 import type { Event, Ticket as TicketType, TicketPurchase, EventTicketTier } from "@shared/schema";
 
 type Tab = "overview" | "pricing" | "tickets" | "orders" | "checkin" | "scan";
@@ -130,29 +131,13 @@ export default function AdminEventDetailPage() {
     });
   }
 
-  // Emoji are written as \u{...} escapes (pure ASCII in this source file) rather
-  // than literal multi-byte characters — the literal form was getting mangled
-  // into replacement characters somewhere in the deploy pipeline.
-  function buildTicketWaMessage(t: TicketType) {
-    const PARTY = "\u{1F389}", TICKET = "\u{1F3AB}", MONEY = "\u{1F4B0}";
-    const CALENDAR = "\u{1F4C5}", PIN = "\u{1F4CD}", NOTE = "\u{1F3B5}", FIRE = "\u{1F525}";
-    return encodeURIComponent(
-      `${PARTY} Your ${event?.name ?? "AFTR"} ticket is ready! ${PARTY}\n\n` +
-      `${TICKET} Reference: ${t.referenceCode}\n` +
-      `${MONEY} Price: ${t.price}\n` +
-      `${CALENDAR} Date: ${event?.date ?? ""}\n` +
-      `${PIN} Venue: ${event?.venue ?? ""}\n\n` +
-      `See you on the dance floor! ${NOTE}${FIRE}`,
-    );
-  }
-
   function sendTicketWhatsApp(t: TicketType) {
     if (!t.customerPhone) {
       toast({ title: "No phone number on file for this ticket", variant: "destructive" });
       return;
     }
     deliverMutation.mutate(t.id);
-    window.open(`https://wa.me/${t.customerPhone.replace(/\D/g, "")}?text=${buildTicketWaMessage(t)}`, "_blank");
+    window.open(`https://wa.me/${t.customerPhone.replace(/\D/g, "")}?text=${buildTicketWaMessage(t, event)}`, "_blank");
   }
 
   const eventPurchases = purchases.filter((p) => p.eventId === id);

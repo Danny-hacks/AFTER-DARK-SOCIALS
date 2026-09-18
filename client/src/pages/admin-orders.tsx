@@ -1,11 +1,14 @@
-import { useState } from "react";
-import { Link } from "wouter";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { CheckCircle, ExternalLink, Loader2, Search, Ticket } from "lucide-react";
+import { CheckCircle, Eye, ExternalLink, Loader2, Search } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AdminLayout } from "@/components/admin-layout";
-import type { TicketPurchase } from "@shared/schema";
+import { TicketGenerator } from "@/components/ticket-generator";
+import { buildTicketWaMessage } from "@/lib/ticket-messages";
+import type { Event, Ticket as TicketType, TicketPurchase } from "@shared/schema";
 
 export default function AdminOrdersPage() {
   const { toast } = useToast();
@@ -17,14 +20,53 @@ export default function AdminOrdersPage() {
     select: (data) => data.purchases ?? [],
   });
 
+  const { data: tickets = [] } = useQuery<{ success: boolean; tickets: TicketType[] }, Error, TicketType[]>({
+    queryKey: ["/api/admin/tickets"],
+    select: (data) => data.tickets ?? [],
+  });
+
+  const ticketsByPurchase = useMemo(() => {
+    const map = new Map<string, TicketType[]>();
+    for (const t of tickets) {
+      if (!t.purchaseId) continue;
+      map.set(t.purchaseId, [...(map.get(t.purchaseId) ?? []), t]);
+    }
+    return map;
+  }, [tickets]);
+
+  const [viewingTicket, setViewingTicket] = useState<TicketType | null>(null);
+
   const verifyMutation = useMutation({
     mutationFn: (id: string) => apiRequest("POST", `/api/admin/purchases/${id}/verify`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] });
       toast({ title: "Purchase verified — ticket generated" });
     },
     onError: () => toast({ title: "Verification failed", variant: "destructive" }),
   });
+
+  const deliverMutation = useMutation({
+    mutationFn: (ticketId: string) => apiRequest("PATCH", `/api/admin/tickets/${ticketId}/deliver`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] }),
+    onError: () => toast({ title: "Failed to mark delivered", variant: "destructive" }),
+  });
+
+  async function sendTicketWhatsApp(t: TicketType) {
+    if (!t.customerPhone) {
+      toast({ title: "No phone number on file for this ticket", variant: "destructive" });
+      return;
+    }
+    let event: Event | undefined;
+    if (t.eventId) {
+      try {
+        const data = await queryClient.fetchQuery<{ success: boolean; event: Event }>({ queryKey: ["/api/events", t.eventId] });
+        event = data?.event;
+      } catch {}
+    }
+    deliverMutation.mutate(t.id);
+    window.open(`https://wa.me/${t.customerPhone.replace(/\D/g, "")}?text=${buildTicketWaMessage(t, event)}`, "_blank");
+  }
 
   const filtered = purchases.filter((p) => {
     const matchesFilter = filter === "all" || p.status === filter;
@@ -78,65 +120,110 @@ export default function AdminOrdersPage() {
         </div>
       ) : (
         <div className="space-y-px">
-          {filtered.map((p) => (
-            <div key={p.id} className="bg-[#0a0a0a] border border-white/10 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-white/20 transition-colors">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-1">
-                  <p className="text-white text-sm font-medium">{p.customerName}</p>
-                  <span className={`text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 border shrink-0 ${
-                    p.status === "verified" ? "border-green-500/30 text-green-400" :
-                    p.status === "rejected" ? "border-red-500/30 text-red-400" :
-                    "border-yellow-500/30 text-yellow-400"
-                  }`}>{p.status}</span>
+          {filtered.map((p) => {
+            const orderTickets = ticketsByPurchase.get(p.id) ?? [];
+            return (
+              <div key={p.id} className="bg-[#0a0a0a] border border-white/10 p-5 hover:border-white/20 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1">
+                      <p className="text-white text-sm font-medium">{p.customerName}</p>
+                      <span className={`text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 border shrink-0 ${
+                        p.status === "verified" ? "border-green-500/30 text-green-400" :
+                        p.status === "rejected" ? "border-red-500/30 text-red-400" :
+                        "border-yellow-500/30 text-yellow-400"
+                      }`}>{p.status}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-white/30 text-xs">
+                      <span>{p.ticketType}</span>
+                      <span>{p.paymentMethod}</span>
+                      <span>{p.quantity}x ticket{p.quantity !== 1 ? "s" : ""}</span>
+                      {p.customerPhone && <span>{p.customerPhone}</span>}
+                    </div>
+                    {p.createdAt && (
+                      <p className="text-white/20 text-[10px] mt-1">
+                        {new Date(p.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {p.paymentProofUrl && (
+                      <a
+                        href={p.paymentProofUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 border border-white/15 text-white/40 hover:border-white/40 hover:text-white text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Proof
+                      </a>
+                    )}
+                    {p.status === "pending" && (
+                      <button
+                        onClick={() => verifyMutation.mutate(p.id)}
+                        disabled={verifyMutation.isPending}
+                        className="flex items-center gap-1.5 bg-green-700 text-white text-[9px] uppercase tracking-[0.15em] font-bold px-4 py-2 hover:bg-green-600 disabled:opacity-40 transition-colors"
+                      >
+                        <CheckCircle className="w-3 h-3" />
+                        Verify
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-4 text-white/30 text-xs">
-                  <span>{p.ticketType}</span>
-                  <span>{p.paymentMethod}</span>
-                  <span>{p.quantity}x ticket{p.quantity !== 1 ? "s" : ""}</span>
-                  {p.customerPhone && <span>{p.customerPhone}</span>}
-                </div>
-                {p.createdAt && (
-                  <p className="text-white/20 text-[10px] mt-1">
-                    {new Date(p.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                  </p>
+
+                {orderTickets.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
+                    {orderTickets.map((t) => (
+                      <div key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-white/70 text-xs font-mono">{t.referenceCode}</p>
+                          <span className={`text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 border ${t.isUsed ? "border-white/10 text-white/20" : "border-green-500/30 text-green-400"}`}>
+                            {t.isUsed ? "Used" : "Valid"}
+                          </span>
+                          <span className={`text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 border ${t.isDelivered ? "border-[#25D366]/30 text-[#25D366]" : "border-yellow-500/30 text-yellow-400"}`}>
+                            {t.isDelivered ? "Sent" : "Not Sent"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => setViewingTicket(t)}
+                            className="flex items-center gap-1.5 border border-white/15 text-white/50 hover:border-white/40 hover:text-white text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
+                          >
+                            <Eye className="w-3 h-3" />
+                            View
+                          </button>
+                          <button
+                            onClick={() => sendTicketWhatsApp(t)}
+                            disabled={deliverMutation.isPending}
+                            title="Marks this ticket as sent and opens WhatsApp with a reminder message — the actual PDF is generated from View → Share Ticket"
+                            className={`flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 transition-colors disabled:opacity-40 ${
+                              t.isDelivered
+                                ? "border border-[#25D366]/40 text-[#25D366] hover:border-[#25D366]"
+                                : "bg-[#25D366] text-black hover:bg-[#1ebe5b]"
+                            }`}
+                          >
+                            <SiWhatsapp className="w-3 h-3" />
+                            {t.isDelivered ? "Resend" : "Mark Sent"}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {p.paymentProofUrl && (
-                  <a
-                    href={p.paymentProofUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 border border-white/15 text-white/40 hover:border-white/40 hover:text-white text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Proof
-                  </a>
-                )}
-                {p.status === "pending" && (
-                  <button
-                    onClick={() => verifyMutation.mutate(p.id)}
-                    disabled={verifyMutation.isPending}
-                    className="flex items-center gap-1.5 bg-green-700 text-white text-[9px] uppercase tracking-[0.15em] font-bold px-4 py-2 hover:bg-green-600 disabled:opacity-40 transition-colors"
-                  >
-                    <CheckCircle className="w-3 h-3" />
-                    Verify
-                  </button>
-                )}
-                {p.status === "verified" && p.eventId && (
-                  <Link
-                    href={`/admin/events/${p.eventId}`}
-                    className="flex items-center gap-1.5 border border-[#25D366]/40 text-[#25D366] text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 hover:border-[#25D366] transition-colors"
-                  >
-                    <Ticket className="w-3 h-3" />
-                    Send Ticket
-                  </Link>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
+
+      <Dialog open={!!viewingTicket} onOpenChange={(open) => !open && setViewingTicket(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#0a0a0a] border-white/15 rounded-none">
+          <DialogHeader>
+            <DialogTitle className="text-white">Ticket — {viewingTicket?.referenceCode}</DialogTitle>
+          </DialogHeader>
+          {viewingTicket && <TicketGenerator ticket={viewingTicket} />}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

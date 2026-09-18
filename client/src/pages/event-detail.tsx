@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Calendar, MapPin, Clock, ArrowLeft, Loader2 } from "lucide-react";
@@ -78,24 +78,41 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
   const mutation = useMutation({
     mutationFn: (data: Omit<typeof form, "quantity"> & { quantity: number; eventId: string }) =>
       apiRequest("POST", "/api/tickets/purchase", data),
-    onSuccess: () => {
-      toast({ title: "Request submitted!", description: "We'll confirm your ticket via WhatsApp." });
-      setForm({ customerName: "", customerEmail: "", customerPhone: "", ticketType: defaultTicketType, quantity: "1", paymentMethod: "MCB Juice" });
-    },
     onError: () => toast({ title: "Submission failed", variant: "destructive" }),
   });
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    try {
+      await mutation.mutateAsync({ ...form, quantity, eventId: event.id });
+    } catch {
+      return;
+    }
+
+    toast({ title: "Request submitted!", description: "We'll confirm your ticket via WhatsApp." });
+
+    // Notify the admin on WhatsApp immediately with the full order — this is as
+    // "automatic" as a browser can make it without a paid WhatsApp Business API:
+    // it opens the chat pre-filled, no typing required on the admin's end.
+    const TICKET_EMOJI = "\u{1F3AB}", MONEY = "\u{1F4B0}";
+    const adminMessage =
+      `${TICKET_EMOJI} New ticket request — ${event.name}\n\n` +
+      `Name: ${form.customerName}\n` +
+      `Phone: ${form.customerPhone}\n` +
+      (form.customerEmail ? `Email: ${form.customerEmail}\n` : "") +
+      `Ticket: ${form.ticketType} x${quantity}\n` +
+      (total !== null ? `${MONEY} Total: Rs ${total.toLocaleString()}\n` : "") +
+      `Payment method: ${form.paymentMethod}`;
+    window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(adminMessage)}`, "_blank");
+
+    setForm({ customerName: "", customerEmail: "", customerPhone: "", ticketType: defaultTicketType, quantity: "1", paymentMethod: "MCB Juice" });
+  }
 
   const field = "w-full bg-black border-b border-white/15 text-white placeholder:text-white/20 text-sm px-0 py-3 focus:outline-none focus:border-white/50 transition-colors";
   const label = "block text-[9px] text-white/30 uppercase tracking-[0.3em] mb-2";
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        mutation.mutate({ ...form, quantity, eventId: event.id });
-      }}
-      className="space-y-7"
-    >
+    <form onSubmit={onSubmit} className="space-y-7">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-7">
         <div>
           <label className={label}>Full Name *</label>
