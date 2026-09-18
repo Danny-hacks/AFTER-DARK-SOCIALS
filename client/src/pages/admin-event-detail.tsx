@@ -47,6 +47,16 @@ function parseArtists(json: string | null): string[] {
   }
 }
 
+function parseGuestNames(json: string | null): string[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed.filter((n) => typeof n === "string" && n.trim()) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function AdminEventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [tab, setTab] = useState<Tab>("overview");
@@ -430,6 +440,9 @@ export default function AdminEventDetailPage() {
                   <p className="text-white text-sm font-medium">{p.customerName}</p>
                   <p className="text-white/40 text-xs mt-0.5">{p.ticketType} · {p.paymentMethod} · {p.quantity}x</p>
                   <p className="text-white/25 text-xs">{p.customerPhone}</p>
+                  {p.guestNamesJson && (
+                    <p className="text-white/20 text-[10px] mt-0.5">Also for: {parseGuestNames(p.guestNamesJson).join(", ")}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`text-[9px] uppercase tracking-[0.2em] px-2 py-1 border ${

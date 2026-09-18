@@ -70,21 +70,45 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
     customerName: "", customerEmail: "", customerPhone: "",
     ticketType: defaultTicketType, quantity: "1", paymentMethod: "MCB Juice",
   });
+  // Names for tickets 2..N of a multi-ticket order — the purchaser's own
+  // name above already covers ticket 1. Kept sized to quantity - 1.
+  const [guestNames, setGuestNames] = useState<string[]>([]);
 
   const selectedTier = tiers.find((t) => t.name === form.ticketType);
   const quantity = Number(form.quantity) || 1;
   const total = selectedTier ? selectedTier.price * quantity : null;
+  const extraGuestCount = Math.max(0, quantity - 1);
+
+  function setQuantity(value: string) {
+    setForm({ ...form, quantity: value });
+    const count = Math.max(0, (Number(value) || 1) - 1);
+    setGuestNames((prev) => {
+      const next = prev.slice(0, count);
+      while (next.length < count) next.push("");
+      return next;
+    });
+  }
+
+  function setGuestName(index: number, value: string) {
+    setGuestNames((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  }
 
   const mutation = useMutation({
-    mutationFn: (data: Omit<typeof form, "quantity"> & { quantity: number; eventId: string }) =>
+    mutationFn: (data: Omit<typeof form, "quantity"> & { quantity: number; eventId: string; guestNamesJson: string | null }) =>
       apiRequest("POST", "/api/tickets/purchase", data),
     onError: () => toast({ title: "Submission failed", variant: "destructive" }),
   });
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    const trimmedGuestNames = guestNames.map((n) => n.trim());
+    const guestNamesJson = trimmedGuestNames.some(Boolean) ? JSON.stringify(trimmedGuestNames) : null;
     try {
-      await mutation.mutateAsync({ ...form, quantity, eventId: event.id });
+      await mutation.mutateAsync({ ...form, quantity, eventId: event.id, guestNamesJson });
     } catch {
       return;
     }
@@ -94,17 +118,20 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
     // Notify the admin on WhatsApp immediately with the full order — this is as
     // "automatic" as a browser can make it without a paid WhatsApp Business API:
     // it opens the chat pre-filled, no typing required on the admin's end.
+    const otherGuests = trimmedGuestNames.filter(Boolean);
     const adminMessage =
       `New ticket request — ${event.name}\n\n` +
       `Name: ${form.customerName}\n` +
       `Phone: ${form.customerPhone}\n` +
       (form.customerEmail ? `Email: ${form.customerEmail}\n` : "") +
       `Ticket: ${form.ticketType} x${quantity}\n` +
+      (otherGuests.length > 0 ? `Other guests: ${otherGuests.join(", ")}\n` : "") +
       (total !== null ? `Total: Rs ${total.toLocaleString()}\n` : "") +
       `Payment method: ${form.paymentMethod}`;
     window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(adminMessage)}`, "_blank");
 
     setForm({ customerName: "", customerEmail: "", customerPhone: "", ticketType: defaultTicketType, quantity: "1", paymentMethod: "MCB Juice" });
+    setGuestNames([]);
   }
 
   const field = "w-full bg-black border-b border-white/15 text-white placeholder:text-white/20 text-sm px-0 py-3 focus:outline-none focus:border-white/50 transition-colors";
@@ -152,7 +179,7 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
         <div>
           <label className={label}>Quantity</label>
           <input type="number" min="1" max="10" value={form.quantity}
-            onChange={(e) => setForm({ ...form, quantity: e.target.value })} className={field} />
+            onChange={(e) => setQuantity(e.target.value)} className={field} />
         </div>
         <div>
           <label className={label}>Payment Method</label>
@@ -166,6 +193,29 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
           </select>
         </div>
       </div>
+
+      {extraGuestCount > 0 && (
+        <div className="border-t border-white/10 pt-6">
+          <p className={label}>Other Ticket Holders</p>
+          <p className="text-white/20 text-xs mb-5">
+            Each of your {quantity} tickets will be printed with its own name — add the other {extraGuestCount === 1 ? "person" : `${extraGuestCount} people`} you're booking for.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-7">
+            {guestNames.map((name, i) => (
+              <div key={i}>
+                <label className={label}>Guest {i + 2} Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setGuestName(i, e.target.value)}
+                  placeholder="Full name"
+                  className={field}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {total !== null && (
         <div className="flex items-baseline gap-3 border-t border-white/10 pt-6">

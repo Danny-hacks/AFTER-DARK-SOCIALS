@@ -614,6 +614,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pricePerTicket = Math.round(totalPrice / quantity);
       const tickets = [];
 
+      // Extra guest names for tickets 2..N of a multi-ticket order — the
+      // purchaser's own customerName covers ticket 1. Malformed/short JSON
+      // just means fewer names than tickets, handled by the fallback below.
+      let guestNames: string[] = [];
+      if (purchase.guestNamesJson) {
+        try {
+          const parsed = JSON.parse(purchase.guestNamesJson);
+          if (Array.isArray(parsed)) guestNames = parsed.filter((n) => typeof n === "string");
+        } catch {}
+      }
+
       // Create multiple tickets based on quantity (each with unique reference/QR code)
       for (let i = 0; i < quantity; i++) {
         const randomPart = Math.random()
@@ -621,12 +632,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .substring(2, 8)
           .toUpperCase();
         const referenceCode = `VOL3-${randomPart}`;
+        const holderName = i === 0 ? purchase.customerName : (guestNames[i - 1]?.trim() || purchase.customerName);
 
         const ticket = await storage.createTicket({
           eventId: purchase.eventId || "aftr-vol-3",
           purchaseId: purchase.id,
           referenceCode,
-          customerName: purchase.customerName,
+          customerName: holderName,
           customerEmail: purchase.customerEmail,
           customerPhone: purchase.customerPhone,
           ticketType: purchase.ticketType,
@@ -641,7 +653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           await appendTicketToSheet({
             timestamp: new Date().toISOString(),
-            customerName: purchase.customerName,
+            customerName: holderName,
             customerEmail: purchase.customerEmail,
             customerPhone: purchase.customerPhone,
             ticketType: purchase.ticketType,

@@ -13,6 +13,16 @@ import type { Event, Ticket as TicketType, TicketPurchase } from "@shared/schema
 const UPCOMING_SCOPE = "__upcoming__";
 const ALL_SCOPE = "__all__";
 
+function parseGuestNames(json: string | null): string[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed.filter((n) => typeof n === "string" && n.trim()) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function AdminOrdersPage() {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
@@ -190,6 +200,11 @@ export default function AdminOrdersPage() {
                       <span>{p.quantity}x ticket{p.quantity !== 1 ? "s" : ""}</span>
                       {p.customerPhone && <span>{p.customerPhone}</span>}
                     </div>
+                    {p.guestNamesJson && (
+                      <p className="text-white/20 text-[10px] mt-1">
+                        Also for: {parseGuestNames(p.guestNamesJson).join(", ")}
+                      </p>
+                    )}
                     {p.createdAt && (
                       <p className="text-white/20 text-[10px] mt-1">
                         {new Date(p.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}

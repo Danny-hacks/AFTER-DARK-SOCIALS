@@ -18,6 +18,10 @@ export const ticketPurchases = pgTable("ticket_purchases", {
   ticketType: text("ticket_type").notNull().default("Early Bird"),
   price: text("price").notNull().default("Rs 350"),
   quantity: integer("quantity").notNull().default(1),
+  // JSON-encoded string[] of the OTHER ticket holders' names when quantity > 1
+  // (the purchaser's own name/customerName covers the first ticket) — same
+  // convention as accessReservations.guestsJson.
+  guestNamesJson: text("guest_names_json"),
   paymentMethod: text("payment_method").notNull(),
   deliveryMethod: text("delivery_method").notNull().default("email"),
   paymentProofUrl: text("payment_proof_url"),
