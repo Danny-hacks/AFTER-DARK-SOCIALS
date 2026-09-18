@@ -17,7 +17,6 @@ import { AdminLayout } from "@/components/admin-layout";
 import { QRScanner } from "@/components/qr-scanner";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { TicketGenerator } from "@/components/ticket-generator";
-import { buildTicketWaMessage } from "@/lib/ticket-messages";
 import type { Event, Ticket as TicketType, TicketPurchase, EventTicketTier } from "@shared/schema";
 
 type Tab = "overview" | "pricing" | "tickets" | "orders" | "checkin" | "scan";
@@ -141,13 +140,8 @@ export default function AdminEventDetailPage() {
     });
   }
 
-  function sendTicketWhatsApp(t: TicketType) {
-    if (!t.customerPhone) {
-      toast({ title: "No phone number on file for this ticket", variant: "destructive" });
-      return;
-    }
+  function markTicketSent(t: TicketType) {
     deliverMutation.mutate(t.id);
-    window.open(`https://wa.me/${t.customerPhone.replace(/\D/g, "")}?text=${buildTicketWaMessage(t, event)}`, "_blank");
   }
 
   const eventPurchases = purchases.filter((p) => p.eventId === id);
@@ -580,9 +574,9 @@ export default function AdminEventDetailPage() {
                     View
                   </button>
                   <button
-                    onClick={() => sendTicketWhatsApp(t)}
+                    onClick={() => markTicketSent(t)}
                     disabled={deliverMutation.isPending}
-                    title="Marks this ticket as sent and opens WhatsApp with a reminder message — the actual PDF is generated from View → Share Ticket"
+                    title="Marks this ticket as sent — send the actual PDF first via View → Share Ticket"
                     className={`flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 transition-colors disabled:opacity-40 ${
                       t.isDelivered
                         ? "border border-[#25D366]/40 text-[#25D366] hover:border-[#25D366]"
@@ -590,7 +584,7 @@ export default function AdminEventDetailPage() {
                     }`}
                   >
                     <SiWhatsapp className="w-3 h-3" />
-                    {t.isDelivered ? "Resend" : "Mark Sent"}
+                    {t.isDelivered ? "Sent" : "Mark Sent"}
                   </button>
                 </div>
               </div>
