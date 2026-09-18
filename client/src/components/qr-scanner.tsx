@@ -46,36 +46,29 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
             console.log("QR Code detected:", result.data);
             setLastScanResult(result.data);
             
-            // Parse the QR code data (format: AFTR-TICKET-{id}-{qrCode})
-            if (result.data.startsWith("AFTR-TICKET-")) {
+            // Parse the QR code data (format: AFTR-TICKET-{qrCode}). qrCode is
+            // itself a UUID (contains hyphens), so the lookup value is
+            // everything after the fixed prefix — not a naive split("-").
+            const QR_PREFIX = "AFTR-TICKET-";
+            if (result.data.startsWith(QR_PREFIX)) {
               // Stop scanning temporarily to prevent multiple scans
               scanner.stop();
               setScanning(false);
-              
+
               try {
-                const parts = result.data.split("-");
-                if (parts.length >= 4) {
-                  const ticketId = parts[2];
-                  const qrCode = parts[3];
-                  
-                  console.log("Scanning ticket:", { ticketId, qrCode, fullData: result.data });
-                  
-                  // Try to fetch ticket details by QR code first (more reliable)
-                  let response = await fetch(`/api/admin/tickets/qr/${qrCode}`, {
+                const qrCode = result.data.slice(QR_PREFIX.length);
+
+                if (qrCode) {
+                  console.log("Scanning ticket:", { qrCode, fullData: result.data });
+
+                  const response = await fetch(`/api/admin/tickets/qr/${qrCode}`, {
                     credentials: 'include'
                   });
-                  
-                  // If not found by QR code, try by ID as fallback
-                  if (!response.ok && ticketId) {
-                    response = await fetch(`/api/admin/tickets/${ticketId}`, {
-                      credentials: 'include'
-                    });
-                  }
-                  
+
                   if (response.ok) {
                     const data = await response.json();
                     setScanStatus("success");
-                    
+
                     // Check if ticket is already used
                     if (data.ticket.isUsed) {
                       toast({
@@ -101,7 +94,7 @@ export function QRScanner({ onTicketFound, onClose }: QRScannerProps) {
                       description: errorData.error || "Invalid or expired ticket",
                       variant: "destructive",
                     });
-                    console.log("Ticket lookup failed:", { ticketId, qrCode, status: response.status });
+                    console.log("Ticket lookup failed:", { qrCode, status: response.status });
                   }
                 } else {
                   setScanStatus("error");

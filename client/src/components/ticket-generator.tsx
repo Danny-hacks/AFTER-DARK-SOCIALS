@@ -366,16 +366,19 @@ IMPORTANT: Please find your ticket PDF attached to this email. This PDF is your 
     }
   };
 
-  // Generate QR code URL (using a QR code service)
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`AFTR-TICKET-${ticket.id}-${ticket.qrCode}`)}`;
+  // Generate QR code URL (using a QR code service). Only the ticket's own
+  // qrCode is encoded — it's already a globally unique UUID on its own, and
+  // embedding ticket.id too made this ambiguous to parse back out, since both
+  // are UUIDs containing hyphens (see qr-scanner.tsx).
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`AFTR-TICKET-${ticket.qrCode}`)}`;
 
   return (
     <div className="space-y-4">
       {/* Digital Ticket */}
-      <div 
+      <div
         ref={ticketRef}
-        className="w-full max-w-2xl mx-auto rounded-2xl p-8 text-white relative overflow-hidden"
-        style={{ aspectRatio: '4/3', backgroundColor: cardBg, border: `2px solid ${borderColor}` }}
+        className="w-full max-w-2xl mx-auto rounded-2xl p-7 sm:p-8 text-white relative overflow-hidden"
+        style={{ backgroundColor: cardBg, border: `2px solid ${borderColor}` }}
       >
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5">
@@ -383,55 +386,60 @@ IMPORTANT: Please find your ticket PDF attached to this email. This PDF is your 
             backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 35px, ${borderColor} 35px, ${borderColor} 36px)`,
           }}></div>
         </div>
-        
+
         {/* Header */}
-        <div className="relative z-10 text-center mb-6">
-          <h1 className="text-5xl font-black text-white mb-1 tracking-tight">{eventName}</h1>
+        <div className="relative z-10 text-center mb-6 pb-5" style={{ borderBottom: `1px solid ${isGoldenVIP ? 'rgba(201,168,76,0.2)' : 'rgba(255,255,255,0.1)'}` }}>
+          <h1
+            className="text-white leading-none mb-2"
+            style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(28px, 6vw, 42px)", letterSpacing: "0.01em" }}
+          >
+            {eventName}
+          </h1>
           {eventSubtitle && (
-            <p className="text-xl font-bold tracking-widest" style={{ color: isGoldenVIP ? '#C9A84C' : 'white' }}>
+            <p className="text-xs sm:text-sm font-bold tracking-[0.15em]" style={{ color: isGoldenVIP ? '#C9A84C' : accentColor }}>
               {eventSubtitle.toUpperCase()}
             </p>
           )}
           {isGoldenVIP && (
             <p className="text-xs uppercase tracking-[0.3em] mt-1" style={{ color: '#C9A84C' }}>Golden VIP</p>
           )}
-          {eventDateVenue && <p className="text-sm text-gray-400 mt-2">{eventDateVenue}</p>}
+          {eventDateVenue && <p className="text-[11px] text-gray-400 mt-2 uppercase tracking-[0.15em]">{eventDateVenue}</p>}
         </div>
 
         {/* Main Content */}
-        <div className="relative z-10 flex justify-between items-start">
-          <div className="flex-1">
+        <div className="relative z-10 flex justify-between items-start gap-5">
+          <div className="flex-1 min-w-0">
             <div className="space-y-3">
               <div>
-                <p className="text-sm text-gray-500 uppercase tracking-wider">Ticket Holder</p>
-                <p className="text-2xl font-bold text-white">{ticket.customerName}</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em]">Ticket Holder</p>
+                <p className="text-xl font-bold text-white truncate">{ticket.customerName}</p>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider">Reference</p>
-                  <p className="text-lg font-mono font-bold" style={{ color: accentColor }}>{ticket.referenceCode}</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em]">Reference</p>
+                  <p className="text-sm font-mono font-bold truncate" style={{ color: accentColor }}>{ticket.referenceCode}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider">Price</p>
-                  <p className="text-lg font-bold text-white">{displayPrice}</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em]">Price</p>
+                  <p className="text-sm font-bold text-white">{displayPrice}</p>
                 </div>
               </div>
-              
+
               {(event?.venue || event?.time) && (
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider">Event Details</p>
-                  {event?.venue && <p className="text-sm text-gray-300">Venue: {event.venue}</p>}
-                  {event?.time && <p className="text-sm text-gray-300">Time: {event.time}</p>}
+                <div className="min-w-0">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-0.5">Details</p>
+                  {event?.venue && <p className="text-xs text-gray-300 truncate">{event.venue}</p>}
+                  {event?.time && <p className="text-xs text-gray-300">{event.time}</p>}
                 </div>
               )}
             </div>
           </div>
 
           {/* QR Code Section */}
-          <div className="flex flex-col items-center space-y-2 ml-6">
+          <div className="flex flex-col items-center space-y-2 shrink-0">
             <div className="bg-white p-3 rounded-lg">
-              <img 
+              <img
                 src={qrCodeUrl} 
                 alt="Ticket QR Code" 
                 className="w-24 h-24"

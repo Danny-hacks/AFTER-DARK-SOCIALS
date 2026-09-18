@@ -14,7 +14,7 @@ const R2 = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictu
 // matches whatever's currently live there.
 const DEFAULT_ACCESS_BANNER_URL = `${R2}/Serge_59.jpg`;
 // One of the "Past Editions" gallery photos from the ACCESS page.
-const PRIVATE_BOOKINGS_IMAGE = `${R2}/Serge_53.jpg`;
+const PRIVATE_BOOKINGS_IMAGE = `${R2}/Serge_70.jpg`;
 
 // ─── Service data ─────────────────────────────────────────────────────────────
 const services = [
