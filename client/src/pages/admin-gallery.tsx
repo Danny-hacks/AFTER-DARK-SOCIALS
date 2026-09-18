@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Event, GalleryPhoto } from "@shared/schema";
 
 const CUSTOM_VOLUME = "__custom__";
+const ALL_VOLUMES = "__all__";
 
 function sortVolumes(volumes: string[]): string[] {
   return [...volumes].sort((a, b) => {
@@ -22,6 +23,7 @@ export default function AdminGalleryPage() {
   const { toast } = useToast();
   const [volume, setVolume] = useState("");
   const [useCustomVolume, setUseCustomVolume] = useState(false);
+  const [showAllVolumes, setShowAllVolumes] = useState(false);
   const [alt, setAlt] = useState("");
 
   const { data: photos = [], isLoading } = useQuery<{ success: boolean; photos: GalleryPhoto[] }, Error, GalleryPhoto[]>({
@@ -44,10 +46,17 @@ export default function AdminGalleryPage() {
   }, [eventsData, photos]);
 
   useEffect(() => {
-    if (!volume && !useCustomVolume && volumeOptions.length > 0) {
+    if (!volume && !useCustomVolume && !showAllVolumes && volumeOptions.length > 0) {
       setVolume(volumeOptions[volumeOptions.length - 1]);
     }
-  }, [volumeOptions, volume, useCustomVolume]);
+  }, [volumeOptions, volume, useCustomVolume, showAllVolumes]);
+
+  // The same Volume selector doubles as the list filter below — picking a
+  // volume shows only its photos, "All Volumes" shows everything.
+  const filteredPhotos = useMemo(() => {
+    if (showAllVolumes || useCustomVolume || !volume) return photos;
+    return photos.filter((p) => p.volume === volume);
+  }, [photos, volume, useCustomVolume, showAllVolumes]);
 
   const createMutation = useMutation({
     mutationFn: (data: { url: string; alt: string; volume: string; order: number }) =>
@@ -104,18 +113,25 @@ export default function AdminGalleryPage() {
           <div>
             <label className="block text-[9px] text-white/30 uppercase tracking-[0.2em] mb-2">Volume</label>
             <select
-              value={useCustomVolume ? CUSTOM_VOLUME : volume}
+              value={showAllVolumes ? ALL_VOLUMES : useCustomVolume ? CUSTOM_VOLUME : volume}
               onChange={(e) => {
-                if (e.target.value === CUSTOM_VOLUME) {
+                const v = e.target.value;
+                if (v === CUSTOM_VOLUME) {
+                  setShowAllVolumes(false);
                   setUseCustomVolume(true);
                   setVolume("");
-                } else {
+                } else if (v === ALL_VOLUMES) {
+                  setShowAllVolumes(true);
                   setUseCustomVolume(false);
-                  setVolume(e.target.value);
+                } else {
+                  setShowAllVolumes(false);
+                  setUseCustomVolume(false);
+                  setVolume(v);
                 }
               }}
               className="w-full bg-black border border-white/15 text-white text-sm px-3 py-2.5 focus:outline-none focus:border-white/40"
             >
+              {volumeOptions.length > 0 && <option value={ALL_VOLUMES}>All Volumes</option>}
               {volumeOptions.length === 0 && <option value="">No volumes yet</option>}
               {volumeOptions.map((v) => (
                 <option key={v} value={v}>{v}</option>
@@ -133,7 +149,7 @@ export default function AdminGalleryPage() {
               />
             )}
             <p className="text-white/20 text-[10px] mt-1.5">
-              Pulled from each event's Volume Tag — set it on the event's Overview tab to have it appear here.
+              Also filters the list below to just that volume's photos. Options are pulled from each event's Volume Tag.
             </p>
           </div>
           <div>
@@ -166,7 +182,12 @@ export default function AdminGalleryPage() {
         </ObjectUploader>
       </div>
 
-      {/* Photo list */}
+      {/* Photo list — filtered to the selected volume above, unless "All Volumes" is picked */}
+      <p className="text-white/20 text-xs mb-3">
+        {showAllVolumes || !volume
+          ? `${filteredPhotos.length} photo${filteredPhotos.length !== 1 ? "s" : ""} · all volumes`
+          : `${filteredPhotos.length} photo${filteredPhotos.length !== 1 ? "s" : ""} in ${volume}`}
+      </p>
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-5 h-5 text-white/30 animate-spin" />
@@ -175,9 +196,13 @@ export default function AdminGalleryPage() {
         <div className="border border-white/10 p-12 text-center">
           <p className="text-white/20 text-sm">No photos yet. Upload your first one above.</p>
         </div>
+      ) : filteredPhotos.length === 0 ? (
+        <div className="border border-white/10 p-12 text-center">
+          <p className="text-white/20 text-sm">No photos in {volume} yet.</p>
+        </div>
       ) : (
         <div className="space-y-px">
-          {photos.map((photo) => (
+          {filteredPhotos.map((photo) => (
             <div key={photo.id} className="bg-[#0a0a0a] border border-white/10 p-4 flex items-center gap-4 hover:border-white/20 transition-colors">
               <img src={photo.url} alt={photo.alt} className="w-16 h-16 object-cover shrink-0" loading="lazy" />
               <div className="flex-1 min-w-0">
