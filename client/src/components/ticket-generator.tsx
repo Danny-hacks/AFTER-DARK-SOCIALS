@@ -465,7 +465,7 @@ IMPORTANT: Please find your ticket PDF attached to this email. This PDF is your 
           </div>
 
           {/* QR stub */}
-          <div className="shrink-0 flex items-center justify-center" style={{ width: 220, padding: 22 }}>
+          <div className="shrink-0 flex flex-col items-center justify-center gap-2" style={{ width: 220, padding: 22 }}>
             <div className="bg-white p-2.5 rounded">
               <img
                 src={qrCodeUrl}
@@ -478,6 +478,7 @@ IMPORTANT: Please find your ticket PDF attached to this email. This PDF is your 
                 }}
               />
             </div>
+            <p className="text-white/30 text-[9px] uppercase tracking-[0.15em] text-center m-0">To be scanned at the gate</p>
           </div>
         </div>
       </div>
