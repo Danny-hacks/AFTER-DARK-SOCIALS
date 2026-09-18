@@ -146,7 +146,9 @@ export default function AdminEventDetailPage() {
   }
 
   const eventPurchases = purchases.filter((p) => p.eventId === id);
-  const eventTickets  = allTickets.filter((t)  => t.eventId  === id);
+  const eventTickets = allTickets
+    .filter((t) => t.eventId === id)
+    .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<EditData>({
     resolver: zodResolver(editSchema),
