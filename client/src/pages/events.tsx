@@ -1,12 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Calendar, MapPin, Clock, ArrowUpRight } from "lucide-react";
+import { Calendar, MapPin, Clock, ArrowUpRight, Images } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { Reveal } from "@/components/reveal";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-import type { Event } from "@shared/schema";
+import type { AccessEvent, Event } from "@shared/schema";
+
+const ACCESS_DEFAULT_BANNER = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictures/Serge_59.jpg";
 
 function EventCard({ event }: { event: Event }) {
   return (
@@ -16,7 +18,7 @@ function EventCard({ event }: { event: Event }) {
           <img
             src={event.imageUrl}
             alt={event.name}
-            className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-700"
             loading="lazy"
           />
           <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-500" />
@@ -62,14 +64,85 @@ function EventCard({ event }: { event: Event }) {
   );
 }
 
+// Past events don't need their own description/ticket page — they link
+// straight into the Gallery, pre-filtered to that event's volume.
+function PastEventCard({ event }: { event: Event }) {
+  const galleryHref = event.volume ? `/gallery?vol=${encodeURIComponent(event.volume)}` : "/gallery";
+  return (
+    <Link href={galleryHref} className="group block border border-white/10 hover:border-white/25 transition-all duration-300">
+      {event.imageUrl && (
+        <div className="relative h-40 overflow-hidden">
+          <img
+            src={event.imageUrl}
+            alt={event.name}
+            className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-500" />
+        </div>
+      )}
+      <div className="p-6">
+        <p className="text-white/25 text-[9px] uppercase tracking-[0.35em] mb-2">Past · {event.date}</p>
+        <h2
+          className="text-white leading-none mb-4 group-hover:text-white/80 transition-colors"
+          style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(24px, 3.5vw, 36px)" }}
+        >
+          {event.name}
+        </h2>
+        <div className="flex items-center gap-2 text-white/40 group-hover:text-white text-[10px] uppercase tracking-[0.2em] font-bold transition-colors">
+          <Images className="w-3.5 h-3.5" />
+          View Gallery
+          <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// A standing entry for ACCESS alongside past AFTR events — it isn't tied to
+// one specific edition, so it always links to the ACCESS page itself.
+function AccessCard({ accessEvent }: { accessEvent: AccessEvent | null | undefined }) {
+  const bannerUrl = accessEvent?.bannerUrl || ACCESS_DEFAULT_BANNER;
+  return (
+    <Link href="/access" className="group block border border-white/10 hover:border-[#c9962a]/40 transition-all duration-300">
+      <div className="relative h-40 overflow-hidden">
+        <img
+          src={bannerUrl}
+          alt="ACCESS"
+          className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-500" />
+      </div>
+      <div className="p-6">
+        <p className="text-[9px] uppercase tracking-[0.35em] mb-2" style={{ color: "#c9962a" }}>Private Social</p>
+        <h2
+          className="text-white leading-none mb-4 group-hover:text-white/80 transition-colors"
+          style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(24px, 3.5vw, 36px)" }}
+        >
+          ACCESS
+        </h2>
+        <div className="flex items-center gap-2 text-white/40 group-hover:text-white text-[10px] uppercase tracking-[0.2em] font-bold transition-colors">
+          View ACCESS
+          <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export default function EventsPage() {
   usePageTitle("Events");
   const { data: events = [], isLoading } = useQuery<{ success: boolean; events: Event[] }, Error, Event[]>({
     queryKey: ["/api/events"],
     select: (data) => data.events ?? [],
   });
+  const { data: accessData } = useQuery<{ success: boolean; event: AccessEvent | null }>({
+    queryKey: ["/api/access/current"],
+  });
 
   const upcoming = events.filter((e) => !e.isPast);
+  const past = events.filter((e) => e.isPast);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -146,6 +219,27 @@ export default function EventsPage() {
               <SiWhatsapp className="w-4 h-4" />
               Join WhatsApp Group
             </a>
+          </div>
+        )}
+
+        {/* Past Events — no description page, these link straight into the
+            Gallery (filtered by volume) or the ACCESS page. */}
+        {!isLoading && (
+          <div className="mt-20 sm:mt-28 pt-16 border-t border-white/10">
+            <div className="flex items-center gap-4 mb-14">
+              <span className="w-8 h-px bg-white/20" />
+              <span className="text-white/40 text-[10px] uppercase tracking-[0.35em]">Past Events</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white/10">
+              <Reveal className="bg-black">
+                <AccessCard accessEvent={accessData?.event} />
+              </Reveal>
+              {past.map((event, idx) => (
+                <Reveal key={event.id} className="bg-black" delay={((idx + 1) % 3) * 0.08}>
+                  <PastEventCard event={event} />
+                </Reveal>
+              ))}
+            </div>
           </div>
         )}
       </div>
