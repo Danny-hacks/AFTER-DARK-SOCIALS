@@ -1,23 +1,53 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Trash2, Loader2, Image as ImageIcon } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { GalleryPhoto } from "@shared/schema";
+import type { Event, GalleryPhoto } from "@shared/schema";
 
-const VOLUMES = ["VOL. 1", "VOL. 2", "VOL. 3"];
+const CUSTOM_VOLUME = "__custom__";
+
+function sortVolumes(volumes: string[]): string[] {
+  return [...volumes].sort((a, b) => {
+    const na = parseInt(a.replace(/\D/g, ""), 10);
+    const nb = parseInt(b.replace(/\D/g, ""), 10);
+    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+    return a.localeCompare(b);
+  });
+}
 
 export default function AdminGalleryPage() {
   const { toast } = useToast();
-  const [volume, setVolume] = useState(VOLUMES[VOLUMES.length - 1]);
+  const [volume, setVolume] = useState("");
+  const [useCustomVolume, setUseCustomVolume] = useState(false);
   const [alt, setAlt] = useState("");
 
   const { data: photos = [], isLoading } = useQuery<{ success: boolean; photos: GalleryPhoto[] }, Error, GalleryPhoto[]>({
     queryKey: ["/api/admin/gallery"],
     select: (data) => data.photos ?? [],
   });
+
+  // The volume list is driven by real data — every event's Volume Tag field,
+  // plus any volume already used on an existing photo — so a new event (e.g.
+  // "AFTR VOL. 4") becomes selectable here automatically, no code change needed.
+  const { data: eventsData } = useQuery<{ success: boolean; events: Event[] }>({
+    queryKey: ["/api/events"],
+  });
+
+  const volumeOptions = useMemo(() => {
+    const set = new Set<string>();
+    (eventsData?.events ?? []).forEach((e) => { if (e.volume?.trim()) set.add(e.volume.trim()); });
+    photos.forEach((p) => { if (p.volume?.trim()) set.add(p.volume.trim()); });
+    return sortVolumes(Array.from(set));
+  }, [eventsData, photos]);
+
+  useEffect(() => {
+    if (!volume && !useCustomVolume && volumeOptions.length > 0) {
+      setVolume(volumeOptions[volumeOptions.length - 1]);
+    }
+  }, [volumeOptions, volume, useCustomVolume]);
 
   const createMutation = useMutation({
     mutationFn: (data: { url: string; alt: string; volume: string; order: number }) =>
@@ -74,14 +104,37 @@ export default function AdminGalleryPage() {
           <div>
             <label className="block text-[9px] text-white/30 uppercase tracking-[0.2em] mb-2">Volume</label>
             <select
-              value={volume}
-              onChange={(e) => setVolume(e.target.value)}
+              value={useCustomVolume ? CUSTOM_VOLUME : volume}
+              onChange={(e) => {
+                if (e.target.value === CUSTOM_VOLUME) {
+                  setUseCustomVolume(true);
+                  setVolume("");
+                } else {
+                  setUseCustomVolume(false);
+                  setVolume(e.target.value);
+                }
+              }}
               className="w-full bg-black border border-white/15 text-white text-sm px-3 py-2.5 focus:outline-none focus:border-white/40"
             >
-              {VOLUMES.map((v) => (
+              {volumeOptions.length === 0 && <option value="">No volumes yet</option>}
+              {volumeOptions.map((v) => (
                 <option key={v} value={v}>{v}</option>
               ))}
+              <option value={CUSTOM_VOLUME}>+ New volume…</option>
             </select>
+            {useCustomVolume && (
+              <input
+                type="text"
+                value={volume}
+                onChange={(e) => setVolume(e.target.value)}
+                placeholder="e.g. VOL. 4"
+                autoFocus
+                className="mt-2 w-full bg-black border border-white/15 text-white placeholder:text-white/20 text-sm px-3 py-2.5 focus:outline-none focus:border-white/40"
+              />
+            )}
+            <p className="text-white/20 text-[10px] mt-1.5">
+              Pulled from each event's Volume Tag — set it on the event's Overview tab to have it appear here.
+            </p>
           </div>
           <div>
             <label className="block text-[9px] text-white/30 uppercase tracking-[0.2em] mb-2">Alt Text (optional)</label>
@@ -98,9 +151,14 @@ export default function AdminGalleryPage() {
         <ObjectUploader
           maxFileSize={20 * 1024 * 1024}
           allowedFileTypes={["image/*"]}
-          onComplete={(url) =>
-            createMutation.mutate({ url, alt: alt || `AFTR ${volume}`, volume, order: photos.length })
-          }
+          onComplete={(url) => {
+            const v = volume.trim();
+            if (!v) {
+              toast({ title: "Choose or enter a volume first", variant: "destructive" });
+              return;
+            }
+            createMutation.mutate({ url, alt: alt || `AFTR ${v}`, volume: v, order: photos.length });
+          }}
           buttonClassName="gap-2"
         >
           <ImageIcon className="w-4 h-4" />
