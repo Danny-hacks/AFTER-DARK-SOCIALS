@@ -116,11 +116,11 @@ function PastEventCard({ event }: { event: Event }) {
   );
 }
 
-// A past ACCESS edition — no gallery/detail pages of its own, so it just
-// links back to /access, which lists past editions under its own section.
+// A past ACCESS edition — no gallery/detail pages of its own, so it links
+// straight to the Past Editions gallery section on the ACCESS page.
 function PastAccessCard({ accessEvent }: { accessEvent: AccessEvent }) {
   return (
-    <Link href="/access" className="group block border border-white/10 hover:border-[#c9962a]/40 transition-all duration-300">
+    <Link href="/access#past-editions" className="group block border border-white/10 hover:border-[#c9962a]/40 transition-all duration-300">
       {accessEvent.bannerUrl && (
         <div className="relative h-40 overflow-hidden">
           <img

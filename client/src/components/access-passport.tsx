@@ -14,7 +14,9 @@ const ADMIN_PHONE = "23058205220";
 const R2 = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictures";
 // Fallback defaults, used only until an ACCESS event is created in the admin,
 // or when a specific field (lineup, early-bird pricing) is left unset on it.
-const DEFAULT_POSTER_URL = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictures/IMG_0246.PNG";
+// The poster fallback is a generic crowd shot, not a real poster graphic —
+// admin should upload the actual poster per edition in Admin → ACCESS Events.
+const DEFAULT_POSTER_URL = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictures/Serge_53.jpg";
 const DEFAULT_BANNER_URL = `${R2}/Serge_59.jpg`;
 const DEFAULT_DATE = "Friday 3 July 2026";
 const DEFAULT_VENUE = "Club Sixty Nine";
@@ -196,6 +198,15 @@ export function AccessPassport() {
     queryKey: ["/api/access/past"],
     select: (data) => data.events ?? [],
   });
+
+  // Client-side route changes (wouter) don't trigger the browser's native
+  // scroll-to-hash behavior the way a full page load does, so a link like
+  // /access#past-editions needs a manual nudge once this page has mounted.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.location.hash) return;
+    const el = document.querySelector(window.location.hash);
+    if (el) requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth" }));
+  }, []);
 
   // Fetch inventory on mount — price/pricePerPerson/capacity/guest range all
   // come from the server (admin-editable in Admin → ACCESS → Pricing) and
@@ -712,7 +723,7 @@ export function AccessPassport() {
       </div>
 
       {/* ── Past Editions gallery ── */}
-      <div className="border-t border-white/10">
+      <div id="past-editions" className="border-t border-white/10 scroll-mt-24">
         <div className="px-5 sm:px-6 lg:px-12 pt-20 sm:pt-28 pb-12">
           <div className="flex items-center gap-4 mb-8">
             <span className="w-8 h-px bg-[#c72d28]" />
