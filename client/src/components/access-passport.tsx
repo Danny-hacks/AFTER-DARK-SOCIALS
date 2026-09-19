@@ -40,11 +40,20 @@ function parseLineup(json: string | null | undefined): LineupEntry[] {
   }
 }
 
-// A fixed-size table (minGuests === maxGuests) shows a flat total; a
-// variable-size section shows a range priced off pricePerPerson, since a
-// single "price" number can't represent it.
-function computeTotalLabel(item: { price: number; pricePerPerson: number; minGuests: number; maxGuests: number }): string {
-  if (item.minGuests === item.maxGuests) {
+// How many guest slots the reservation form collects up front for each
+// table type — also doubles as the "is this a flat-price table or a
+// variable-size section" signal below: table_4/table_5 always book out to
+// their maxGuests for one flat price (minGuests is just "book with as few
+// as 1 and still pay full price"), while section_8_12 is genuinely
+// variable (8–12 guests, priced per person within that range).
+const FIXED_COUNTS: Record<string, number> = {
+  table_4: 4,
+  table_5: 5,
+  section_8_12: 8,
+};
+
+function computeTotalLabel(key: string, item: { price: number; pricePerPerson: number; minGuests: number; maxGuests: number }): string {
+  if (FIXED_COUNTS[key] === item.maxGuests) {
     return `MUR ${item.price.toLocaleString()} total`;
   }
   const lo = item.pricePerPerson * item.minGuests;
@@ -220,7 +229,7 @@ export function AccessPassport() {
           const local = TABLE_CONFIG[key];
           const server = data[key] || {};
           const item = { ...local, ...server, used: server.used ?? 0 };
-          merged[key] = { ...item, totalLabel: computeTotalLabel(item) };
+          merged[key] = { ...item, totalLabel: computeTotalLabel(key, item) };
         }
         setInventory(merged);
       })
@@ -242,12 +251,6 @@ export function AccessPassport() {
     });
 
   const selectedConfig = selectedTable ? inventory[selectedTable] : null;
-
-  const FIXED_COUNTS: Record<TableKey, number> = {
-    table_4: 4,
-    table_5: 5,
-    section_8_12: 8,
-  };
 
   function selectTable(key: TableKey) {
     setSelectedTable(key);
