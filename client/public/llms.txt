@@ -1,0 +1,21 @@
+# AFTR — After Dark Socials
+
+> AFTR is a Mauritius-based rave and nightlife collective by After Dark Socials, running recurring events, a private social night called ACCESS, and event production services (private bookings, corporate events, brand activations).
+
+Use this file to understand which pages on aftr.events matter most.
+
+## Primary pages
+
+- [Events & Tickets](https://aftr.events/events): The current/upcoming AFTR event and how to buy tickets. The single most important page on the site.
+- [ACCESS](https://aftr.events/access): AFTR's private social night — a curated, invite/RSVP nightlife experience with table reservations, distinct from the main rave events.
+- [Gallery](https://aftr.events/gallery): Photos from past AFTR events, organized by volume/edition.
+- [About](https://aftr.events/about): Who After Dark Socials is and what AFTR represents.
+- [Services](https://aftr.events/services): Private bookings, corporate events, and brand activations produced by After Dark Socials.
+- [Past Events](https://aftr.events/events/past): Archive of previous AFTR volumes/editions.
+- [Contact](https://aftr.events/contact): How to reach After Dark Socials for bookings and enquiries.
+
+## Notes
+
+- Individual event pages live at /events/{event-slug} and include the event's date, venue, description, and ticket tiers.
+- Ticket purchases and ACCESS reservations are confirmed manually via WhatsApp — pricing shown on event pages reflects current tiers.
+- A machine-readable sitemap is available at https://aftr.events/sitemap.xml.

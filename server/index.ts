@@ -1,8 +1,21 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { SITE_URL, OLD_SITE_HOST } from "./seo";
 
 const app = express();
+
+// The site is reachable at both the old Replit domain and the real custom
+// domain with identical content — redirect permanently so search engines
+// consolidate ranking signals onto one canonical URL instead of splitting
+// them across a duplicate.
+app.use((req, res, next) => {
+  if (req.hostname === OLD_SITE_HOST) {
+    return res.redirect(301, `${SITE_URL}${req.originalUrl}`);
+  }
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

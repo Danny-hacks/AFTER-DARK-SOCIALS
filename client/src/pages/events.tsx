@@ -64,23 +64,29 @@ function EventCard({ event }: { event: Event }) {
   );
 }
 
-// Past events don't need their own description/ticket page — they link
-// straight into the Gallery, pre-filtered to that event's volume.
+// Past events don't need their own description/ticket page as the primary
+// CTA — that goes straight into the Gallery, pre-filtered to the event's
+// volume — but the event's own page still exists and has real content, so
+// a secondary link keeps it reachable for search engines (and anyone who
+// wants the full lineup/description) instead of leaving it orphaned.
 function PastEventCard({ event }: { event: Event }) {
   const galleryHref = event.volume ? `/gallery?vol=${encodeURIComponent(event.volume)}` : "/gallery";
+  const detailHref = `/events/${event.slug ?? event.id}`;
   return (
-    <Link href={galleryHref} className="group block border border-white/10 hover:border-white/25 transition-all duration-300">
-      {event.imageUrl && (
-        <div className="relative h-40 overflow-hidden">
-          <img
-            src={event.imageUrl}
-            alt={event.name}
-            className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-500" />
-        </div>
-      )}
+    <div className="group border border-white/10 hover:border-white/25 transition-all duration-300">
+      <Link href={galleryHref} className="block">
+        {event.imageUrl && (
+          <div className="relative h-40 overflow-hidden">
+            <img
+              src={event.imageUrl}
+              alt={event.name}
+              className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-500" />
+          </div>
+        )}
+      </Link>
       <div className="p-6">
         <p className="text-white/25 text-[9px] uppercase tracking-[0.35em] mb-2">Past · {event.date}</p>
         <h2
@@ -89,13 +95,24 @@ function PastEventCard({ event }: { event: Event }) {
         >
           {event.name}
         </h2>
-        <div className="flex items-center gap-2 text-white/40 group-hover:text-white text-[10px] uppercase tracking-[0.2em] font-bold transition-colors">
-          <Images className="w-3.5 h-3.5" />
-          View Gallery
-          <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            href={galleryHref}
+            className="flex items-center gap-2 text-white/40 hover:text-white text-[10px] uppercase tracking-[0.2em] font-bold transition-colors"
+          >
+            <Images className="w-3.5 h-3.5" />
+            View Gallery
+            <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </Link>
+          <Link
+            href={detailHref}
+            className="text-white/20 hover:text-white/60 text-[10px] uppercase tracking-[0.2em] transition-colors"
+          >
+            Event Details
+          </Link>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 

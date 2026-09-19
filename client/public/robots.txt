@@ -1,6 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /admin
-Disallow: /api/admin/
+Disallow: /api/
 
-Sitemap: https://aftr-the-rave.replit.app/sitemap.xml
+Sitemap: https://aftr.events/sitemap.xml

@@ -82,6 +82,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error("Event slug backfill failed (non-blocking):", e);
   }
 
+  // Dynamic sitemap — static pages plus every real event, instead of a
+  // fixed file that never included event detail pages at all.
+  app.get("/sitemap.xml", async (_req, res) => {
+    try {
+      const staticUrls: { loc: string; priority: string }[] = [
+        { loc: "/", priority: "1.0" },
+        { loc: "/events", priority: "0.9" },
+        { loc: "/access", priority: "0.9" },
+        { loc: "/about", priority: "0.8" },
+        { loc: "/gallery", priority: "0.7" },
+        { loc: "/services", priority: "0.7" },
+        { loc: "/events/past", priority: "0.6" },
+        { loc: "/contact", priority: "0.6" },
+        { loc: "/terms", priority: "0.2" },
+        { loc: "/privacy", priority: "0.2" },
+        { loc: "/refund", priority: "0.2" },
+        { loc: "/age-requirements", priority: "0.2" },
+      ];
+
+      const events = await storage.getAllEvents();
+      const eventUrls = events.map((e) => ({
+        loc: `/events/${e.slug ?? e.id}`,
+        priority: e.isPast ? "0.5" : "0.9",
+        lastmod: e.createdAt ? new Date(e.createdAt).toISOString().slice(0, 10) : undefined,
+      }));
+
+      const allUrls = [...staticUrls, ...eventUrls];
+      const xml =
+        `<?xml version="1.0" encoding="UTF-8"?>\n` +
+        `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+        allUrls
+          .map(
+            (u) =>
+              `  <url><loc>https://aftr.events${u.loc}</loc>` +
+              ("lastmod" in u && u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : "") +
+              `<priority>${u.priority}</priority></url>`,
+          )
+          .join("\n") +
+        `\n</urlset>`;
+
+      res.set({ "Content-Type": "application/xml" }).send(xml);
+    } catch (error) {
+      console.error("Error generating sitemap:", error);
+      res.status(500).end();
+    }
+  });
+
   // Configure PostgreSQL session store for persistence
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({

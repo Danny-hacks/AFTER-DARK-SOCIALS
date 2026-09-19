@@ -147,16 +147,24 @@ export default function EventsPastPage() {
                   </div>
                 )}
 
-                {ev.volume && (
+                <div className="flex items-center gap-6 flex-wrap">
+                  {ev.volume && (
+                    <Link
+                      href={`/gallery?vol=${encodeURIComponent(ev.volume)}`}
+                      className="group/link inline-flex items-center gap-2 text-white/30 hover:text-white text-[10px] uppercase tracking-[0.2em] font-bold transition-colors w-fit"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      View {ev.volume} Gallery
+                      <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
+                    </Link>
+                  )}
                   <Link
-                    href={`/gallery?vol=${encodeURIComponent(ev.volume)}`}
-                    className="group/link inline-flex items-center gap-2 text-white/30 hover:text-white text-[10px] uppercase tracking-[0.2em] font-bold transition-colors w-fit"
+                    href={`/events/${ev.slug ?? ev.id}`}
+                    className="text-white/20 hover:text-white/60 text-[10px] uppercase tracking-[0.2em] transition-colors w-fit"
                   >
-                    <ImageIcon className="w-3.5 h-3.5" />
-                    View {ev.volume} Gallery
-                    <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
+                    Event Details
                   </Link>
-                )}
+                </div>
               </div>
             </div>
           );
