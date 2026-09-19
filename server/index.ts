@@ -19,6 +19,14 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// API responses (admin data especially) must never be cached by the
+// browser or an intermediate proxy/CDN — stale reads here can look like
+// deleted rows "coming back."
+app.use("/api", (_req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
