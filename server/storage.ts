@@ -89,6 +89,7 @@ export interface IStorage {
   getAccessEvent(id: string): Promise<AccessEvent | undefined>;
   getAllAccessEvents(): Promise<AccessEvent[]>;
   getUpcomingAccessEvent(): Promise<AccessEvent | undefined>;
+  getPastAccessEvents(): Promise<AccessEvent[]>;
   createAccessEvent(event: InsertAccessEvent): Promise<AccessEvent>;
   updateAccessEvent(id: string, event: Partial<InsertAccessEvent>): Promise<AccessEvent | undefined>;
   deleteAccessEvent(id: string): Promise<boolean>;
@@ -519,6 +520,17 @@ export class DatabaseStorage implements IStorage {
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     return upcoming[0] ?? undefined;
+  }
+
+  async getPastAccessEvents(): Promise<AccessEvent[]> {
+    const all = await db.select().from(accessEvents);
+    const now = Date.now();
+    return all
+      .filter((e) => {
+        const t = new Date(e.date).getTime();
+        return !isNaN(t) && t <= now;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
 
   async createAccessEvent(insertEvent: InsertAccessEvent): Promise<AccessEvent> {

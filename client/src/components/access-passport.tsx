@@ -189,6 +189,14 @@ export function AccessPassport() {
   const prevGalleryItem = () => setGalleryLightboxIndex((i) => i !== null ? (i - 1 + galleryFiltered.length) % galleryFiltered.length : null);
   const nextGalleryItem = () => setGalleryLightboxIndex((i) => i !== null ? (i + 1) % galleryFiltered.length : null);
 
+  // Editions whose date has already passed — the hero/RSVP section above
+  // only ever shows the current upcoming edition, so a past one still needs
+  // somewhere to list its name/date/venue instead of just vanishing.
+  const { data: pastAccessEvents = [] } = useQuery<{ success: boolean; events: AccessEvent[] }, Error, AccessEvent[]>({
+    queryKey: ["/api/access/past"],
+    select: (data) => data.events ?? [],
+  });
+
   // Fetch inventory on mount — price/pricePerPerson/capacity/guest range all
   // come from the server (admin-editable in Admin → ACCESS → Pricing) and
   // override the local fallback; only `description` has no server column.
@@ -714,6 +722,19 @@ export function AccessPassport() {
             THE NIGHTS SO FAR.
           </h2>
           <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)" }} className="mb-8">A glimpse into what ACCESS looks like.</p>
+
+          {pastAccessEvents.length > 0 && (
+            <div className="mb-10 space-y-0 border border-white/10 max-w-xl">
+              {pastAccessEvents.map((ev) => (
+                <div key={ev.id} className="flex items-center justify-between gap-4 px-5 py-4 border-b border-white/10 last:border-0">
+                  <span className="text-white text-sm">{ev.name}</span>
+                  <span className="text-white/30 text-xs font-mono text-right">
+                    {ev.date}{ev.venue ? ` · ${ev.venue}` : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Photos / Videos tab */}
           {galleryItems.length > 0 && (

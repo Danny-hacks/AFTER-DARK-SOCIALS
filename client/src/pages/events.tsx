@@ -116,6 +116,39 @@ function PastEventCard({ event }: { event: Event }) {
   );
 }
 
+// A past ACCESS edition — no gallery/detail pages of its own, so it just
+// links back to /access, which lists past editions under its own section.
+function PastAccessCard({ accessEvent }: { accessEvent: AccessEvent }) {
+  return (
+    <Link href="/access" className="group block border border-white/10 hover:border-[#c9962a]/40 transition-all duration-300">
+      {accessEvent.bannerUrl && (
+        <div className="relative h-40 overflow-hidden">
+          <img
+            src={accessEvent.bannerUrl}
+            alt={accessEvent.name}
+            className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-500" />
+        </div>
+      )}
+      <div className="p-6">
+        <p className="text-white/25 text-[9px] uppercase tracking-[0.35em] mb-2">Past · {accessEvent.date}</p>
+        <h2
+          className="text-white leading-none mb-4 group-hover:text-white/80 transition-colors"
+          style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(24px, 3.5vw, 36px)" }}
+        >
+          {accessEvent.name}
+        </h2>
+        <div className="flex items-center gap-2 text-white/40 group-hover:text-white text-[10px] uppercase tracking-[0.2em] font-bold transition-colors">
+          View ACCESS
+          <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 // ACCESS isn't stored in the `events` table, so when the admin has an
 // upcoming edition configured it's rendered as its own card in the same
 // Upcoming Events grid, using the real name/date/venue/description from the
@@ -184,11 +217,16 @@ export default function EventsPage() {
   const { data: accessData } = useQuery<{ success: boolean; event: AccessEvent | null }>({
     queryKey: ["/api/access/current"],
   });
+  const { data: pastAccessEvents = [] } = useQuery<{ success: boolean; events: AccessEvent[] }, Error, AccessEvent[]>({
+    queryKey: ["/api/access/past"],
+    select: (data) => data.events ?? [],
+  });
 
   const upcoming = events.filter((e) => !e.isPast);
   const past = events.filter((e) => e.isPast);
   const accessEvent = accessData?.event ?? null;
   const hasUpcoming = upcoming.length > 0 || !!accessEvent;
+  const hasPast = past.length > 0 || pastAccessEvents.length > 0;
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -273,9 +311,9 @@ export default function EventsPage() {
           </div>
         )}
 
-        {/* Past Events — no description page, these link straight into the
-            Gallery (filtered by volume). */}
-        {!isLoading && past.length > 0 && (
+        {/* Past Events — AFTR editions link straight into the Gallery
+            (filtered by volume); past ACCESS editions link to /access. */}
+        {!isLoading && hasPast && (
           <div className="mt-20 sm:mt-28 pt-16 border-t border-white/10">
             <div className="flex items-center gap-4 mb-14">
               <span className="w-8 h-px bg-white/20" />
@@ -285,6 +323,11 @@ export default function EventsPage() {
               {past.map((event, idx) => (
                 <Reveal key={event.id} className="bg-black" delay={(idx % 3) * 0.08}>
                   <PastEventCard event={event} />
+                </Reveal>
+              ))}
+              {pastAccessEvents.map((ev, idx) => (
+                <Reveal key={ev.id} className="bg-black" delay={((past.length + idx) % 3) * 0.08}>
+                  <PastAccessCard accessEvent={ev} />
                 </Reveal>
               ))}
             </div>

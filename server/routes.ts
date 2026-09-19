@@ -1155,6 +1155,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/access/past", async (_req, res) => {
+    try {
+      const events = await storage.getPastAccessEvents();
+      res.json({ success: true, events });
+    } catch (error) {
+      console.error("Error fetching past access events:", error);
+      res.status(500).json({ error: "Failed to fetch past access events" });
+    }
+  });
+
   app.get("/api/admin/access/events", requireAuth, async (_req, res) => {
     try {
       const events = await storage.getAllAccessEvents();
