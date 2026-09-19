@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, integer, json, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -8,6 +8,20 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
 });
+
+// Managed entirely at runtime by connect-pg-simple (server/routes.ts's
+// session middleware), not by application code — declared here only so
+// `drizzle-kit push` recognizes it and stops prompting to drop it as an
+// "unknown" table on every push. Columns/shape must match what
+// connect-pg-simple itself creates; never insert/query through this
+// directly.
+export const sessions = pgTable("sessions", {
+  sid: varchar("sid").primaryKey(),
+  sess: json("sess").notNull(),
+  expire: timestamp("expire", { precision: 6 }).notNull(),
+}, (table) => ({
+  expireIdx: index("IDX_session_expire").on(table.expire),
+}));
 
 export const ticketPurchases = pgTable("ticket_purchases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
