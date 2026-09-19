@@ -1,11 +1,13 @@
-import { useState, useRef, useEffect } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { AnimatePresence } from "framer-motion";
 import { SiWhatsapp } from "react-icons/si";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Play, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PassportCard } from "@/components/passport-card";
 import type { PassFields } from "@/components/passport-card";
-import type { AccessEvent } from "@shared/schema";
+import { MediaLightbox } from "@/components/media-lightbox";
+import type { AccessEvent, GalleryPhoto } from "@shared/schema";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const ADMIN_PHONE = "23058205220";
@@ -123,15 +125,6 @@ function rndId() {
   return "ACC-" + pad(Math.floor(Math.random() * 99999), 5);
 }
 
-const accessPhotos: { src: string | null; position: string; alt: string }[] = [
-  { src: `${R2}/Serge_53.jpg`, position: "object-center", alt: "ACCESS experience" },
-  { src: `${R2}/Serge_82.jpg`, position: "object-center", alt: "ACCESS experience" },
-  { src: `${R2}/Serge_70.jpg`, position: "object-center", alt: "ACCESS experience" },
-  { src: `${R2}/Serge_47.jpg`, position: "object-bottom",  alt: "ACCESS experience" },
-  { src: `${R2}/Serge_49.jpg`, position: "object-bottom",  alt: "ACCESS experience" },
-  { src: `${R2}/Serge_56.jpg`, position: "object-center", alt: "ACCESS experience" },
-];
-
 // ─── Main component ───────────────────────────────────────────────────────────
 export function AccessPassport() {
   const [inventory, setInventory] = useState<Record<string, InventoryItem>>({});
@@ -169,6 +162,32 @@ export function AccessPassport() {
   const earlyBird = !!currentEvent?.earlyBirdDeadline && new Date() < new Date(currentEvent.earlyBirdDeadline);
   const [geName, setGeName] = useState("");
   const [gePhone, setGePhone] = useState("");
+
+  // ── Past Editions gallery (admin-managed, Admin → ACCESS Gallery) ──
+  const { data: allGalleryItems = [], isLoading: galleryLoading } = useQuery<{ success: boolean; photos: GalleryPhoto[] }, Error, GalleryPhoto[]>({
+    queryKey: ["/api/gallery"],
+    select: (data) => data.photos ?? [],
+  });
+  const galleryItems = useMemo(() => allGalleryItems.filter((p) => p.section === "access"), [allGalleryItems]);
+  const [galleryTab, setGalleryTab] = useState<"photos" | "videos">("photos");
+  const galleryFiltered = useMemo(
+    () => galleryItems.filter((p) => (p.type === "video") === (galleryTab === "videos")),
+    [galleryItems, galleryTab],
+  );
+  const GALLERY_PAGE_SIZE = 8;
+  const [galleryVisibleCount, setGalleryVisibleCount] = useState(GALLERY_PAGE_SIZE);
+  const [galleryLightboxIndex, setGalleryLightboxIndex] = useState<number | null>(null);
+  const galleryDisplayed = galleryFiltered.slice(0, galleryVisibleCount);
+  const galleryHasMore = galleryVisibleCount < galleryFiltered.length;
+  const selectGalleryTab = (tab: "photos" | "videos") => {
+    setGalleryTab(tab);
+    setGalleryVisibleCount(GALLERY_PAGE_SIZE);
+    setGalleryLightboxIndex(null);
+  };
+  const openGalleryLightbox = (idx: number) => setGalleryLightboxIndex(idx);
+  const closeGalleryLightbox = () => setGalleryLightboxIndex(null);
+  const prevGalleryItem = () => setGalleryLightboxIndex((i) => i !== null ? (i - 1 + galleryFiltered.length) % galleryFiltered.length : null);
+  const nextGalleryItem = () => setGalleryLightboxIndex((i) => i !== null ? (i + 1) % galleryFiltered.length : null);
 
   // Fetch inventory on mount — price/pricePerPerson/capacity/guest range all
   // come from the server (admin-editable in Admin → ACCESS → Pricing) and
@@ -684,7 +703,7 @@ export function AccessPassport() {
         )}
       </div>
 
-      {/* ── Past Editions photo section ── */}
+      {/* ── Past Editions gallery ── */}
       <div className="border-t border-white/10">
         <div className="px-5 sm:px-6 lg:px-12 pt-20 sm:pt-28 pb-12">
           <div className="flex items-center gap-4 mb-8">
@@ -694,31 +713,106 @@ export function AccessPassport() {
           <h2 className="text-white leading-none mb-4" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(48px, 7vw, 96px)" }}>
             THE NIGHTS SO FAR.
           </h2>
-          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)" }}>A glimpse into what ACCESS looks like.</p>
+          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)" }} className="mb-8">A glimpse into what ACCESS looks like.</p>
+
+          {/* Photos / Videos tab */}
+          {galleryItems.length > 0 && (
+            <div className="flex gap-0 border border-white/10 w-fit">
+              {(["photos", "videos"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => selectGalleryTab(tab)}
+                  className={`px-8 py-3 text-[10px] uppercase tracking-[0.25em] font-bold transition-colors border-r border-white/10 last:border-0 ${
+                    galleryTab === tab ? "bg-[#c9962a] text-black" : "text-white/40 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-0">
-          {accessPhotos.map((photo, i) => (
-            <div key={i} className="relative overflow-hidden group h-64 sm:h-80 lg:h-96">
-              {photo.src ? (
-                <img
-                  src={photo.src}
-                  alt={photo.alt}
-                  className={`absolute inset-0 w-full h-full object-cover ${photo.position} grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700`}
-                  loading="lazy"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-white/5 flex items-center justify-center">
-                  <span style={{ fontFamily: "'DM Mono', monospace" }} className="text-white/20 text-xs uppercase tracking-widest">
-                    Photo {i + 1}
-                  </span>
-                </div>
-              )}
-              <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors duration-500" />
+        {galleryLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-5 h-5 text-white/30 animate-spin" />
+          </div>
+        ) : galleryItems.length === 0 ? (
+          <div className="px-5 sm:px-6 lg:px-12 pb-16">
+            <p className="text-white/20 text-sm">No photos or videos yet.</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-0">
+              {galleryDisplayed.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => openGalleryLightbox(galleryFiltered.indexOf(item))}
+                  aria-label={`View ${item.type === "video" ? "video" : "photo"}: ${item.alt || "ACCESS"}`}
+                  className="relative overflow-hidden group h-64 sm:h-80 lg:h-96 text-left"
+                >
+                  {item.type === "video" ? (
+                    <video
+                      src={item.url}
+                      preload="metadata"
+                      muted
+                      className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+                    />
+                  ) : (
+                    <img
+                      src={item.url}
+                      alt={item.alt}
+                      className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+                      loading="lazy"
+                    />
+                  )}
+                  {item.type === "video" && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-12 h-12 rounded-full bg-black/50 border border-white/30 flex items-center justify-center">
+                        <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                      </div>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors duration-500" />
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
+
+            {galleryFiltered.length === 0 && (
+              <div className="px-5 sm:px-6 lg:px-12 pb-16">
+                <p className="text-white/20 text-sm">No {galleryTab} yet.</p>
+              </div>
+            )}
+
+            {galleryHasMore && (
+              <div className="flex flex-col items-center gap-3 py-12">
+                <button
+                  onClick={() => setGalleryVisibleCount((c) => c + GALLERY_PAGE_SIZE)}
+                  className="border border-white/15 text-white/50 hover:text-white hover:border-[#c9962a]/50 text-[10px] uppercase tracking-[0.25em] font-bold px-8 py-3.5 transition-colors"
+                >
+                  Load More
+                </button>
+                <span className="text-white/20 text-[9px] uppercase tracking-[0.2em]">
+                  {galleryDisplayed.length} of {galleryFiltered.length}
+                </span>
+              </div>
+            )}
+          </>
+        )}
       </div>
+
+      <AnimatePresence>
+        {galleryLightboxIndex !== null && (
+          <MediaLightbox
+            items={galleryFiltered}
+            index={galleryLightboxIndex}
+            onClose={closeGalleryLightbox}
+            onPrev={prevGalleryItem}
+            onNext={nextGalleryItem}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -76,6 +76,7 @@ const sideLinks = [
   { label: "QR Scanner", href: "/admin/scan",      icon: QrCode },
   { label: "ACCESS",     href: "/admin/access",    icon: Crown },
   { label: "ACCESS Events", href: "/admin/access/events", icon: Calendar },
+  { label: "ACCESS Gallery", href: "/admin/access/gallery", icon: Image },
   { label: "Gallery",    href: "/admin/gallery",   icon: Image },
   { label: "Hero",       href: "/admin/hero",      icon: Film },
 ];

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Trash2, Loader2, Image as ImageIcon } from "lucide-react";
+import { Trash2, Loader2, Image as ImageIcon, Video as VideoIcon, Play } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -25,11 +25,13 @@ export default function AdminGalleryPage() {
   const [useCustomVolume, setUseCustomVolume] = useState(false);
   const [showAllVolumes, setShowAllVolumes] = useState(false);
   const [alt, setAlt] = useState("");
+  const [mediaType, setMediaType] = useState<"image" | "video">("image");
 
-  const { data: photos = [], isLoading } = useQuery<{ success: boolean; photos: GalleryPhoto[] }, Error, GalleryPhoto[]>({
+  const { data: allPhotos = [], isLoading } = useQuery<{ success: boolean; photos: GalleryPhoto[] }, Error, GalleryPhoto[]>({
     queryKey: ["/api/admin/gallery"],
     select: (data) => data.photos ?? [],
   });
+  const photos = useMemo(() => allPhotos.filter((p) => (p.section ?? "aftr") === "aftr"), [allPhotos]);
 
   // The volume list is driven by real data — every event's Volume Tag field,
   // plus any volume already used on an existing photo — so a new event (e.g.
@@ -59,15 +61,15 @@ export default function AdminGalleryPage() {
   }, [photos, volume, useCustomVolume, showAllVolumes]);
 
   const createMutation = useMutation({
-    mutationFn: (data: { url: string; alt: string; volume: string; order: number }) =>
+    mutationFn: (data: { url: string; alt: string; volume: string; order: number; type: "image" | "video"; section: "aftr" }) =>
       apiRequest("POST", "/api/admin/gallery", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/gallery"] });
       queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
-      toast({ title: "Photo added to gallery" });
+      toast({ title: mediaType === "video" ? "Video added to gallery" : "Photo added to gallery" });
       setAlt("");
     },
-    onError: () => toast({ title: "Failed to add photo", variant: "destructive" }),
+    onError: () => toast({ title: "Failed to add item", variant: "destructive" }),
   });
 
   const updateOrderMutation = useMutation({
@@ -93,10 +95,10 @@ export default function AdminGalleryPage() {
     <AdminLayout title="Gallery">
       <div className="mb-8">
         <p className="text-white/40 text-xs uppercase tracking-[0.2em] mb-1">
-          Upload and manage event photos
+          Upload and manage event photos & videos
         </p>
         <p className="text-white/20 text-xs">
-          Photos are automatically resized on upload and appear on the public Gallery page immediately.
+          Photos are automatically resized on upload; videos must be MP4. Both appear on the public Gallery page immediately.
         </p>
       </div>
 
@@ -104,9 +106,23 @@ export default function AdminGalleryPage() {
       <div className="bg-[#0a0a0a] border border-white/10 p-6 mb-8">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-7 h-7 border border-white/10 flex items-center justify-center">
-            <ImageIcon className="w-3.5 h-3.5 text-[#c72d28]" />
+            {mediaType === "video" ? <VideoIcon className="w-3.5 h-3.5 text-[#c72d28]" /> : <ImageIcon className="w-3.5 h-3.5 text-[#c72d28]" />}
           </div>
-          <h2 className="text-white text-sm font-semibold">Upload Photo</h2>
+          <h2 className="text-white text-sm font-semibold">Upload {mediaType === "video" ? "Video" : "Photo"}</h2>
+          <div className="flex border border-white/15 ml-auto">
+            {(["image", "video"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setMediaType(t)}
+                className={`px-4 py-1.5 text-[9px] uppercase tracking-[0.2em] font-bold transition-colors ${
+                  mediaType === t ? "bg-[#c72d28] text-white" : "text-white/40 hover:text-white"
+                }`}
+              >
+                {t === "video" ? "Video" : "Photo"}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
@@ -165,20 +181,20 @@ export default function AdminGalleryPage() {
         </div>
 
         <ObjectUploader
-          maxFileSize={20 * 1024 * 1024}
-          allowedFileTypes={["image/*"]}
+          maxFileSize={mediaType === "video" ? 500 * 1024 * 1024 : 20 * 1024 * 1024}
+          allowedFileTypes={mediaType === "video" ? ["video/mp4"] : ["image/*"]}
           onComplete={(url) => {
             const v = volume.trim();
             if (!v) {
               toast({ title: "Choose or enter a volume first", variant: "destructive" });
               return;
             }
-            createMutation.mutate({ url, alt: alt || `AFTR ${v}`, volume: v, order: photos.length });
+            createMutation.mutate({ url, alt: alt || `AFTR ${v}`, volume: v, order: photos.length, type: mediaType, section: "aftr" });
           }}
           buttonClassName="gap-2"
         >
-          <ImageIcon className="w-4 h-4" />
-          Upload Photo
+          {mediaType === "video" ? <VideoIcon className="w-4 h-4" /> : <ImageIcon className="w-4 h-4" />}
+          Upload {mediaType === "video" ? "Video" : "Photo"}
         </ObjectUploader>
       </div>
 
@@ -204,11 +220,21 @@ export default function AdminGalleryPage() {
         <div className="space-y-px">
           {filteredPhotos.map((photo) => (
             <div key={photo.id} className="bg-[#0a0a0a] border border-white/10 p-4 flex items-center gap-4 hover:border-white/20 transition-colors">
-              <img src={photo.url} alt={photo.alt} className="w-16 h-16 object-cover shrink-0" loading="lazy" />
+              {photo.type === "video" ? (
+                <div className="relative w-16 h-16 shrink-0 bg-black">
+                  <video src={photo.url} className="w-16 h-16 object-cover" preload="metadata" muted />
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <Play className="w-4 h-4 text-white fill-white" />
+                  </div>
+                </div>
+              ) : (
+                <img src={photo.url} alt={photo.alt} className="w-16 h-16 object-cover shrink-0" loading="lazy" />
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-white text-sm truncate">{photo.alt || "(no alt text)"}</p>
                 <div className="flex items-center gap-3 text-white/30 text-xs mt-1">
                   <span className="text-[#c72d28]">{photo.volume}</span>
+                  {photo.type === "video" && <span className="text-white/40 uppercase tracking-wider text-[9px]">Video</span>}
                   <span>Order:</span>
                   <input
                     type="number"

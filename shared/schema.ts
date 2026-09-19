@@ -152,9 +152,16 @@ export const galleryPhotos = pgTable("gallery_photos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   url: text("url").notNull(),
   alt: text("alt").notNull().default(""),
-  volume: text("volume").notNull(),
+  // Required for "aftr" items (an edition, e.g. "VOL. 3"); unused/empty for
+  // "access" items, which aren't split by edition.
+  volume: text("volume").notNull().default(""),
   eventId: varchar("event_id"),
   order: integer("order").notNull().default(0),
+  // "image" | "video"
+  type: text("type").notNull().default("image"),
+  // "aftr" | "access" — which public gallery this item belongs to. Both
+  // share this one table/set of admin+public routes, filtered client-side.
+  section: text("section").notNull().default("aftr"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
