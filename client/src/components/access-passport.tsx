@@ -695,7 +695,7 @@ export function AccessPassport() {
                       className="flex items-center gap-2 bg-[#c9962a] hover:bg-[#b8860b] disabled:opacity-40 text-black text-[9px] uppercase tracking-[0.2em] font-bold px-6 py-4 transition-colors whitespace-nowrap"
                     >
                       <SiWhatsapp className="w-3 h-3" />
-                      {sending ? "Sending..." : "Send All Passes"}
+                      {sending ? "Confirming..." : "Confirm Table Reservation"}
                     </button>
                   </div>
                 </div>
