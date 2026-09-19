@@ -99,11 +99,11 @@ export default function AdminAccessPage() {
   const TABLE_TYPES = ["single_entry", "table_4", "table_5", "section_8_12"];
 
   const [editingType, setEditingType] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState<{ price: string; capacity: string }>({ price: "", capacity: "" });
+  const [editValues, setEditValues] = useState<{ price: string; pricePerPerson: string; capacity: string }>({ price: "", pricePerPerson: "", capacity: "" });
 
   const updateInventoryMutation = useMutation({
-    mutationFn: ({ tableType, price, capacity }: { tableType: string; price: number; capacity: number }) =>
-      apiRequest("PATCH", `/api/admin/access/inventory/${tableType}`, { price, pricePerPerson: price, capacity }),
+    mutationFn: ({ tableType, price, pricePerPerson, capacity }: { tableType: string; price: number; pricePerPerson: number; capacity: number }) =>
+      apiRequest("PATCH", `/api/admin/access/inventory/${tableType}`, { price, pricePerPerson, capacity }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/access/inventory"] });
       queryClient.invalidateQueries({ queryKey: ["/api/access/capacity"] });
@@ -115,7 +115,7 @@ export default function AdminAccessPage() {
 
   function startEditing(row: AccessTableInventory) {
     setEditingType(row.tableType);
-    setEditValues({ price: String(row.price), capacity: String(row.capacity) });
+    setEditValues({ price: String(row.price), pricePerPerson: String(row.pricePerPerson), capacity: String(row.capacity) });
   }
 
   // ── Approve / reject mutations ──
@@ -497,18 +497,31 @@ export default function AdminAccessPage() {
                 <div key={key} className="bg-[#0a0a0a] border border-white/10 p-6">
                   <div className="flex items-start justify-between mb-1">
                     {isEditing ? (
-                      <div className="flex items-center gap-1 text-[#c9962a] text-[11px]">
-                        MUR
-                        <input
-                          type="number"
-                          value={editValues.price}
-                          onChange={(e) => setEditValues((v) => ({ ...v, price: e.target.value }))}
-                          className="w-20 bg-transparent border-b border-[#c9962a]/40 px-1 focus:outline-none"
-                        />
+                      <div className="flex flex-col gap-1.5 text-[#c9962a] text-[11px]">
+                        <div className="flex items-center gap-1">
+                          <span className="text-white/30 text-[9px] uppercase tracking-[0.15em] w-14 shrink-0">Total</span>
+                          MUR
+                          <input
+                            type="number"
+                            value={editValues.price}
+                            onChange={(e) => setEditValues((v) => ({ ...v, price: e.target.value }))}
+                            className="w-20 bg-transparent border-b border-[#c9962a]/40 px-1 focus:outline-none"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-white/30 text-[9px] uppercase tracking-[0.15em] w-14 shrink-0">Per person</span>
+                          MUR
+                          <input
+                            type="number"
+                            value={editValues.pricePerPerson}
+                            onChange={(e) => setEditValues((v) => ({ ...v, pricePerPerson: e.target.value }))}
+                            className="w-20 bg-transparent border-b border-[#c9962a]/40 px-1 focus:outline-none"
+                          />
+                        </div>
                       </div>
                     ) : (
                       <p className="text-[#c9962a] text-[9px] uppercase tracking-[0.3em]">
-                        MUR {config.price.toLocaleString()}
+                        MUR {config.price.toLocaleString()} <span className="text-white/20 normal-case">&middot; MUR {config.pricePerPerson}/person</span>
                       </p>
                     )}
                     {isEditing ? (
@@ -517,6 +530,7 @@ export default function AdminAccessPage() {
                           updateInventoryMutation.mutate({
                             tableType: key,
                             price: parseInt(editValues.price, 10) || config.price,
+                            pricePerPerson: parseInt(editValues.pricePerPerson, 10) || config.pricePerPerson,
                             capacity: parseInt(editValues.capacity, 10) || config.capacity,
                           })
                         }
@@ -537,7 +551,7 @@ export default function AdminAccessPage() {
                     )}
                   </div>
                   <h3
-                    className="text-white font-black leading-none mb-4"
+                    className="text-white font-black leading-none mb-4 mt-3"
                     style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "26px" }}
                   >
                     {config.label}

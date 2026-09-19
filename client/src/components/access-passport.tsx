@@ -36,6 +36,18 @@ function parseLineup(json: string | null | undefined): LineupEntry[] {
   }
 }
 
+// A fixed-size table (minGuests === maxGuests) shows a flat total; a
+// variable-size section shows a range priced off pricePerPerson, since a
+// single "price" number can't represent it.
+function computeTotalLabel(item: { price: number; pricePerPerson: number; minGuests: number; maxGuests: number }): string {
+  if (item.minGuests === item.maxGuests) {
+    return `MUR ${item.price.toLocaleString()} total`;
+  }
+  const lo = item.pricePerPerson * item.minGuests;
+  const hi = item.pricePerPerson * item.maxGuests;
+  return `MUR ${lo.toLocaleString()}–${hi.toLocaleString()} · final total confirmed on approval`;
+}
+
 // ─── Table config (mirrors server TABLE_INVENTORY) ────────────────────────────
 const TABLE_CONFIG: Record<
   string,
@@ -158,7 +170,9 @@ export function AccessPassport() {
   const [geName, setGeName] = useState("");
   const [gePhone, setGePhone] = useState("");
 
-  // Fetch inventory on mount
+  // Fetch inventory on mount — price/pricePerPerson/capacity/guest range all
+  // come from the server (admin-editable in Admin → ACCESS → Pricing) and
+  // override the local fallback; only `description` has no server column.
   useEffect(() => {
     fetch("/api/access/capacity")
       .then((r) => r.json())
@@ -167,7 +181,8 @@ export function AccessPassport() {
         for (const key of Object.keys(TABLE_CONFIG)) {
           const local = TABLE_CONFIG[key];
           const server = data[key] || {};
-          merged[key] = { ...local, used: server.used ?? 0 };
+          const item = { ...local, ...server, used: server.used ?? 0 };
+          merged[key] = { ...item, totalLabel: computeTotalLabel(item) };
         }
         setInventory(merged);
       })
@@ -268,11 +283,10 @@ export function AccessPassport() {
       })
       .join("\n");
 
-    const localConfig = TABLE_CONFIG[selectedTable];
     const adminMsg =
       `NEW ACCESS RESERVATION\n\n` +
       `Table: ${selectedConfig.label}\n` +
-      `Price: MUR 500 per person \u00b7 ${localConfig.totalLabel}\n` +
+      `Price: MUR ${selectedConfig.pricePerPerson} per person \u00b7 ${selectedConfig.totalLabel}\n` +
       `Date: ${eventDate}\n` +
       `Venue: ${eventVenue}\n` +
       `Note: Entry tickets only \u2014 no drinks included\n\n` +
@@ -489,9 +503,9 @@ export function AccessPassport() {
               <p className="text-[10px] uppercase tracking-[0.2em] mb-6" style={{ color: "rgba(201,150,42,0.6)" }}>{eventDate} · {eventVenue}</p>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {Object.entries(TABLE_CONFIG).map(([key, config]) => {
-                  const item = inventory[key];
-                  const used = item?.used ?? 0;
+                {Object.entries(TABLE_CONFIG).map(([key, fallback]) => {
+                  const config = inventory[key] ?? fallback;
+                  const used = inventory[key]?.used ?? 0;
                   const remaining = config.capacity - used;
                   const soldOut = remaining <= 0;
                   const isSelected = selectedTable === key;
@@ -516,7 +530,7 @@ export function AccessPassport() {
                       </span>
 
                       {/* Pricing */}
-                      <p className="text-[#c9962a] text-[13px] font-mono font-medium mb-0.5">MUR 500 per person</p>
+                      <p className="text-[#c9962a] text-[13px] font-mono font-medium mb-0.5">MUR {config.pricePerPerson} per person</p>
                       <p className="text-[12px] font-mono text-white/50 mb-3">{config.totalLabel}</p>
 
                       {/* Capacity */}
@@ -628,8 +642,8 @@ export function AccessPassport() {
                   <div className="border-t border-white/10 pt-8 flex items-center justify-between gap-4">
                     <div>
                       <p className="text-white text-sm font-mono">{selectedConfig.label}</p>
-                      <p className="text-[#c9962a] text-xs font-mono">MUR 500 per person</p>
-                      <p className="text-white/30 text-[9px] font-mono mt-0.5">{TABLE_CONFIG[selectedTable!]?.totalLabel}</p>
+                      <p className="text-[#c9962a] text-xs font-mono">MUR {selectedConfig.pricePerPerson} per person</p>
+                      <p className="text-white/30 text-[9px] font-mono mt-0.5">{selectedConfig.totalLabel}</p>
                       <p className="text-white/30 text-[9px] uppercase tracking-[0.15em] mt-0.5">
                         {guests.length} {guests.length === 1 ? "pass" : "passes"}
                       </p>
