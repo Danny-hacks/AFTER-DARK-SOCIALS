@@ -56,6 +56,14 @@ function parseGuestNames(json: string | null): string[] {
   }
 }
 
+interface ScanLogEntry {
+  ticket: TicketType;
+  scannedAt: number;
+  checkedIn: boolean;
+  /** Was already checked in from an earlier scan, before this one */
+  alreadyUsed: boolean;
+}
+
 export default function AdminEventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [tab, setTab] = useState<Tab>("overview");
@@ -107,10 +115,18 @@ export default function AdminEventDetailPage() {
     onError: () => toast({ title: "Failed to mark delivered", variant: "destructive" }),
   });
 
+  const deleteTicketMutation = useMutation({
+    mutationFn: (ticketId: string) => apiRequest("DELETE", `/api/admin/tickets/${ticketId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] });
+      toast({ title: "Ticket deleted" });
+    },
+    onError: () => toast({ title: "Failed to delete ticket", variant: "destructive" }),
+  });
+
   const [viewingTicket, setViewingTicket] = useState<TicketType | null>(null);
   const [autoShareTicket, setAutoShareTicket] = useState(false);
-  const [scannedTicket, setScannedTicket] = useState<TicketType | null>(null);
-  const [scanWasAlreadyUsed, setScanWasAlreadyUsed] = useState(false);
+  const [scanLog, setScanLog] = useState<ScanLogEntry[]>([]);
   const [showCreateTicket, setShowCreateTicket] = useState(false);
   const [manualTicket, setManualTicket] = useState({
     referenceCode: "", customerName: "", customerEmail: "", customerPhone: "",
@@ -195,10 +211,13 @@ export default function AdminEventDetailPage() {
 
   const useMutation2 = useMutation({
     mutationFn: (tid: string) => apiRequest("PATCH", `/api/admin/tickets/${tid}/use`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] }),
-    onError: () => {
-      toast({ title: "Check-in failed — tap Check In to retry", variant: "destructive" });
-      setScannedTicket((prev) => (prev ? { ...prev, isUsed: false } : prev));
+    onSuccess: (_res, ticketId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] });
+      setScanLog((prev) => prev.map((e) => (e.ticket.id === ticketId ? { ...e, checkedIn: true } : e)));
+    },
+    onError: (_err, ticketId) => {
+      toast({ title: "Check-in failed — tap Retry to try again", variant: "destructive" });
+      setScanLog((prev) => prev.map((e) => (e.ticket.id === ticketId ? { ...e, checkedIn: false } : e)));
     },
   });
 
@@ -601,6 +620,14 @@ export default function AdminEventDetailPage() {
                       Mark Sent
                     </button>
                   )}
+                  <button
+                    onClick={() => { if (confirm(`Delete ticket ${t.referenceCode}? This cannot be undone.`)) deleteTicketMutation.mutate(t.id); }}
+                    disabled={deleteTicketMutation.isPending}
+                    title="Delete this ticket"
+                    className="flex items-center gap-1.5 border border-white/15 text-white/30 hover:border-red-500/50 hover:text-red-400 text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors disabled:opacity-40"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
                 </div>
               </div>
             ))
@@ -662,44 +689,53 @@ export default function AdminEventDetailPage() {
                 return;
               }
               if (ticket.isUsed) {
-                setScannedTicket(ticket);
-                setScanWasAlreadyUsed(true);
+                setScanLog((prev) => [{ ticket, scannedAt: Date.now(), checkedIn: true, alreadyUsed: true }, ...prev].slice(0, 25));
                 toast({ title: `Already checked in — ${ticket.customerName}`, description: ticket.referenceCode, variant: "destructive" });
                 return;
               }
               // Check in immediately on a valid scan — no extra click needed.
-              setScannedTicket({ ...ticket, isUsed: true });
-              setScanWasAlreadyUsed(false);
+              setScanLog((prev) => [{ ticket, scannedAt: Date.now(), checkedIn: false, alreadyUsed: false }, ...prev].slice(0, 25));
               toast({ title: `Checked in — ${ticket.customerName}`, description: ticket.referenceCode });
               useMutation2.mutate(ticket.id);
             }}
             onClose={() => setTab("checkin")}
           />
 
-          {scannedTicket && (
-            <div className="border border-white/10 p-5 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-white text-sm font-medium">{scannedTicket.customerName}</p>
-                <p className="text-white/30 text-xs font-mono mt-0.5">{scannedTicket.referenceCode}</p>
-                <span className={`inline-block mt-2 text-[9px] uppercase tracking-[0.2em] px-2 py-0.5 border ${
-                  scanWasAlreadyUsed ? "border-yellow-500/30 text-yellow-400" : scannedTicket.isUsed ? "border-green-500/30 text-green-400" : "border-yellow-500/30 text-yellow-400"
-                }`}>
-                  {scanWasAlreadyUsed ? "Already Checked In" : scannedTicket.isUsed ? "Checked In" : "Pending"}
-                </span>
+          {scanLog.length > 0 && (
+            <div>
+              <p className="text-white/30 text-[10px] uppercase tracking-[0.2em] mb-3">Recent Scans</p>
+              <div className="space-y-px">
+                {scanLog.map((entry) => (
+                  <div
+                    key={`${entry.ticket.id}-${entry.scannedAt}`}
+                    className="border border-white/10 p-4 flex items-center justify-between gap-4"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-white text-sm truncate">{entry.ticket.customerName}</p>
+                      <p className="text-white/30 text-xs font-mono mt-0.5">{entry.ticket.referenceCode}</p>
+                    </div>
+                    {entry.alreadyUsed ? (
+                      <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] px-2 py-1 border border-yellow-500/30 text-yellow-400 shrink-0">
+                        <CheckCircle className="w-3 h-3" />
+                        Already Checked In
+                      </span>
+                    ) : entry.checkedIn ? (
+                      <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] px-2 py-1 border border-green-500/30 text-green-400 shrink-0">
+                        <CheckCircle className="w-3 h-3" />
+                        Checked In
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => useMutation2.mutate(entry.ticket.id)}
+                        disabled={useMutation2.isPending}
+                        className="text-[9px] uppercase tracking-[0.15em] px-2 py-1 border border-yellow-500/30 text-yellow-400 hover:border-yellow-500/60 disabled:opacity-40 transition-colors shrink-0"
+                      >
+                        Retry
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
-              {!scannedTicket.isUsed && (
-                <button
-                  onClick={() => {
-                    useMutation2.mutate(scannedTicket.id);
-                    setScannedTicket({ ...scannedTicket, isUsed: true });
-                  }}
-                  disabled={useMutation2.isPending}
-                  className="flex items-center gap-1.5 bg-green-700 text-white text-[9px] uppercase tracking-[0.15em] font-bold px-4 py-2.5 hover:bg-green-600 disabled:opacity-40 transition-colors shrink-0"
-                >
-                  {useMutation2.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                  Check In
-                </button>
-              )}
             </div>
           )}
         </div>

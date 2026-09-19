@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { CheckCircle, Eye, ExternalLink, Loader2, Search } from "lucide-react";
+import { CheckCircle, Eye, ExternalLink, Loader2, Search, Trash2 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -83,6 +83,15 @@ export default function AdminOrdersPage() {
     mutationFn: (ticketId: string) => apiRequest("PATCH", `/api/admin/tickets/${ticketId}/deliver`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] }),
     onError: () => toast({ title: "Failed to mark delivered", variant: "destructive" }),
+  });
+
+  const deleteTicketMutation = useMutation({
+    mutationFn: (ticketId: string) => apiRequest("DELETE", `/api/admin/tickets/${ticketId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] });
+      toast({ title: "Ticket deleted" });
+    },
+    onError: () => toast({ title: "Failed to delete ticket", variant: "destructive" }),
   });
 
   function markTicketSent(t: TicketType) {
@@ -265,6 +274,14 @@ export default function AdminOrdersPage() {
                               Mark Sent
                             </button>
                           )}
+                          <button
+                            onClick={() => { if (confirm(`Delete ticket ${t.referenceCode}? This cannot be undone.`)) deleteTicketMutation.mutate(t.id); }}
+                            disabled={deleteTicketMutation.isPending}
+                            title="Delete this ticket"
+                            className="flex items-center gap-1.5 border border-white/15 text-white/30 hover:border-red-500/50 hover:text-red-400 text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors disabled:opacity-40"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
                         </div>
                       </div>
                     ))}
