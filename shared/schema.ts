@@ -207,10 +207,22 @@ export const accessEvents = pgTable("access_events", {
   description: text("description"),
   posterUrl: text("poster_url"),
   bannerUrl: text("banner_url"),
+  // JSON-encoded {name, origin, genres}[] — same convention as
+  // ticketPurchases.guestNamesJson. Null/empty means no lineup configured.
+  lineupJson: text("lineup_json"),
+  // General-entry early-bird pricing window for this specific edition —
+  // null deadline means early-bird pricing is simply off.
+  earlyBirdDeadline: timestamp("early_bird_deadline"),
+  earlyBirdPrice: integer("early_bird_price"),
+  regularPrice: integer("regular_price"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertAccessEventSchema = createInsertSchema(accessEvents).omit({
+export const insertAccessEventSchema = createInsertSchema(accessEvents, {
+  // Sent over JSON as an ISO string (or omitted/null) — coerce rather than
+  // requiring an actual Date instance, which JSON can't carry.
+  earlyBirdDeadline: z.coerce.date().nullable().optional(),
+}).omit({
   id: true,
   createdAt: true,
 });

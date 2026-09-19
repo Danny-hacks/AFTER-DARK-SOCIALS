@@ -1178,7 +1178,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/admin/access/events/:id", requireAuth, async (req, res) => {
     try {
-      const event = await storage.updateAccessEvent(req.params.id, req.body);
+      const eventData = insertAccessEventSchema.partial().parse(req.body);
+      const event = await storage.updateAccessEvent(req.params.id, eventData);
       if (!event) return res.status(404).json({ error: "Access event not found" });
       res.json({ success: true, event });
     } catch (error) {

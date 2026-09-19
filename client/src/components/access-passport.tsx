@@ -8,20 +8,32 @@ import type { PassFields } from "@/components/passport-card";
 import type { AccessEvent } from "@shared/schema";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const EARLY_BIRD_DEADLINE = new Date("2026-07-02T19:59:00.000Z");
-const EARLY_BIRD_PRICE = 350;
-const REGULAR_PRICE = 500;
 const ADMIN_PHONE = "23058205220";
 const R2 = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictures";
-// Fallback defaults, used only until an ACCESS event is created in the admin.
+// Fallback defaults, used only until an ACCESS event is created in the admin,
+// or when a specific field (lineup, early-bird pricing) is left unset on it.
 const DEFAULT_POSTER_URL = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictures/IMG_0246.PNG";
 const DEFAULT_BANNER_URL = `${R2}/Serge_59.jpg`;
 const DEFAULT_DATE = "Friday 3 July 2026";
 const DEFAULT_VENUE = "Club Sixty Nine";
 const DEFAULT_TIME = "Doors Open 8PM";
+const DEFAULT_EARLY_BIRD_PRICE = 350;
+const DEFAULT_REGULAR_PRICE = 500;
 
-function isEarlyBirdActive(): boolean {
-  return new Date() < EARLY_BIRD_DEADLINE;
+interface LineupEntry {
+  name: string;
+  origin: string;
+  genres: string;
+}
+
+function parseLineup(json: string | null | undefined): LineupEntry[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 // ─── Table config (mirrors server TABLE_INVENTORY) ────────────────────────────
@@ -136,9 +148,13 @@ export function AccessPassport() {
     const parsed = new Date(eventDate);
     return isNaN(parsed.getTime()) ? "" : String(parsed.getFullYear());
   })();
+  const lineup = parseLineup(currentEvent?.lineupJson);
+  const earlyBirdPrice = currentEvent?.earlyBirdPrice ?? DEFAULT_EARLY_BIRD_PRICE;
+  const regularPrice = currentEvent?.regularPrice ?? DEFAULT_REGULAR_PRICE;
 
-  // General entry state
-  const earlyBird = isEarlyBirdActive();
+  // General entry state — early-bird pricing is entirely driven by this
+  // edition's own deadline; no deadline configured means it's simply off.
+  const earlyBird = !!currentEvent?.earlyBirdDeadline && new Date() < new Date(currentEvent.earlyBirdDeadline);
   const [geName, setGeName] = useState("");
   const [gePhone, setGePhone] = useState("");
 
@@ -206,7 +222,7 @@ export function AccessPassport() {
       toast({ title: "Please enter your name", variant: "destructive" });
       return;
     }
-    const tierLabel = earlyBird ? `Early Bird MUR ${EARLY_BIRD_PRICE}` : `General Entry MUR ${REGULAR_PRICE}`;
+    const tierLabel = earlyBird ? `Early Bird MUR ${earlyBirdPrice}` : `General Entry MUR ${regularPrice}`;
     const msg =
       `Hi, I'd like to reserve a General Entry ticket for ACCESS on ${eventDate} at ${eventVenue}.\n\n` +
       `Ticket: ${tierLabel}\n` +
@@ -359,21 +375,20 @@ export function AccessPassport() {
               ))}
             </div>
 
-            <div className="border-t border-white/10 pt-6 mb-6">
-              <p className="text-[#c9962a] text-[9px] uppercase tracking-[0.3em] mb-4">DJ Lineup</p>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { name: "DJ Sweety", origin: "Mayotte's Finest", genres: "Amapiano · Afrobeat · Dancehall" },
-                  { name: "DJ Luvlesh", origin: "Mauritius' Favourite", genres: "Amapiano · Afrobeat" },
-                ].map((dj) => (
-                  <div key={dj.name} className="border border-white/8 p-3">
-                    <p className="text-white leading-none mb-1" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "18px" }}>{dj.name}</p>
-                    <p className="text-[#c9962a] text-[8px] uppercase tracking-[0.25em] mb-1">{dj.origin}</p>
-                    <p className="text-white/30 text-[9px]">{dj.genres}</p>
-                  </div>
-                ))}
+            {lineup.length > 0 && (
+              <div className="border-t border-white/10 pt-6 mb-6">
+                <p className="text-[#c9962a] text-[9px] uppercase tracking-[0.3em] mb-4">DJ Lineup</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {lineup.map((dj, i) => (
+                    <div key={`${dj.name}-${i}`} className="border border-white/8 p-3">
+                      <p className="text-white leading-none mb-1" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "18px" }}>{dj.name}</p>
+                      {dj.origin && <p className="text-[#c9962a] text-[8px] uppercase tracking-[0.25em] mb-1">{dj.origin}</p>}
+                      {dj.genres && <p className="text-white/30 text-[9px]">{dj.genres}</p>}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <p className="text-white/25 text-[10px] mb-6">In collaboration with Kultur'M</p>
 
@@ -413,10 +428,10 @@ export function AccessPassport() {
                   </p>
                   <div className="flex items-baseline gap-3 mb-3">
                     <p className="font-mono font-medium" style={{ color: "#c9962a", fontSize: "28px" }}>
-                      MUR {earlyBird ? EARLY_BIRD_PRICE : REGULAR_PRICE}
+                      MUR {earlyBird ? earlyBirdPrice : regularPrice}
                     </p>
                     {earlyBird && (
-                      <p className="text-white/30 text-[11px] line-through font-mono">MUR {REGULAR_PRICE}</p>
+                      <p className="text-white/30 text-[11px] line-through font-mono">MUR {regularPrice}</p>
                     )}
                   </div>
                   {earlyBird && (

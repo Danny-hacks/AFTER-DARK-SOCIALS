@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, Plus, Trash2, Image as ImageIcon, X } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
@@ -7,11 +7,258 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { AccessEvent } from "@shared/schema";
 
-const emptyForm = { name: "ACCESS", date: "", time: "", venue: "", description: "", posterUrl: "", bannerUrl: "" };
+interface LineupEntry {
+  name: string;
+  origin: string;
+  genres: string;
+}
+
+const emptyLineupEntry: LineupEntry = { name: "", origin: "", genres: "" };
+
+const emptyForm = {
+  name: "ACCESS",
+  date: "",
+  time: "",
+  venue: "",
+  description: "",
+  posterUrl: "",
+  bannerUrl: "",
+  lineup: [] as LineupEntry[],
+  earlyBirdDeadline: "",
+  earlyBirdPrice: "",
+  regularPrice: "",
+};
+
+function parseLineup(json: string | null): LineupEntry[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+// datetime-local inputs need "YYYY-MM-DDTHH:mm" in the viewer's local time —
+// toISOString() would silently shift the displayed value to UTC.
+function toDatetimeLocal(value: string | Date | null): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "";
+  const pad2 = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+function eventToForm(ev: AccessEvent): typeof emptyForm {
+  return {
+    name: ev.name,
+    date: ev.date,
+    time: ev.time ?? "",
+    venue: ev.venue ?? "",
+    description: ev.description ?? "",
+    posterUrl: ev.posterUrl ?? "",
+    bannerUrl: ev.bannerUrl ?? "",
+    lineup: parseLineup(ev.lineupJson),
+    earlyBirdDeadline: toDatetimeLocal(ev.earlyBirdDeadline),
+    earlyBirdPrice: ev.earlyBirdPrice != null ? String(ev.earlyBirdPrice) : "",
+    regularPrice: ev.regularPrice != null ? String(ev.regularPrice) : "",
+  };
+}
+
+function formToPayload(data: typeof emptyForm) {
+  const { lineup, earlyBirdDeadline, earlyBirdPrice, regularPrice, ...rest } = data;
+  const cleanLineup = lineup.filter((dj) => dj.name.trim());
+  return {
+    ...rest,
+    lineupJson: cleanLineup.length > 0 ? JSON.stringify(cleanLineup) : null,
+    earlyBirdDeadline: earlyBirdDeadline ? new Date(earlyBirdDeadline).toISOString() : null,
+    earlyBirdPrice: earlyBirdPrice ? parseInt(earlyBirdPrice, 10) : null,
+    regularPrice: regularPrice ? parseInt(regularPrice, 10) : null,
+  };
+}
+
+const inputCls = "w-full bg-transparent border border-white/15 text-white placeholder:text-white/25 text-sm px-4 py-3 focus:outline-none focus:border-white/40 transition-colors";
+const labelCls = "block text-[10px] text-white/40 uppercase tracking-[0.2em] mb-2";
+
+function AccessEventFormFields({ form, setForm }: { form: typeof emptyForm; setForm: Dispatch<SetStateAction<typeof emptyForm>> }) {
+  return (
+    <>
+      <div>
+        <label className={labelCls}>Name</label>
+        <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputCls} />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div>
+          <label className={labelCls}>Date *</label>
+          <input value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} placeholder="e.g. Friday 3 July 2026" className={inputCls} />
+        </div>
+        <div>
+          <label className={labelCls}>Time</label>
+          <input value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} placeholder="Doors Open 8PM" className={inputCls} />
+        </div>
+      </div>
+
+      <div>
+        <label className={labelCls}>Venue</label>
+        <input value={form.venue} onChange={(e) => setForm({ ...form, venue: e.target.value })} placeholder="Club Sixty Nine" className={inputCls} />
+      </div>
+
+      <div>
+        <label className={labelCls}>Description</label>
+        <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className={`${inputCls} resize-none`} />
+      </div>
+
+      <div>
+        <label className={labelCls}>Poster Image</label>
+        <div className="flex items-center gap-4">
+          {form.posterUrl && (
+            <div className="relative">
+              <img src={form.posterUrl} alt="" className="w-16 h-20 object-cover border border-white/10" />
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, posterUrl: "" })}
+                className="absolute -top-2 -right-2 bg-black border border-white/20 rounded-full p-1 text-white/60 hover:text-white"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+          <ObjectUploader
+            maxFileSize={20 * 1024 * 1024}
+            allowedFileTypes={["image/*"]}
+            onComplete={(url) => setForm((f) => ({ ...f, posterUrl: url }))}
+            buttonClassName="gap-2"
+          >
+            <ImageIcon className="w-4 h-4" />
+            {form.posterUrl ? "Replace Poster" : "Upload Poster"}
+          </ObjectUploader>
+        </div>
+      </div>
+
+      <div>
+        <label className={labelCls}>Banner Image</label>
+        <div className="flex items-center gap-4">
+          {form.bannerUrl && (
+            <div className="relative">
+              <img src={form.bannerUrl} alt="" className="w-24 h-14 object-cover border border-white/10" />
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, bannerUrl: "" })}
+                className="absolute -top-2 -right-2 bg-black border border-white/20 rounded-full p-1 text-white/60 hover:text-white"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+          <ObjectUploader
+            maxFileSize={20 * 1024 * 1024}
+            allowedFileTypes={["image/*"]}
+            onComplete={(url) => setForm((f) => ({ ...f, bannerUrl: url }))}
+            buttonClassName="gap-2"
+          >
+            <ImageIcon className="w-4 h-4" />
+            {form.bannerUrl ? "Replace Banner" : "Upload Banner"}
+          </ObjectUploader>
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className={labelCls}>DJ Lineup</label>
+          <button
+            type="button"
+            onClick={() => setForm((f) => ({ ...f, lineup: [...f.lineup, { ...emptyLineupEntry }] }))}
+            className="flex items-center gap-1.5 text-[#c9962a] text-[9px] uppercase tracking-[0.2em] hover:text-[#f5d76e] transition-colors"
+          >
+            <Plus className="w-3 h-3" />
+            Add DJ
+          </button>
+        </div>
+        {form.lineup.length === 0 ? (
+          <p className="text-white/15 text-xs">No DJs added — the page will hide the lineup section.</p>
+        ) : (
+          <div className="space-y-3">
+            {form.lineup.map((dj, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1">
+                  <input
+                    value={dj.name}
+                    onChange={(e) => setForm((f) => ({ ...f, lineup: f.lineup.map((d, idx) => idx === i ? { ...d, name: e.target.value } : d) }))}
+                    placeholder="DJ Name"
+                    className={inputCls}
+                  />
+                  <input
+                    value={dj.origin}
+                    onChange={(e) => setForm((f) => ({ ...f, lineup: f.lineup.map((d, idx) => idx === i ? { ...d, origin: e.target.value } : d) }))}
+                    placeholder="e.g. Mauritius' Favourite"
+                    className={inputCls}
+                  />
+                  <input
+                    value={dj.genres}
+                    onChange={(e) => setForm((f) => ({ ...f, lineup: f.lineup.map((d, idx) => idx === i ? { ...d, genres: e.target.value } : d) }))}
+                    placeholder="Amapiano · Afrobeat"
+                    className={inputCls}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, lineup: f.lineup.filter((_, idx) => idx !== i) }))}
+                  className="p-3 border border-white/15 text-white/30 hover:border-red-500/50 hover:text-red-400 transition-colors shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className={labelCls}>Early Bird Deadline</label>
+        <input
+          type="datetime-local"
+          value={form.earlyBirdDeadline}
+          onChange={(e) => setForm({ ...form, earlyBirdDeadline: e.target.value })}
+          className={inputCls}
+        />
+        <p className="text-white/15 text-[10px] mt-1.5">Leave blank to disable early-bird pricing for this edition.</p>
+      </div>
+
+      {form.earlyBirdDeadline && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div>
+            <label className={labelCls}>Early Bird Price (MUR)</label>
+            <input
+              type="number"
+              value={form.earlyBirdPrice}
+              onChange={(e) => setForm({ ...form, earlyBirdPrice: e.target.value })}
+              placeholder="350"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Regular Price (MUR)</label>
+            <input
+              type="number"
+              value={form.regularPrice}
+              onChange={(e) => setForm({ ...form, regularPrice: e.target.value })}
+              placeholder="500"
+              className={inputCls}
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 
 export default function AdminAccessEventsPage() {
   const { toast } = useToast();
   const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState(emptyForm);
 
   const { data: events = [], isLoading } = useQuery<{ success: boolean; events: AccessEvent[] }, Error, AccessEvent[]>({
     queryKey: ["/api/admin/access/events"],
@@ -19,7 +266,7 @@ export default function AdminAccessEventsPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: typeof form) => apiRequest("POST", "/api/admin/access/events", data),
+    mutationFn: (data: typeof form) => apiRequest("POST", "/api/admin/access/events", formToPayload(data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/access/events"] });
       queryClient.invalidateQueries({ queryKey: ["/api/access/current"] });
@@ -27,6 +274,18 @@ export default function AdminAccessEventsPage() {
       toast({ title: "ACCESS event created" });
     },
     onError: () => toast({ title: "Failed to create event", variant: "destructive" }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: typeof form }) =>
+      apiRequest("PATCH", `/api/admin/access/events/${id}`, formToPayload(data)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/access/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/access/current"] });
+      setEditingId(null);
+      toast({ title: "ACCESS event updated" });
+    },
+    onError: () => toast({ title: "Failed to update event", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -39,8 +298,10 @@ export default function AdminAccessEventsPage() {
     onError: () => toast({ title: "Failed to delete event", variant: "destructive" }),
   });
 
-  const inputCls = "w-full bg-transparent border border-white/15 text-white placeholder:text-white/25 text-sm px-4 py-3 focus:outline-none focus:border-white/40 transition-colors";
-  const labelCls = "block text-[10px] text-white/40 uppercase tracking-[0.2em] mb-2";
+  function startEditing(ev: AccessEvent) {
+    setEditingId(ev.id);
+    setEditForm(eventToForm(ev));
+  }
 
   return (
     <AdminLayout title="ACCESS Events">
@@ -64,26 +325,63 @@ export default function AdminAccessEventsPage() {
       ) : (
         <div className="space-y-px mb-10">
           {events.map((ev) => (
-            <div key={ev.id} className="bg-[#0a0a0a] border border-white/10 p-4 flex items-center gap-4">
-              {ev.posterUrl ? (
-                <img src={ev.posterUrl} alt="" className="w-12 h-16 object-cover border border-white/10 shrink-0" />
-              ) : (
-                <div className="w-12 h-16 border border-white/10 bg-black flex items-center justify-center shrink-0">
-                  <ImageIcon className="w-4 h-4 text-white/15" />
+            <div key={ev.id} className="bg-[#0a0a0a] border border-white/10">
+              <div className="p-4 flex items-center gap-4">
+                {ev.posterUrl ? (
+                  <img src={ev.posterUrl} alt="" className="w-12 h-16 object-cover border border-white/10 shrink-0" />
+                ) : (
+                  <div className="w-12 h-16 border border-white/10 bg-black flex items-center justify-center shrink-0">
+                    <ImageIcon className="w-4 h-4 text-white/15" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium">{ev.name}</p>
+                  <p className="text-white/30 text-xs mt-0.5">{[ev.date, ev.venue].filter(Boolean).join(" · ")}</p>
+                  <p className="text-white/20 text-[10px] mt-0.5">
+                    {parseLineup(ev.lineupJson).length > 0
+                      ? `${parseLineup(ev.lineupJson).length} DJ${parseLineup(ev.lineupJson).length !== 1 ? "s" : ""} · `
+                      : "No lineup · "}
+                    {ev.earlyBirdDeadline
+                      ? `Early bird until ${new Date(ev.earlyBirdDeadline).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
+                      : "No early bird"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => { if (editingId === ev.id) { setEditingId(null); } else { startEditing(ev); } }}
+                  className="flex items-center gap-1.5 border border-white/15 text-white/40 hover:border-white/40 hover:text-white text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors shrink-0"
+                >
+                  {editingId === ev.id ? "Close" : "Edit"}
+                </button>
+                <button
+                  onClick={() => { if (confirm(`Delete "${ev.name}"?`)) deleteMutation.mutate(ev.id); }}
+                  disabled={deleteMutation.isPending}
+                  className="flex items-center gap-1.5 border border-white/15 text-white/40 hover:border-red-500/50 hover:text-red-400 text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors shrink-0"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Delete
+                </button>
+              </div>
+
+              {editingId === ev.id && (
+                <div className="border-t border-white/10 p-6 space-y-6">
+                  <p className="text-[10px] text-white/30 uppercase tracking-[0.2em]">Edit ACCESS Edition</p>
+                  <AccessEventFormFields form={editForm} setForm={setEditForm} />
+                  <button
+                    onClick={() => {
+                      if (!editForm.date.trim()) {
+                        toast({ title: "Date is required", variant: "destructive" });
+                        return;
+                      }
+                      updateMutation.mutate({ id: ev.id, data: editForm });
+                    }}
+                    disabled={updateMutation.isPending}
+                    className="flex items-center gap-2 bg-[#c9962a] text-black text-[10px] uppercase tracking-[0.2em] font-bold px-8 py-4 hover:bg-[#b8860b] disabled:opacity-50 transition-colors"
+                  >
+                    {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                    Save Changes
+                  </button>
                 </div>
               )}
-              <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-medium">{ev.name}</p>
-                <p className="text-white/30 text-xs mt-0.5">{[ev.date, ev.venue].filter(Boolean).join(" · ")}</p>
-              </div>
-              <button
-                onClick={() => { if (confirm(`Delete "${ev.name}"?`)) deleteMutation.mutate(ev.id); }}
-                disabled={deleteMutation.isPending}
-                className="flex items-center gap-1.5 border border-white/15 text-white/40 hover:border-red-500/50 hover:text-red-400 text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors shrink-0"
-              >
-                <Trash2 className="w-3 h-3" />
-                Delete
-              </button>
             </div>
           ))}
         </div>
@@ -93,85 +391,7 @@ export default function AdminAccessEventsPage() {
       <div className="max-w-2xl border border-white/10 p-6 space-y-6">
         <p className="text-[10px] text-white/30 uppercase tracking-[0.2em]">Add ACCESS Edition</p>
 
-        <div>
-          <label className={labelCls}>Name</label>
-          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputCls} />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div>
-            <label className={labelCls}>Date *</label>
-            <input value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} placeholder="e.g. Friday 3 July 2026" className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls}>Time</label>
-            <input value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} placeholder="Doors Open 8PM" className={inputCls} />
-          </div>
-        </div>
-
-        <div>
-          <label className={labelCls}>Venue</label>
-          <input value={form.venue} onChange={(e) => setForm({ ...form, venue: e.target.value })} placeholder="Club Sixty Nine" className={inputCls} />
-        </div>
-
-        <div>
-          <label className={labelCls}>Description</label>
-          <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className={`${inputCls} resize-none`} />
-        </div>
-
-        <div>
-          <label className={labelCls}>Poster Image</label>
-          <div className="flex items-center gap-4">
-            {form.posterUrl && (
-              <div className="relative">
-                <img src={form.posterUrl} alt="" className="w-16 h-20 object-cover border border-white/10" />
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, posterUrl: "" })}
-                  className="absolute -top-2 -right-2 bg-black border border-white/20 rounded-full p-1 text-white/60 hover:text-white"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-            <ObjectUploader
-              maxFileSize={20 * 1024 * 1024}
-              allowedFileTypes={["image/*"]}
-              onComplete={(url) => setForm((f) => ({ ...f, posterUrl: url }))}
-              buttonClassName="gap-2"
-            >
-              <ImageIcon className="w-4 h-4" />
-              {form.posterUrl ? "Replace Poster" : "Upload Poster"}
-            </ObjectUploader>
-          </div>
-        </div>
-
-        <div>
-          <label className={labelCls}>Banner Image</label>
-          <div className="flex items-center gap-4">
-            {form.bannerUrl && (
-              <div className="relative">
-                <img src={form.bannerUrl} alt="" className="w-24 h-14 object-cover border border-white/10" />
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, bannerUrl: "" })}
-                  className="absolute -top-2 -right-2 bg-black border border-white/20 rounded-full p-1 text-white/60 hover:text-white"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-            <ObjectUploader
-              maxFileSize={20 * 1024 * 1024}
-              allowedFileTypes={["image/*"]}
-              onComplete={(url) => setForm((f) => ({ ...f, bannerUrl: url }))}
-              buttonClassName="gap-2"
-            >
-              <ImageIcon className="w-4 h-4" />
-              {form.bannerUrl ? "Replace Banner" : "Upload Banner"}
-            </ObjectUploader>
-          </div>
-        </div>
+        <AccessEventFormFields form={form} setForm={setForm} />
 
         <button
           onClick={() => {
