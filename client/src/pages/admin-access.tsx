@@ -178,6 +178,7 @@ export default function AdminAccessPage() {
     tableLabel: computedTableLabel,
     photo: singlePhoto,
     id: livePassId,
+    date: currentEventDate,
   };
 
   const singleMutation = useMutation({

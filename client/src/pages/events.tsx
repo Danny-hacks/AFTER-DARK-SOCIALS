@@ -116,31 +116,58 @@ function PastEventCard({ event }: { event: Event }) {
   );
 }
 
-// A standing entry for ACCESS alongside past AFTR events — it isn't tied to
-// one specific edition, so it always links to the ACCESS page itself.
-function AccessCard({ accessEvent }: { accessEvent: AccessEvent | null | undefined }) {
-  const bannerUrl = accessEvent?.bannerUrl || ACCESS_DEFAULT_BANNER;
+// ACCESS isn't stored in the `events` table, so when the admin has an
+// upcoming edition configured it's rendered as its own card in the same
+// Upcoming Events grid, using the real name/date/venue/description from the
+// backend — but always linking to /access for details and table reservations
+// rather than an event-detail page (ACCESS pages don't exist).
+function AccessUpcomingCard({ accessEvent }: { accessEvent: AccessEvent }) {
   return (
-    <Link href="/access" className="group block border border-white/10 hover:border-[#c9962a]/40 transition-all duration-300">
-      <div className="relative h-40 overflow-hidden">
-        <img
-          src={bannerUrl}
-          alt="ACCESS"
-          className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-500" />
-      </div>
-      <div className="p-6">
-        <p className="text-[9px] uppercase tracking-[0.35em] mb-2" style={{ color: "#c9962a" }}>Private Social</p>
+    <Link href="/access" className="group block border border-[#c9962a]/25 hover:border-[#c9962a]/60 transition-all duration-300">
+      {(accessEvent.bannerUrl || ACCESS_DEFAULT_BANNER) && (
+        <div className="relative h-48 overflow-hidden">
+          <img
+            src={accessEvent.bannerUrl || ACCESS_DEFAULT_BANNER}
+            alt={accessEvent.name}
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-700"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-500" />
+        </div>
+      )}
+      <div className="p-6 sm:p-8">
+        <p className="text-[9px] uppercase tracking-[0.35em] mb-3" style={{ color: "#c9962a" }}>Private Social</p>
         <h2
           className="text-white leading-none mb-4 group-hover:text-white/80 transition-colors"
-          style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(24px, 3.5vw, 36px)" }}
+          style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(28px, 4vw, 48px)" }}
         >
-          ACCESS
+          {accessEvent.name}
         </h2>
-        <div className="flex items-center gap-2 text-white/40 group-hover:text-white text-[10px] uppercase tracking-[0.2em] font-bold transition-colors">
-          View ACCESS
+        <div className="flex flex-wrap gap-4 mb-5">
+          {accessEvent.date && (
+            <div className="flex items-center gap-2 text-white/40 text-xs">
+              <Calendar className="w-3 h-3" />
+              <span>{accessEvent.date}</span>
+            </div>
+          )}
+          {accessEvent.time && (
+            <div className="flex items-center gap-2 text-white/40 text-xs">
+              <Clock className="w-3 h-3" />
+              <span>{accessEvent.time}</span>
+            </div>
+          )}
+          {accessEvent.venue && (
+            <div className="flex items-center gap-2 text-white/40 text-xs">
+              <MapPin className="w-3 h-3" />
+              <span>{accessEvent.venue}</span>
+            </div>
+          )}
+        </div>
+        {accessEvent.description && (
+          <p className="text-white/30 text-sm leading-relaxed mb-6 line-clamp-2">{accessEvent.description}</p>
+        )}
+        <div className="flex items-center gap-2 text-[#c9962a] group-hover:text-[#f5d76e] text-[10px] uppercase tracking-[0.2em] font-bold transition-colors">
+          Reserve Your Table
           <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </div>
       </div>
@@ -160,6 +187,8 @@ export default function EventsPage() {
 
   const upcoming = events.filter((e) => !e.isPast);
   const past = events.filter((e) => e.isPast);
+  const accessEvent = accessData?.event ?? null;
+  const hasUpcoming = upcoming.length > 0 || !!accessEvent;
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -195,10 +224,15 @@ export default function EventsPage() {
               <div key={i} className="bg-black h-64 animate-pulse" />
             ))}
           </div>
-        ) : upcoming.length > 0 ? (
+        ) : hasUpcoming ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white/10">
+            {accessEvent && (
+              <Reveal className="bg-black">
+                <AccessUpcomingCard accessEvent={accessEvent} />
+              </Reveal>
+            )}
             {upcoming.map((event, idx) => (
-              <Reveal key={event.id} className="bg-black" delay={(idx % 3) * 0.08}>
+              <Reveal key={event.id} className="bg-black" delay={((idx + (accessEvent ? 1 : 0)) % 3) * 0.08}>
                 <EventCard event={event} />
               </Reveal>
             ))}
@@ -240,19 +274,16 @@ export default function EventsPage() {
         )}
 
         {/* Past Events — no description page, these link straight into the
-            Gallery (filtered by volume) or the ACCESS page. */}
-        {!isLoading && (
+            Gallery (filtered by volume). */}
+        {!isLoading && past.length > 0 && (
           <div className="mt-20 sm:mt-28 pt-16 border-t border-white/10">
             <div className="flex items-center gap-4 mb-14">
               <span className="w-8 h-px bg-white/20" />
               <span className="text-white/40 text-[10px] uppercase tracking-[0.35em]">Past Events</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white/10">
-              <Reveal className="bg-black">
-                <AccessCard accessEvent={accessData?.event} />
-              </Reveal>
               {past.map((event, idx) => (
-                <Reveal key={event.id} className="bg-black" delay={((idx + 1) % 3) * 0.08}>
+                <Reveal key={event.id} className="bg-black" delay={(idx % 3) * 0.08}>
                   <PastEventCard event={event} />
                 </Reveal>
               ))}

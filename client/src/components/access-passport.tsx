@@ -128,6 +128,14 @@ export function AccessPassport() {
   const eventDate = currentEvent?.date || DEFAULT_DATE;
   const eventVenue = currentEvent?.venue || DEFAULT_VENUE;
   const eventTime = currentEvent?.time || DEFAULT_TIME;
+  const eventName = currentEvent?.name?.trim() || "ACCESS";
+  const eventDescription = currentEvent?.description?.trim() || "";
+  // Best-effort year for the banner caption — falls back to no year rather
+  // than a hardcoded one when the admin's free-text date doesn't parse.
+  const eventYear = (() => {
+    const parsed = new Date(eventDate);
+    return isNaN(parsed.getTime()) ? "" : String(parsed.getFullYear());
+  })();
 
   // General entry state
   const earlyBird = isEarlyBirdActive();
@@ -301,7 +309,7 @@ export function AccessPassport() {
         <div className="relative h-[45vh] sm:h-[55vh] overflow-hidden">
           <img src={bannerUrl} alt="ACCESS experience" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-          <p className="absolute bottom-8 left-5 sm:left-6 lg:left-12 text-white/30 text-[9px] uppercase tracking-[0.3em]">ACCESS · 2026</p>
+          <p className="absolute bottom-8 left-5 sm:left-6 lg:left-12 text-white/30 text-[9px] uppercase tracking-[0.3em]">{eventName}{eventYear ? ` · ${eventYear}` : ""}</p>
         </div>
       </div>
 
@@ -330,9 +338,12 @@ export function AccessPassport() {
               className="font-black leading-none mb-2"
               style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(52px, 8vw, 80px)", background: "linear-gradient(135deg,#c9962a,#f5d76e,#b8860b)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
             >
-              ACCESS
+              {eventName}
             </h2>
             <p className="text-[#c9962a]/60 text-[11px] uppercase tracking-[0.3em] mb-6">An AFTR Private Social Night</p>
+            {eventDescription && (
+              <p className="text-white/40 text-sm leading-relaxed mb-6 max-w-lg">{eventDescription}</p>
+            )}
 
             <div className="border-t border-white/10 pt-6 mb-6 space-y-3">
               {[
@@ -632,6 +643,7 @@ export function AccessPassport() {
                           tableLabel: selectedConfig.label,
                           photo: guests[activeGuest]?.photo ?? "",
                           id: guests[activeGuest]?.passId ?? "",
+                          date: eventDate,
                         }}
                       />
                     </div>

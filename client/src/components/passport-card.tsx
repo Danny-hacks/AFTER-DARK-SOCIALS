@@ -3,6 +3,7 @@ export interface PassFields {
   tableLabel: string;
   photo: string;
   id: string;
+  date: string;
 }
 
 export function PassportCard({
@@ -19,7 +20,7 @@ export function PassportCard({
       label: "Table:",
       value: pass.tableLabel ? pass.tableLabel.toUpperCase() : "\u2014",
     },
-    { label: "Date:", value: "3 JULY 2026" },
+    { label: "Date:", value: pass.date ? pass.date.toUpperCase() : "—" },
   ];
 
   return (
