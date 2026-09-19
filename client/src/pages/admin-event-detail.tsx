@@ -7,7 +7,7 @@ import { z } from "zod";
 import {
   ArrowLeft, Loader2, CheckCircle, XCircle, QrCode, Users, Ticket,
   ShoppingBag, Edit2, Save, Image as ImageIcon, Video as VideoIcon,
-  DollarSign, Plus, Trash2, Eye, X, ChevronDown, ChevronUp,
+  DollarSign, Plus, Trash2, Eye, X, ChevronDown, ChevronUp, Clock,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -56,14 +56,6 @@ function parseGuestNames(json: string | null): string[] {
   }
 }
 
-interface ScanLogEntry {
-  ticket: TicketType;
-  scannedAt: number;
-  checkedIn: boolean;
-  /** Was already checked in from an earlier scan, before this one */
-  alreadyUsed: boolean;
-}
-
 export default function AdminEventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [tab, setTab] = useState<Tab>("overview");
@@ -82,7 +74,7 @@ export default function AdminEventDetailPage() {
   const { data: allTickets = [] } = useQuery<{ success: boolean; tickets: TicketType[] }, Error, TicketType[]>({
     queryKey: ["/api/admin/tickets"],
     select: (data) => data.tickets ?? [],
-    enabled: tab === "tickets" || tab === "checkin",
+    enabled: tab === "tickets" || tab === "checkin" || tab === "scan",
   });
 
   const [newTierName, setNewTierName] = useState("");
@@ -126,7 +118,6 @@ export default function AdminEventDetailPage() {
 
   const [viewingTicket, setViewingTicket] = useState<TicketType | null>(null);
   const [autoShareTicket, setAutoShareTicket] = useState(false);
-  const [scanLog, setScanLog] = useState<ScanLogEntry[]>([]);
   const [showCreateTicket, setShowCreateTicket] = useState(false);
   const [manualTicket, setManualTicket] = useState({
     referenceCode: "", customerName: "", customerEmail: "", customerPhone: "",
@@ -166,6 +157,13 @@ export default function AdminEventDetailPage() {
   const eventTickets = allTickets
     .filter((t) => t.eventId === id)
     .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
+  // Driven by each ticket's own usedAt timestamp rather than an in-memory
+  // scan log — a client-only log disappeared on every page refresh, which
+  // made it look like scans weren't being recorded at all.
+  const recentlyCheckedIn = eventTickets
+    .filter((t) => t.isUsed && t.usedAt)
+    .sort((a, b) => new Date(b.usedAt!).getTime() - new Date(a.usedAt!).getTime())
+    .slice(0, 25);
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<EditData>({
     resolver: zodResolver(editSchema),
@@ -211,14 +209,8 @@ export default function AdminEventDetailPage() {
 
   const useMutation2 = useMutation({
     mutationFn: (tid: string) => apiRequest("PATCH", `/api/admin/tickets/${tid}/use`),
-    onSuccess: (_res, ticketId) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] });
-      setScanLog((prev) => prev.map((e) => (e.ticket.id === ticketId ? { ...e, checkedIn: true } : e)));
-    },
-    onError: (_err, ticketId) => {
-      toast({ title: "Check-in failed — tap Retry to try again", variant: "destructive" });
-      setScanLog((prev) => prev.map((e) => (e.ticket.id === ticketId ? { ...e, checkedIn: false } : e)));
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] }),
+    onError: () => toast({ title: "Check-in failed — try scanning again", variant: "destructive" }),
   });
 
   const inputCls = "w-full bg-transparent border border-white/15 text-white placeholder:text-white/25 text-sm px-4 py-3 focus:outline-none focus:border-white/40 transition-colors";
@@ -689,50 +681,39 @@ export default function AdminEventDetailPage() {
                 return;
               }
               if (ticket.isUsed) {
-                setScanLog((prev) => [{ ticket, scannedAt: Date.now(), checkedIn: true, alreadyUsed: true }, ...prev].slice(0, 25));
                 toast({ title: `Already checked in — ${ticket.customerName}`, description: ticket.referenceCode, variant: "destructive" });
                 return;
               }
               // Check in immediately on a valid scan — no extra click needed.
-              setScanLog((prev) => [{ ticket, scannedAt: Date.now(), checkedIn: false, alreadyUsed: false }, ...prev].slice(0, 25));
               toast({ title: `Checked in — ${ticket.customerName}`, description: ticket.referenceCode });
               useMutation2.mutate(ticket.id);
             }}
             onClose={() => setTab("checkin")}
           />
 
-          {scanLog.length > 0 && (
+          {recentlyCheckedIn.length > 0 && (
             <div>
-              <p className="text-white/30 text-[10px] uppercase tracking-[0.2em] mb-3">Recent Scans</p>
+              <p className="text-white/30 text-[10px] uppercase tracking-[0.2em] mb-3">Recently Checked In</p>
               <div className="space-y-px">
-                {scanLog.map((entry) => (
+                {recentlyCheckedIn.map((t) => (
                   <div
-                    key={`${entry.ticket.id}-${entry.scannedAt}`}
+                    key={t.id}
                     className="border border-white/10 p-4 flex items-center justify-between gap-4"
                   >
                     <div className="min-w-0">
-                      <p className="text-white text-sm truncate">{entry.ticket.customerName}</p>
-                      <p className="text-white/30 text-xs font-mono mt-0.5">{entry.ticket.referenceCode}</p>
+                      <p className="text-white text-sm truncate">{t.customerName}</p>
+                      <p className="text-white/30 text-xs font-mono mt-0.5">{t.referenceCode}</p>
                     </div>
-                    {entry.alreadyUsed ? (
-                      <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] px-2 py-1 border border-yellow-500/30 text-yellow-400 shrink-0">
-                        <CheckCircle className="w-3 h-3" />
-                        Already Checked In
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="flex items-center gap-1 text-white/20 text-[10px]">
+                        <Clock className="w-3 h-3" />
+                        {new Date(t.usedAt!).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                       </span>
-                    ) : entry.checkedIn ? (
-                      <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] px-2 py-1 border border-green-500/30 text-green-400 shrink-0">
+                      <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] px-2 py-1 border border-green-500/30 text-green-400">
                         <CheckCircle className="w-3 h-3" />
                         Checked In
                       </span>
-                    ) : (
-                      <button
-                        onClick={() => useMutation2.mutate(entry.ticket.id)}
-                        disabled={useMutation2.isPending}
-                        className="text-[9px] uppercase tracking-[0.15em] px-2 py-1 border border-yellow-500/30 text-yellow-400 hover:border-yellow-500/60 disabled:opacity-40 transition-colors shrink-0"
-                      >
-                        Retry
-                      </button>
-                    )}
+                    </div>
                   </div>
                 ))}
               </div>

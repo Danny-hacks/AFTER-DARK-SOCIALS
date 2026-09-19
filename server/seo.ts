@@ -5,7 +5,25 @@ export const OLD_SITE_HOST = "aftr-the-rave.replit.app";
 
 const DEFAULT_DESCRIPTION =
   "AFTR by After Dark Socials — Mauritius rave events, nightlife experiences, tickets, and the exclusive ACCESS VIP lounge.";
-const DEFAULT_IMAGE = `${SITE_URL}/favicon.png`;
+// A real 1200x630 social-card image, not the tiny square favicon — used
+// whenever a page has no more specific image of its own (event pages use
+// the event's own photo instead, set per-call below).
+const DEFAULT_IMAGE = `${SITE_URL}/og-default.jpg`;
+
+// Gives search engines a consistent machine-readable identity for the
+// brand across every page, not just event pages.
+const ORGANIZATION_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "After Dark Socials",
+  alternateName: "AFTR",
+  url: SITE_URL,
+  logo: `${SITE_URL}/favicon.png`,
+  sameAs: [
+    "https://www.instagram.com/afterdarksocials.mu",
+    "https://www.tiktok.com/@afterdarksocials.mu",
+  ],
+};
 
 function escapeHtml(value: string): string {
   return value
@@ -30,7 +48,8 @@ interface HeadData {
   path: string; // used to build the canonical URL and og:url
   image?: string | null;
   type?: "website" | "article";
-  jsonLd?: object;
+  /** Extra JSON-LD blocks beyond the Organization one every page gets. */
+  jsonLd?: object[];
 }
 
 function renderHead(data: HeadData): string {
@@ -52,10 +71,13 @@ function renderHead(data: HeadData): string {
     `    <meta property="og:image" content="${image}" />\n` +
     `    <meta name="twitter:card" content="summary_large_image" />\n`;
 
-  if (data.jsonLd) {
+  // Organization schema on every page (site-wide brand identity), plus
+  // whatever page-specific JSON-LD (e.g. Event) was passed in.
+  const allJsonLd = [ORGANIZATION_JSON_LD, ...(data.jsonLd ?? [])];
+  for (const block of allJsonLd) {
     // A literal "</script>" inside a JSON string would close the tag early —
     // escaping the slash keeps the JSON valid while breaking that sequence up.
-    const json = JSON.stringify(data.jsonLd).replace(/<\//g, "<\\/");
+    const json = JSON.stringify(block).replace(/<\//g, "<\\/");
     html += `    <script type="application/ld+json">${json}</script>\n`;
   }
 
@@ -115,11 +137,23 @@ const STATIC_PAGES: Record<string, { title: string; description: string }> = {
 };
 
 /** Best-effort ISO datetime from the event's free-text date/time fields —
- * omitted from the JSON-LD entirely if it doesn't parse, since an invalid
- * startDate is worse for Search Console than no startDate. */
+ * omitted from the JSON-LD entirely if nothing parses, since an invalid
+ * startDate is worse for Search Console than no startDate. `time` is
+ * usually a free-text range like "10PM — 4AM", not a single instant, so
+ * feeding the whole range into Date() as one string ("Oct 9 2026 10PM —
+ * 4AM") reliably fails to parse — only the start time is a real instant,
+ * so that's extracted first. */
 function tryEventStartDate(date: string, time: string | null): string | undefined {
-  const parsed = new Date(time ? `${date} ${time}` : date);
-  return isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+  if (time) {
+    const startTime = time.split(/[–—-]|\s+to\s+/i)[0]?.trim();
+    if (startTime) {
+      const withTime = new Date(`${date} ${startTime}`);
+      if (!isNaN(withTime.getTime())) return withTime.toISOString();
+    }
+  }
+  // Fall back to the date alone rather than giving up entirely.
+  const dateOnly = new Date(date);
+  return isNaN(dateOnly.getTime()) ? undefined : dateOnly.toISOString();
 }
 
 async function buildEventHead(path: string, idOrSlug: string): Promise<{ html: string; notFound: boolean }> {
@@ -177,7 +211,7 @@ async function buildEventHead(path: string, idOrSlug: string): Promise<{ html: s
       path,
       image: event.imageUrl,
       type: "article",
-      jsonLd,
+      jsonLd: [jsonLd],
     }),
     notFound: false,
   };

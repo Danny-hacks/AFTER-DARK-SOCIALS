@@ -128,8 +128,9 @@ function EnquiryForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-7">
       <div>
-        <label className={labelCls}>Service *</label>
+        <label htmlFor="svc-service" className={labelCls}>Service *</label>
         <select
+          id="svc-service"
           required
           value={form.service}
           onChange={(e) => setForm({ ...form, service: e.target.value })}
@@ -144,31 +145,31 @@ function EnquiryForm() {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-7">
         <div>
-          <label className={labelCls}>Name *</label>
-          <input required type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Your full name" className={inputCls} />
+          <label htmlFor="svc-name" className={labelCls}>Name *</label>
+          <input id="svc-name" required type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Your full name" className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>Email *</label>
-          <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="your@email.com" className={inputCls} />
+          <label htmlFor="svc-email" className={labelCls}>Email *</label>
+          <input id="svc-email" required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="your@email.com" className={inputCls} />
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-7">
         <div>
-          <label className={labelCls}>Phone / WhatsApp *</label>
-          <input required type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+230 5XXX XXXX" className={inputCls} />
+          <label htmlFor="svc-phone" className={labelCls}>Phone / WhatsApp *</label>
+          <input id="svc-phone" required type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+230 5XXX XXXX" className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>Event Date</label>
-          <input type="text" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} placeholder="e.g. Aug 2026" className={inputCls} />
+          <label htmlFor="svc-date" className={labelCls}>Event Date</label>
+          <input id="svc-date" type="text" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} placeholder="e.g. Aug 2026" className={inputCls} />
         </div>
       </div>
       <div>
-        <label className={labelCls}>Expected Guests</label>
-        <input type="text" value={form.guests} onChange={(e) => setForm({ ...form, guests: e.target.value })} placeholder="e.g. 50–80" className={inputCls} />
+        <label htmlFor="svc-guests" className={labelCls}>Expected Guests</label>
+        <input id="svc-guests" type="text" value={form.guests} onChange={(e) => setForm({ ...form, guests: e.target.value })} placeholder="e.g. 50–80" className={inputCls} />
       </div>
       <div>
-        <label className={labelCls}>Message</label>
-        <textarea rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Tell us what you have in mind..." className={`${inputCls} resize-none`} />
+        <label htmlFor="svc-message" className={labelCls}>Message</label>
+        <textarea id="svc-message" rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Tell us what you have in mind..." className={`${inputCls} resize-none`} />
       </div>
       <button
         type="submit"

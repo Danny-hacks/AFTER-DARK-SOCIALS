@@ -34,6 +34,7 @@ function Lightbox({ items, index, onClose, onPrev, onNext }: {
         className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors z-10"
         onClick={onClose}
         data-testid="lightbox-close"
+        aria-label="Close"
       >
         <X className="w-6 h-6" />
       </button>
@@ -42,6 +43,7 @@ function Lightbox({ items, index, onClose, onPrev, onNext }: {
         className="absolute left-4 sm:left-8 text-white/30 hover:text-white transition-colors p-2 z-10"
         onClick={(e) => { e.stopPropagation(); onPrev(); }}
         data-testid="lightbox-prev"
+        aria-label="Previous photo"
       >
         <ChevronLeft className="w-8 h-8" />
       </button>
@@ -75,6 +77,7 @@ function Lightbox({ items, index, onClose, onPrev, onNext }: {
         className="absolute right-4 sm:right-8 text-white/30 hover:text-white transition-colors p-2 z-10"
         onClick={(e) => { e.stopPropagation(); onNext(); }}
         data-testid="lightbox-next"
+        aria-label="Next photo"
       >
         <ChevronRight className="w-8 h-8" />
       </button>
@@ -178,11 +181,13 @@ export default function GalleryPage() {
               data-testid="gallery-grid"
             >
               {displayed.map((item, idx) => (
-                <motion.div
+                <motion.button
                   key={item.id}
-                  className="relative group cursor-pointer overflow-hidden bg-[#0a0a0a] aspect-square"
+                  type="button"
+                  className="relative group cursor-pointer overflow-hidden bg-[#0a0a0a] aspect-square text-left"
                   onClick={() => openLightbox(filtered.indexOf(item))}
                   data-testid={`gallery-item-${item.id}`}
+                  aria-label={`View photo: ${item.alt || item.volume}`}
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-40px" }}
@@ -198,7 +203,7 @@ export default function GalleryPage() {
                     <span className="text-[#c72d28] text-[9px] uppercase tracking-[0.25em] font-bold">{item.volume}</span>
                     <span className="text-white/50 text-[10px] uppercase tracking-wider mt-0.5">{fmtDate(item.createdAt)}</span>
                   </div>
-                </motion.div>
+                </motion.button>
               ))}
             </div>
           )}

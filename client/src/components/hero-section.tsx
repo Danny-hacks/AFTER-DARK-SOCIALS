@@ -128,6 +128,7 @@ export default function HeroSection() {
             onClick={prevSlide}
             className="absolute left-6 top-1/2 -translate-y-1/2 z-20 p-3 border border-white/20 text-white/60 hover:text-white hover:border-white/60 transition-all"
             data-testid="prev-slide-button"
+            aria-label="Previous slide"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -135,6 +136,7 @@ export default function HeroSection() {
             onClick={nextSlide}
             className="absolute right-6 top-1/2 -translate-y-1/2 z-20 p-3 border border-white/20 text-white/60 hover:text-white hover:border-white/60 transition-all"
             data-testid="next-slide-button"
+            aria-label="Next slide"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -217,6 +219,8 @@ export default function HeroSection() {
                     index === currentSlide ? 'bg-[#c72d28]' : 'bg-white/30 hover:bg-white/60'
                   }`}
                   data-testid={`slide-indicator-${index}`}
+                  aria-label={`Go to slide ${index + 1}`}
+                  aria-current={index === currentSlide}
                 />
               ))}
             </div>

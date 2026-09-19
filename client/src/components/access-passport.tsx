@@ -419,8 +419,9 @@ export function AccessPassport() {
                 {/* Right: name, phone, button */}
                 <div className="flex flex-col justify-center space-y-4">
                   <div>
-                    <label className={labelCls}>Your Name *</label>
+                    <label htmlFor="ge-name" className={labelCls}>Your Name *</label>
                     <input
+                      id="ge-name"
                       type="text"
                       value={geName}
                       onChange={(e) => setGeName(e.target.value)}
@@ -429,8 +430,9 @@ export function AccessPassport() {
                     />
                   </div>
                   <div>
-                    <label className={labelCls}>WhatsApp Number (Optional)</label>
+                    <label htmlFor="ge-phone" className={labelCls}>WhatsApp Number (Optional)</label>
                     <input
+                      id="ge-phone"
                       type="tel"
                       value={gePhone}
                       onChange={(e) => setGePhone(e.target.value)}
@@ -539,8 +541,9 @@ export function AccessPassport() {
                       <p className="text-[#c9962a] text-[10px] uppercase tracking-[0.3em] mb-6">Guest {i + 1}</p>
 
                       <div className="mb-6">
-                        <label className={labelCls}>Full Name *</label>
+                        <label htmlFor={`guest-name-${i}`} className={labelCls}>Full Name *</label>
                         <input
+                          id={`guest-name-${i}`}
                           type="text"
                           value={guest.name}
                           onFocus={() => setActiveGuest(i)}
@@ -553,31 +556,36 @@ export function AccessPassport() {
 
                       <div className="mb-6">
                         <label className={labelCls}>Photo (Optional)</label>
-                        <div
+                        <button
+                          type="button"
                           onClick={(e) => { e.stopPropagation(); fileRefs.current[i]?.click(); }}
-                          className="border border-dashed border-white/10 hover:border-[#c9962a]/25 transition-colors cursor-pointer p-4 text-center"
+                          className="w-full border border-dashed border-white/10 hover:border-[#c9962a]/25 transition-colors cursor-pointer p-4 text-center"
+                          aria-label={guest.photo ? `Photo ready for Guest ${i + 1} — tap to change` : `Upload photo for Guest ${i + 1}`}
                         >
                           <input
                             ref={(el) => { fileRefs.current[i] = el; }}
                             type="file"
                             accept="image/*"
                             className="hidden"
+                            tabIndex={-1}
+                            aria-hidden="true"
                             onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhoto(i, f); }}
                           />
                           {guest.photo ? (
                             <div className="flex items-center gap-3">
-                              <img src={guest.photo} alt="preview" className="w-9 h-11 object-cover object-top" />
+                              <img src={guest.photo} alt="" className="w-9 h-11 object-cover object-top" />
                               <span className="text-white/35 text-[9px] uppercase tracking-[0.18em]">Photo ready · tap to change</span>
                             </div>
                           ) : (
                             <span className="text-white/20 text-[9px] uppercase tracking-[0.2em]">Upload photo</span>
                           )}
-                        </div>
+                        </button>
                       </div>
 
                       <div>
-                        <label className={labelCls}>WhatsApp Number (Optional)</label>
+                        <label htmlFor={`guest-phone-${i}`} className={labelCls}>WhatsApp Number (Optional)</label>
                         <input
+                          id={`guest-phone-${i}`}
                           type="tel"
                           value={guest.phone}
                           onFocus={() => setActiveGuest(i)}

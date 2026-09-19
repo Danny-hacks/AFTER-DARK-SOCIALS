@@ -196,8 +196,9 @@ export default function ContactSection() {
 
               {/* Enquiry type */}
               <div>
-                <label className={label}>Enquiry Type *</label>
+                <label htmlFor="contact-enquiry-type" className={label}>Enquiry Type *</label>
                 <select
+                  id="contact-enquiry-type"
                   name="enquiryType"
                   value={formData.enquiryType}
                   onChange={handleChange}
@@ -222,13 +223,13 @@ export default function ContactSection() {
               {/* Name + Phone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                 <div>
-                  <label className={label}>Name *</label>
-                  <input type="text" name="name" value={formData.name} onChange={handleChange}
+                  <label htmlFor="contact-name" className={label}>Name *</label>
+                  <input id="contact-name" type="text" name="name" value={formData.name} onChange={handleChange}
                     placeholder="Your full name" required className={field} data-testid="contact-name-input" />
                 </div>
                 <div>
-                  <label className={label}>Phone / WhatsApp</label>
-                  <input type="tel" name="phone" value={formData.phone} onChange={handleChange}
+                  <label htmlFor="contact-phone" className={label}>Phone / WhatsApp</label>
+                  <input id="contact-phone" type="tel" name="phone" value={formData.phone} onChange={handleChange}
                     placeholder="+230 5XXX XXXX" className={field} data-testid="contact-phone-input" />
                 </div>
               </div>
@@ -236,21 +237,21 @@ export default function ContactSection() {
               {/* Date + Guests */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                 <div>
-                  <label className={label}>Event Date</label>
-                  <input type="date" name="eventDate" value={formData.eventDate} onChange={handleChange}
+                  <label htmlFor="contact-date" className={label}>Event Date</label>
+                  <input id="contact-date" type="date" name="eventDate" value={formData.eventDate} onChange={handleChange}
                     className={`${field} [color-scheme:dark]`} data-testid="contact-date-input" />
                 </div>
                 <div>
-                  <label className={label}>Number of Guests</label>
-                  <input type="number" name="guests" value={formData.guests} onChange={handleChange}
+                  <label htmlFor="contact-guests" className={label}>Number of Guests</label>
+                  <input id="contact-guests" type="number" name="guests" value={formData.guests} onChange={handleChange}
                     placeholder="Est. guest count" min="1" className={field} data-testid="contact-guests-input" />
                 </div>
               </div>
 
               {/* Message */}
               <div>
-                <label className={label}>Tell us more *</label>
-                <textarea name="message" value={formData.message} onChange={handleChange}
+                <label htmlFor="contact-message" className={label}>Tell us more *</label>
+                <textarea id="contact-message" name="message" value={formData.message} onChange={handleChange}
                   rows={5} required
                   placeholder="Describe your event, special requests, or anything else we should know..."
                   className={`${field} resize-none`}

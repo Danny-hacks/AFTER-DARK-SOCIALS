@@ -157,28 +157,28 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
     <form onSubmit={onSubmit} className="space-y-7">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-7">
         <div>
-          <label className={label}>Full Name *</label>
-          <input required type="text" value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })}
+          <label htmlFor="order-name" className={label}>Full Name *</label>
+          <input id="order-name" required type="text" value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })}
             placeholder="Your full name" className={field} />
         </div>
         <div>
-          <label className={label}>WhatsApp / Phone *</label>
-          <input required type="tel" value={form.customerPhone} onChange={(e) => setForm({ ...form, customerPhone: e.target.value })}
+          <label htmlFor="order-phone" className={label}>WhatsApp / Phone *</label>
+          <input id="order-phone" required type="tel" value={form.customerPhone} onChange={(e) => setForm({ ...form, customerPhone: e.target.value })}
             placeholder="+230 5XXX XXXX" className={field} />
         </div>
       </div>
 
       <div>
-        <label className={label}>Email</label>
-        <input type="email" value={form.customerEmail} onChange={(e) => setForm({ ...form, customerEmail: e.target.value })}
+        <label htmlFor="order-email" className={label}>Email</label>
+        <input id="order-email" type="email" value={form.customerEmail} onChange={(e) => setForm({ ...form, customerEmail: e.target.value })}
           placeholder="your@email.com" className={field} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-7">
         <div>
-          <label className={label}>Ticket Type</label>
+          <label htmlFor="order-ticket-type" className={label}>Ticket Type</label>
           {hasTiers ? (
-            <select value={form.ticketType} onChange={(e) => setForm({ ...form, ticketType: e.target.value })}
+            <select id="order-ticket-type" value={form.ticketType} onChange={(e) => setForm({ ...form, ticketType: e.target.value })}
               className={`${field} cursor-pointer bg-black`}
               style={{ appearance: "none" }}
             >
@@ -193,13 +193,13 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
           )}
         </div>
         <div>
-          <label className={label}>Quantity</label>
-          <input type="number" min="1" max="10" value={form.quantity}
+          <label htmlFor="order-quantity" className={label}>Quantity</label>
+          <input id="order-quantity" type="number" min="1" max="10" value={form.quantity}
             onChange={(e) => setQuantity(e.target.value)} className={field} />
         </div>
         <div>
-          <label className={label}>Payment Method</label>
-          <select value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
+          <label htmlFor="order-payment-method" className={label}>Payment Method</label>
+          <select id="order-payment-method" value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
             className={`${field} cursor-pointer bg-black`}
             style={{ appearance: "none" }}
           >
@@ -219,8 +219,9 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-7">
             {guestNames.map((name, i) => (
               <div key={i}>
-                <label className={label}>Guest {i + 2} Name</label>
+                <label htmlFor={`guest-name-${i}`} className={label}>Guest {i + 2} Name</label>
                 <input
+                  id={`guest-name-${i}`}
                   type="text"
                   value={name}
                   onChange={(e) => setGuestName(i, e.target.value)}

@@ -32,6 +32,7 @@ export default function Footer() {
                 rel="noopener noreferrer"
                 className="text-white/30 hover:text-white transition-colors"
                 data-testid="footer-instagram"
+                aria-label="Instagram"
               >
                 <SiInstagram className="w-4 h-4" />
               </a>
@@ -41,6 +42,7 @@ export default function Footer() {
                 rel="noopener noreferrer"
                 className="text-white/30 hover:text-white transition-colors"
                 data-testid="footer-tiktok"
+                aria-label="TikTok"
               >
                 <SiTiktok className="w-4 h-4" />
               </a>
@@ -50,6 +52,7 @@ export default function Footer() {
                 rel="noopener noreferrer"
                 className="text-white/30 hover:text-white transition-colors"
                 data-testid="footer-whatsapp"
+                aria-label="WhatsApp community group"
               >
                 <SiWhatsapp className="w-4 h-4" />
               </a>
