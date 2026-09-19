@@ -10,8 +10,10 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import type { Event, EventTicketTier } from "@shared/schema";
 
-const ADMIN_CONTACT = "+230 5820 5220";
-const ADMIN_PHONE = "23058205220";
+// Dedicated ticket-line number — separate from the general After Dark
+// Socials contact number used elsewhere for non-ticket enquiries.
+const ADMIN_CONTACT = "+230 5515 1185";
+const ADMIN_PHONE = "23055151185";
 
 // ─── Countdown ───────────────────────────────────────────────────────────────
 function CountdownTimer({ targetDate }: { targetDate: Date }) {

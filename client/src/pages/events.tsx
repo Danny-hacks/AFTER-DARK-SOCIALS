@@ -228,7 +228,7 @@ export default function EventsPage() {
               Details dropping soon. Join the WhatsApp group to be first to know.
             </p>
             <a
-              href="https://wa.me/23058205220"
+              href="https://wa.me/23055151185"
               target="_blank"
               rel="noopener noreferrer"
               className="group inline-flex items-center gap-3 bg-[#25D366] text-white text-[10px] uppercase tracking-[0.25em] font-bold px-8 py-4 hover:bg-[#1ebe5b] transition-colors"

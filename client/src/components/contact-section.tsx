@@ -1,11 +1,15 @@
-import { Phone, Mail, ArrowUpRight } from "lucide-react";
+import { Mail, ArrowUpRight } from "lucide-react";
 import { SiWhatsapp, SiInstagram, SiTiktok } from "react-icons/si";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
+const TICKETS_ENQUIRY = "AFTR Event — Tickets / VIP / Table";
+const TICKETS_PHONE = "23055151185";
+const GENERAL_PHONE = "23058205220";
+
 const enquiryTypes = [
   { value: "", label: "Select enquiry type" },
-  { value: "AFTR Event — Tickets / VIP / Table", label: "AFTR Event — Tickets / VIP / Table" },
+  { value: TICKETS_ENQUIRY,                      label: TICKETS_ENQUIRY },
   { value: "Private Booking",                    label: "Private Booking" },
   { value: "Corporate Event",                    label: "Corporate Event" },
   { value: "Brand Activation",                   label: "Brand Activation" },
@@ -16,17 +20,17 @@ const enquiryTypes = [
 const contactInfo = [
   {
     icon: SiWhatsapp,
-    label: "WhatsApp",
-    value: "+230 5820 5220",
-    href: "https://wa.me/23058205220",
+    label: "WhatsApp — Tickets",
+    value: "+230 5515 1185",
+    href: `https://wa.me/${TICKETS_PHONE}`,
     external: true,
   },
   {
-    icon: Phone,
-    label: "Phone",
+    icon: SiWhatsapp,
+    label: "WhatsApp — General",
     value: "+230 5820 5220",
-    href: "tel:+23058205220",
-    external: false,
+    href: `https://wa.me/${GENERAL_PHONE}`,
+    external: true,
   },
   {
     icon: Mail,
@@ -66,7 +70,10 @@ export default function ContactSection() {
       formData.message,
     ].filter(Boolean).join("\n");
 
-    window.open(`https://wa.me/23058205220?text=${encodeURIComponent(lines)}`, "_blank");
+    // Ticket/VIP/table enquiries go to the dedicated ticket line — everything
+    // else (bookings, corporate, ACCESS, general) goes to the general number.
+    const target = formData.enquiryType === TICKETS_ENQUIRY ? TICKETS_PHONE : GENERAL_PHONE;
+    window.open(`https://wa.me/${target}?text=${encodeURIComponent(lines)}`, "_blank");
     toast({ title: "Opening WhatsApp", description: "Your enquiry is pre-filled and ready to send." });
     setFormData({ name: "", phone: "", enquiryType: "", eventDate: "", guests: "", message: "" });
   };
