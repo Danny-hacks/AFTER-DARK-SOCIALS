@@ -881,6 +881,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/admin/purchases/:id", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteTicketPurchase(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Purchase not found" });
+      }
+      res.json({ success: true, message: "Purchase deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting purchase:", error);
+      res.status(500).json({ error: "Failed to delete purchase" });
+    }
+  });
+
   // Scan/validate ticket by QR code
   app.get("/api/admin/scan/:qrCode", requireAuth, async (req, res) => {
     try {

@@ -207,6 +207,16 @@ export default function AdminEventDetailPage() {
     onError: () => toast({ title: "Verification failed", variant: "destructive" }),
   });
 
+  const deletePurchaseMutation = useMutation({
+    mutationFn: (pid: string) => apiRequest("DELETE", `/api/admin/purchases/${pid}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] });
+      toast({ title: "Request deleted" });
+    },
+    onError: () => toast({ title: "Failed to delete request", variant: "destructive" }),
+  });
+
   const useMutation2 = useMutation({
     mutationFn: (tid: string) => apiRequest("PATCH", `/api/admin/tickets/${tid}/use`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] }),
@@ -473,6 +483,14 @@ export default function AdminEventDetailPage() {
                       Verify
                     </button>
                   )}
+                  <button
+                    onClick={() => { if (confirm(`Delete this ${p.status} request from ${p.customerName}? This also removes any tickets it generated and cannot be undone.`)) deletePurchaseMutation.mutate(p.id); }}
+                    disabled={deletePurchaseMutation.isPending}
+                    title="Delete this request"
+                    className="flex items-center gap-1.5 border border-white/15 text-white/30 hover:border-red-500/50 hover:text-red-400 text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors disabled:opacity-40"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
                 </div>
               </div>
             ))

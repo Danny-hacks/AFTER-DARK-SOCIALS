@@ -26,6 +26,7 @@ export interface IStorage {
   verifyTicketPurchase(id: string, ticketId: string): Promise<TicketPurchase | undefined>;
   rejectTicketPurchase(id: string, reason: string): Promise<TicketPurchase | undefined>;
   markPurchaseProcessing(id: string): Promise<TicketPurchase | undefined>;
+  deleteTicketPurchase(id: string): Promise<boolean>;
   
   // Ticket operations
   getTicket(id: string): Promise<Ticket | undefined>;
@@ -169,6 +170,17 @@ export class DatabaseStorage implements IStorage {
       .where(eq(ticketPurchases.id, id))
       .returning();
     return purchase || undefined;
+  }
+
+  async deleteTicketPurchase(id: string): Promise<boolean> {
+    // Remove any tickets generated from this request too, so deleting an
+    // invalid/test request doesn't leave orphaned tickets behind skewing
+    // ticket-level stats and check-in lists.
+    await db.delete(tickets).where(eq(tickets.purchaseId, id));
+    const result = await db
+      .delete(ticketPurchases)
+      .where(eq(ticketPurchases.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Ticket operations
