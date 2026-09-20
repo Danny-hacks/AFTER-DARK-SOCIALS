@@ -92,6 +92,11 @@ function AccessEventFormFields({ form, setForm }: { form: typeof emptyForm; setF
         <div>
           <label className={labelCls}>Date *</label>
           <input value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} placeholder="e.g. Friday 3 July 2026" className={inputCls} />
+          {form.date.trim() && isNaN(new Date(form.date).getTime()) && (
+            <p className="text-red-400 text-[10px] mt-1.5">
+              This date format won't be recognized — the event won't show as upcoming or past anywhere on the site. Try e.g. "Friday 3 July 2026".
+            </p>
+          )}
         </div>
         <div>
           <label className={labelCls}>Time</label>
@@ -372,6 +377,10 @@ export default function AdminAccessEventsPage() {
                         toast({ title: "Date is required", variant: "destructive" });
                         return;
                       }
+                      if (isNaN(new Date(editForm.date).getTime())) {
+                        toast({ title: "Unrecognized date format", description: "Fix the Date field before saving — see the warning below it.", variant: "destructive" });
+                        return;
+                      }
                       updateMutation.mutate({ id: ev.id, data: editForm });
                     }}
                     disabled={updateMutation.isPending}
@@ -397,6 +406,10 @@ export default function AdminAccessEventsPage() {
           onClick={() => {
             if (!form.date.trim()) {
               toast({ title: "Date is required", variant: "destructive" });
+              return;
+            }
+            if (isNaN(new Date(form.date).getTime())) {
+              toast({ title: "Unrecognized date format", description: "Fix the Date field before saving — see the warning below it.", variant: "destructive" });
               return;
             }
             createMutation.mutate(form);
