@@ -376,8 +376,8 @@ export function AccessPassport() {
         </p>
       </div>
 
-      {/* ── Section 2: Banner Image ── */}
-      <div className="my-12 px-5 sm:px-6 lg:px-12">
+      {/* ── Section 2: Banner Image (hidden on mobile) ── */}
+      <div className="hidden sm:block my-12 px-5 sm:px-6 lg:px-12">
         <div className="relative h-[45vh] sm:h-[55vh] overflow-hidden">
           <img src={bannerUrl} alt="ACCESS experience" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
