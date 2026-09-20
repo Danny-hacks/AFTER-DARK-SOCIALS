@@ -30,6 +30,7 @@ const editSchema = z.object({
   subtitle: z.string().optional(),
   volume: z.string().optional(),
   artistsInput: z.string().optional(),
+  collaborators: z.string().optional(),
   imageUrl: z.string().optional(),
   videoUrl: z.string().optional(),
   isPast: z.boolean().default(false),
@@ -172,6 +173,7 @@ export default function AdminEventDetailPage() {
       venue: event.venue ?? "", description: event.description ?? "",
       subtitle: event.subtitle ?? "", volume: event.volume ?? "",
       artistsInput: parseArtists(event.artists).join(", "),
+      collaborators: event.collaborators ?? "",
       imageUrl: event.imageUrl ?? "", videoUrl: event.videoUrl ?? "",
       isPast: event.isPast,
     } : undefined,
@@ -316,6 +318,11 @@ export default function AdminEventDetailPage() {
           <div>
             <label className={labelCls}>Lineup (comma-separated)</label>
             <input {...register("artistsInput")} placeholder="DJ Sweety, DJ Luvlesh" className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>Collaborators / Sponsors</label>
+            <input {...register("collaborators")} placeholder="e.g. Kultur'M" className={inputCls} />
+            <p className="text-white/20 text-[10px] mt-1.5">Shown as "In collaboration with ..." — leave blank to hide.</p>
           </div>
           <div>
             <label className={labelCls}>Cover Image</label>

@@ -21,6 +21,7 @@ const emptyForm = {
   time: "",
   venue: "",
   description: "",
+  collaborators: "",
   posterUrl: "",
   bannerUrl: "",
   lineup: [] as LineupEntry[],
@@ -56,6 +57,7 @@ function eventToForm(ev: AccessEvent): typeof emptyForm {
     time: ev.time ?? "",
     venue: ev.venue ?? "",
     description: ev.description ?? "",
+    collaborators: ev.collaborators ?? "",
     posterUrl: ev.posterUrl ?? "",
     bannerUrl: ev.bannerUrl ?? "",
     lineup: parseLineup(ev.lineupJson),
@@ -112,6 +114,12 @@ function AccessEventFormFields({ form, setForm }: { form: typeof emptyForm; setF
       <div>
         <label className={labelCls}>Description</label>
         <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className={`${inputCls} resize-none`} />
+      </div>
+
+      <div>
+        <label className={labelCls}>Collaborators / Sponsors</label>
+        <input value={form.collaborators} onChange={(e) => setForm({ ...form, collaborators: e.target.value })} placeholder="e.g. Kultur'M" className={inputCls} />
+        <p className="text-white/20 text-[10px] mt-1.5">Shown as "In collaboration with ..." — leave blank to hide.</p>
       </div>
 
       <div>

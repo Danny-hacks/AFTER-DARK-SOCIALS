@@ -106,6 +106,7 @@ export const events = pgTable("events", {
   subtitle: text("subtitle"),
   artists: text("artists"), // JSON-encoded string[]
   volume: text("volume"), // matches gallery_photos.volume, links a past event to its photo set
+  collaborators: text("collaborators"), // free text, e.g. "Kultur'M, Brand X" — shown as "In collaboration with ..."
   videoUrl: text("video_url"),
   imageUrl: text("image_url"),
   isPast: boolean("is_past").notNull().default(false),
@@ -236,6 +237,8 @@ export const accessEvents = pgTable("access_events", {
   earlyBirdDeadline: timestamp("early_bird_deadline"),
   earlyBirdPrice: integer("early_bird_price"),
   regularPrice: integer("regular_price"),
+  // free text, e.g. "Kultur'M, Brand X" — shown as "In collaboration with ..."
+  collaborators: text("collaborators"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

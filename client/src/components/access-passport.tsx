@@ -158,6 +158,7 @@ export function AccessPassport() {
   const eventTime = currentEvent?.time || DEFAULT_TIME;
   const eventName = currentEvent?.name?.trim() || "ACCESS";
   const eventDescription = currentEvent?.description?.trim() || "";
+  const eventCollaborators = currentEvent?.collaborators?.trim() || "";
   // Best-effort year for the banner caption — falls back to no year rather
   // than a hardcoded one when the admin's free-text date doesn't parse.
   const eventYear = (() => {
@@ -445,7 +446,9 @@ export function AccessPassport() {
               </div>
             )}
 
-            <p className="text-white/25 text-[10px] mb-6">In collaboration with Kultur'M</p>
+            {eventCollaborators && (
+              <p className="text-white/25 text-[10px] mb-6">In collaboration with {eventCollaborators}</p>
+            )}
 
             <div className="border-t border-white/10 pt-5 flex items-center gap-3">
               <span className="text-[#c9962a] text-[10px] uppercase tracking-[0.3em]">Reserve Your Table Below</span>

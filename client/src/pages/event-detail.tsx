@@ -390,6 +390,9 @@ export default function EventDetailPage() {
           {event.description && (
             <p className="text-white/40 text-sm leading-relaxed max-w-2xl">{event.description}</p>
           )}
+          {event.collaborators && (
+            <p className="text-white/25 text-[10px] mt-4">In collaboration with {event.collaborators}</p>
+          )}
         </div>
 
         {/* Countdown (upcoming only) */}
