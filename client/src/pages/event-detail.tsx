@@ -65,8 +65,15 @@ function CountdownTimer({ targetDate }: { targetDate: Date }) {
 // ─── Order Form ───────────────────────────────────────────────────────────────
 function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] }) {
   const { toast } = useToast();
-  const hasTiers = tiers.length > 0;
-  const defaultTicketType = hasTiers ? tiers[0].name : "General";
+  // Only offer tiers whose deadline hasn't passed — e.g. Early Bird
+  // shouldn't be selectable once its cutoff is gone. If every tier has
+  // expired, fall back to the last one (typically the standard/door price,
+  // usually left with no deadline) so purchasing isn't blocked entirely.
+  const now = Date.now();
+  const openTiers = tiers.filter((t) => !t.deadline || new Date(t.deadline).getTime() > now);
+  const availableTiers = openTiers.length > 0 ? openTiers : tiers.slice(-1);
+  const hasTiers = availableTiers.length > 0;
+  const defaultTicketType = hasTiers ? availableTiers[0].name : "General";
 
   const [form, setForm] = useState({
     customerName: "", customerEmail: "", customerPhone: "",
@@ -184,9 +191,10 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
               className={`${field} cursor-pointer bg-black`}
               style={{ appearance: "none" }}
             >
-              {tiers.map((t) => (
+              {availableTiers.map((t) => (
                 <option key={t.id} value={t.name} style={{ background: "#0a0a0a" }}>
                   {t.name} — Rs {t.price.toLocaleString()}
+                  {t.deadline ? ` (until ${new Date(t.deadline).toLocaleDateString("en-GB", { day: "numeric", month: "short" })})` : ""}
                 </option>
               ))}
             </select>

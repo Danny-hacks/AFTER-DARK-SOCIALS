@@ -209,10 +209,18 @@ export const eventTicketTiers = pgTable("event_ticket_tiers", {
   name: text("name").notNull(),
   price: integer("price").notNull(),
   order: integer("order").notNull().default(0),
+  // When this tier stops being offered (e.g. Early Bird closes at midnight
+  // before the event). Null means it never expires on its own — typically
+  // the last/standard tier, used as the catch-all once earlier ones close.
+  deadline: timestamp("deadline"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertEventTicketTierSchema = createInsertSchema(eventTicketTiers).omit({
+export const insertEventTicketTierSchema = createInsertSchema(eventTicketTiers, {
+  // Sent over JSON as an ISO string (or omitted/null) — coerce rather than
+  // requiring an actual Date instance, which JSON can't carry.
+  deadline: z.coerce.date().nullable().optional(),
+}).omit({
   id: true,
   createdAt: true,
 });

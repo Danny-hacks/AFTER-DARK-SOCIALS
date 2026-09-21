@@ -419,7 +419,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/admin/events/tiers/:tierId", requireAuth, async (req, res) => {
     try {
-      const tier = await storage.updateTicketTier(req.params.tierId, req.body);
+      const tierData = insertEventTicketTierSchema.partial().parse(req.body);
+      const tier = await storage.updateTicketTier(req.params.tierId, tierData);
       if (!tier) {
         return res.status(404).json({ error: "Ticket tier not found" });
       }

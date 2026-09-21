@@ -37,6 +37,16 @@ const editSchema = z.object({
 });
 type EditData = z.infer<typeof editSchema>;
 
+// datetime-local inputs need "YYYY-MM-DDTHH:mm" in the viewer's local time —
+// toISOString() would silently shift the displayed value to UTC.
+function toDatetimeLocal(value: string | Date | null): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "";
+  const pad2 = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
 function parseArtists(json: string | null): string[] {
   if (!json) return [];
   try {
@@ -80,14 +90,16 @@ export default function AdminEventDetailPage() {
 
   const [newTierName, setNewTierName] = useState("");
   const [newTierPrice, setNewTierPrice] = useState("");
+  const [newTierDeadline, setNewTierDeadline] = useState("");
 
   const createTierMutation = useMutation({
-    mutationFn: (data: { name: string; price: number; order: number }) =>
+    mutationFn: (data: { name: string; price: number; order: number; deadline: string | null }) =>
       apiRequest("POST", `/api/admin/events/${id}/tiers`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events", id] });
       setNewTierName("");
       setNewTierPrice("");
+      setNewTierDeadline("");
       toast({ title: "Tier added" });
     },
     onError: () => toast({ title: "Failed to add tier", variant: "destructive" }),
@@ -101,6 +113,27 @@ export default function AdminEventDetailPage() {
     },
     onError: () => toast({ title: "Failed to remove tier", variant: "destructive" }),
   });
+
+  const [editingTierId, setEditingTierId] = useState<string | null>(null);
+  const [editTierPrice, setEditTierPrice] = useState("");
+  const [editTierDeadline, setEditTierDeadline] = useState("");
+
+  const updateTierMutation = useMutation({
+    mutationFn: ({ tierId, price, deadline }: { tierId: string; price: number; deadline: string | null }) =>
+      apiRequest("PATCH", `/api/admin/events/tiers/${tierId}`, { price, deadline }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events", id] });
+      setEditingTierId(null);
+      toast({ title: "Tier updated" });
+    },
+    onError: () => toast({ title: "Failed to update tier", variant: "destructive" }),
+  });
+
+  function startEditingTier(t: EventTicketTier) {
+    setEditingTierId(t.id);
+    setEditTierPrice(String(t.price));
+    setEditTierDeadline(toDatetimeLocal(t.deadline));
+  }
 
   const deliverMutation = useMutation({
     mutationFn: (ticketId: string) => apiRequest("PATCH", `/api/admin/tickets/${ticketId}/deliver`),
@@ -402,28 +435,83 @@ export default function AdminEventDetailPage() {
             <p className="text-white/20 text-sm">No tiers yet — add one below.</p>
           ) : (
             <div className="space-y-px">
-              {tiers.map((t) => (
-                <div key={t.id} className="bg-[#0a0a0a] border border-white/10 p-4 flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-white text-sm font-medium">{t.name}</p>
-                    <p className="text-[#c9962a] text-xs font-mono mt-0.5">Rs {t.price.toLocaleString()}</p>
+              {tiers.map((t) => {
+                const isEditing = editingTierId === t.id;
+                const expired = t.deadline && new Date(t.deadline) < new Date();
+                return (
+                  <div key={t.id} className="bg-[#0a0a0a] border border-white/10 p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-white text-sm font-medium">{t.name}</p>
+                        {!isEditing && (
+                          <>
+                            <p className="text-[#c9962a] text-xs font-mono mt-0.5">Rs {t.price.toLocaleString()}</p>
+                            <p className={`text-[10px] mt-0.5 ${expired ? "text-red-400" : "text-white/30"}`}>
+                              {t.deadline
+                                ? `${expired ? "Closed" : "Closes"} ${new Date(t.deadline).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
+                                : "No deadline — always available"}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => { if (isEditing) { setEditingTierId(null); } else { startEditingTier(t); } }}
+                          className="flex items-center gap-1.5 border border-white/15 text-white/40 hover:border-white/40 hover:text-white text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
+                        >
+                          {isEditing ? "Close" : "Edit"}
+                        </button>
+                        <button
+                          onClick={() => deleteTierMutation.mutate(t.id)}
+                          disabled={deleteTierMutation.isPending}
+                          className="flex items-center gap-1.5 border border-white/15 text-white/40 hover:border-red-500/50 hover:text-red-400 text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+
+                    {isEditing && (
+                      <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[9px] text-white/30 uppercase tracking-[0.15em] mb-1.5">Price (Rs)</label>
+                          <input type="number" value={editTierPrice} onChange={(e) => setEditTierPrice(e.target.value)} className={inputCls} />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] text-white/30 uppercase tracking-[0.15em] mb-1.5">Deadline (blank = never expires)</label>
+                          <input type="datetime-local" value={editTierDeadline} onChange={(e) => setEditTierDeadline(e.target.value)} className={inputCls} />
+                        </div>
+                        <button
+                          onClick={() => {
+                            const price = parseInt(editTierPrice, 10);
+                            if (isNaN(price)) {
+                              toast({ title: "Enter a valid price", variant: "destructive" });
+                              return;
+                            }
+                            updateTierMutation.mutate({
+                              tierId: t.id,
+                              price,
+                              deadline: editTierDeadline ? new Date(editTierDeadline).toISOString() : null,
+                            });
+                          }}
+                          disabled={updateTierMutation.isPending}
+                          className="flex items-center justify-center gap-2 bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.2em] font-bold px-4 py-3 hover:bg-[#a82421] disabled:opacity-50 transition-colors sm:col-span-2"
+                        >
+                          {updateTierMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                          Save
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <button
-                    onClick={() => deleteTierMutation.mutate(t.id)}
-                    disabled={deleteTierMutation.isPending}
-                    className="flex items-center gap-1.5 border border-white/15 text-white/40 hover:border-red-500/50 hover:text-red-400 text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    Remove
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
           <div className="border border-white/10 p-5">
             <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-4">Add Tier</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <input
                 value={newTierName}
                 onChange={(e) => setNewTierName(e.target.value)}
@@ -437,22 +525,31 @@ export default function AdminEventDetailPage() {
                 placeholder="Price (Rs)"
                 className={inputCls}
               />
-              <button
-                onClick={() => {
-                  const price = parseInt(newTierPrice, 10);
-                  if (!newTierName.trim() || isNaN(price)) {
-                    toast({ title: "Enter a name and price", variant: "destructive" });
-                    return;
-                  }
-                  createTierMutation.mutate({ name: newTierName.trim(), price, order: tiers.length });
-                }}
-                disabled={createTierMutation.isPending}
-                className="flex items-center justify-center gap-2 bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.2em] font-bold px-4 py-3 hover:bg-[#a82421] disabled:opacity-50 transition-colors"
-              >
-                {createTierMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                Add
-              </button>
             </div>
+            <div className="mb-4">
+              <label className="block text-[9px] text-white/30 uppercase tracking-[0.15em] mb-1.5">Deadline (optional — blank means it never expires on its own)</label>
+              <input type="datetime-local" value={newTierDeadline} onChange={(e) => setNewTierDeadline(e.target.value)} className={inputCls} />
+            </div>
+            <button
+              onClick={() => {
+                const price = parseInt(newTierPrice, 10);
+                if (!newTierName.trim() || isNaN(price)) {
+                  toast({ title: "Enter a name and price", variant: "destructive" });
+                  return;
+                }
+                createTierMutation.mutate({
+                  name: newTierName.trim(),
+                  price,
+                  order: tiers.length,
+                  deadline: newTierDeadline ? new Date(newTierDeadline).toISOString() : null,
+                });
+              }}
+              disabled={createTierMutation.isPending}
+              className="flex items-center justify-center gap-2 bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.2em] font-bold px-4 py-3 hover:bg-[#a82421] disabled:opacity-50 transition-colors w-full sm:w-auto"
+            >
+              {createTierMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              Add
+            </button>
           </div>
         </div>
       )}
