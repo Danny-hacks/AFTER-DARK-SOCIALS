@@ -930,12 +930,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const config of inventory) {
         const confirmed = counts[config.tableType]?.confirmed ?? 0;
         const pending = counts[config.tableType]?.pending ?? 0;
+        // A manual override replaces the real confirmed count entirely —
+        // admin can hold/free tables independent of actual reservation rows.
+        const used = config.manualUsed ?? confirmed;
         result[config.tableType] = {
           ...config,
-          used: confirmed,
+          used,
           confirmed,
           pending,
-          available: config.capacity - confirmed,
+          available: config.capacity - used,
         };
       }
       res.json(result);
@@ -989,6 +992,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching access reservations:", error);
       res.status(500).json({ error: "Failed to fetch reservations" });
+    }
+  });
+
+  app.delete("/api/admin/access/reservations", requireAuth, async (_req, res) => {
+    try {
+      const count = await storage.deleteAllAccessReservations();
+      res.json({ success: true, message: `${count} reservation(s) cleared` });
+    } catch (error) {
+      console.error("Error clearing access reservations:", error);
+      res.status(500).json({ error: "Failed to clear reservations" });
     }
   });
 
@@ -1133,9 +1146,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/admin/access/inventory/:tableType", requireAuth, async (req, res) => {
     try {
-      const { label, price, pricePerPerson, capacity, maxGuests, minGuests } = req.body;
+      const { label, price, pricePerPerson, capacity, maxGuests, minGuests, manualUsed } = req.body;
       const row = await storage.updateTableInventory(req.params.tableType, {
-        label, price, pricePerPerson, capacity, maxGuests, minGuests,
+        label, price, pricePerPerson, capacity, maxGuests, minGuests, manualUsed,
       });
       if (!row) return res.status(404).json({ error: "Table type not found" });
       res.json({ success: true, inventory: row });

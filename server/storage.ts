@@ -72,6 +72,7 @@ export interface IStorage {
   createAdminSinglePass(data: { tableType: string; tableLabel: string; guestsJson: string }): Promise<AccessReservation>;
   countAdminSinglePassesByType(tableType: string): Promise<number>;
   deleteAccessReservation(id: string): Promise<boolean>;
+  deleteAllAccessReservations(): Promise<number>;
 
   // Gallery photo operations
   getGalleryPhoto(id: string): Promise<GalleryPhoto | undefined>;
@@ -429,6 +430,11 @@ export class DatabaseStorage implements IStorage {
   async deleteAccessReservation(id: string): Promise<boolean> {
     const result = await db.delete(accessReservations).where(eq(accessReservations.id, id)).returning();
     return result.length > 0;
+  }
+
+  async deleteAllAccessReservations(): Promise<number> {
+    const result = await db.delete(accessReservations).returning();
+    return result.length;
   }
 
   async countAdminSinglePassesByType(tableType: string): Promise<number> {

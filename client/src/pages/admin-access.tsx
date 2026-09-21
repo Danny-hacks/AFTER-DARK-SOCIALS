@@ -99,11 +99,11 @@ export default function AdminAccessPage() {
   const TABLE_TYPES = ["single_entry", "table_4", "table_5", "section_8_12"];
 
   const [editingType, setEditingType] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState<{ price: string; pricePerPerson: string; capacity: string }>({ price: "", pricePerPerson: "", capacity: "" });
+  const [editValues, setEditValues] = useState<{ price: string; pricePerPerson: string; capacity: string; manualUsed: string }>({ price: "", pricePerPerson: "", capacity: "", manualUsed: "" });
 
   const updateInventoryMutation = useMutation({
-    mutationFn: ({ tableType, price, pricePerPerson, capacity }: { tableType: string; price: number; pricePerPerson: number; capacity: number }) =>
-      apiRequest("PATCH", `/api/admin/access/inventory/${tableType}`, { price, pricePerPerson, capacity }),
+    mutationFn: ({ tableType, price, pricePerPerson, capacity, manualUsed }: { tableType: string; price: number; pricePerPerson: number; capacity: number; manualUsed: number | null }) =>
+      apiRequest("PATCH", `/api/admin/access/inventory/${tableType}`, { price, pricePerPerson, capacity, manualUsed }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/access/inventory"] });
       queryClient.invalidateQueries({ queryKey: ["/api/access/capacity"] });
@@ -113,9 +113,24 @@ export default function AdminAccessPage() {
     onError: () => toast({ title: "Failed to update pricing", variant: "destructive" }),
   });
 
+  const clearReservationsMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", "/api/admin/access/reservations"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/access/reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/access/capacity"] });
+      toast({ title: "All reservations cleared" });
+    },
+    onError: () => toast({ title: "Failed to clear reservations", variant: "destructive" }),
+  });
+
   function startEditing(row: AccessTableInventory) {
     setEditingType(row.tableType);
-    setEditValues({ price: String(row.price), pricePerPerson: String(row.pricePerPerson), capacity: String(row.capacity) });
+    setEditValues({
+      price: String(row.price),
+      pricePerPerson: String(row.pricePerPerson),
+      capacity: String(row.capacity),
+      manualUsed: row.manualUsed != null ? String(row.manualUsed) : "",
+    });
   }
 
   // ── Approve / reject mutations ──
@@ -489,8 +504,10 @@ export default function AdminAccessPage() {
               if (!config) return null;
               const confirmed    = counts[key]?.confirmed ?? 0;
               const pendingCount = counts[key]?.pending ?? 0;
-              const remaining    = config.capacity - confirmed;
-              const pct          = config.capacity > 0 ? Math.round((confirmed / config.capacity) * 100) : 0;
+              const hasOverride  = config.manualUsed != null;
+              const effectiveUsed = config.manualUsed ?? confirmed;
+              const remaining    = config.capacity - effectiveUsed;
+              const pct          = config.capacity > 0 ? Math.round((effectiveUsed / config.capacity) * 100) : 0;
               const isEditing    = editingType === key;
 
               return (
@@ -532,6 +549,7 @@ export default function AdminAccessPage() {
                             price: parseInt(editValues.price, 10) || config.price,
                             pricePerPerson: parseInt(editValues.pricePerPerson, 10) || config.pricePerPerson,
                             capacity: parseInt(editValues.capacity, 10) || config.capacity,
+                            manualUsed: editValues.manualUsed.trim() === "" ? null : parseInt(editValues.manualUsed, 10),
                           })
                         }
                         disabled={updateInventoryMutation.isPending}
@@ -585,6 +603,30 @@ export default function AdminAccessPage() {
                         <span className="text-white/20 text-[9px] uppercase tracking-[0.2em]">{config.capacity} total</span>
                       )}
                     </div>
+                    {isEditing ? (
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-[#c9962a]/70 text-[9px] uppercase tracking-[0.2em]">Manual used override</span>
+                        <input
+                          type="number"
+                          placeholder="auto"
+                          value={editValues.manualUsed}
+                          onChange={(e) => setEditValues((v) => ({ ...v, manualUsed: e.target.value }))}
+                          className="w-14 bg-transparent border-b border-[#c9962a]/40 px-1 text-[#c9962a] text-[9px] focus:outline-none"
+                        />
+                      </div>
+                    ) : hasOverride ? (
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-[#c9962a] text-[9px] uppercase tracking-[0.2em]">Manual: {config.manualUsed} used</span>
+                        <button
+                          onClick={() => updateInventoryMutation.mutate({
+                            tableType: key, price: config.price, pricePerPerson: config.pricePerPerson, capacity: config.capacity, manualUsed: null,
+                          })}
+                          className="text-white/30 hover:text-white text-[9px] uppercase tracking-[0.15em] underline"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               );
@@ -617,9 +659,25 @@ export default function AdminAccessPage() {
 
           {/* ── Reservations list ── */}
           <div className="border-t border-white/10 pt-8">
-            <p className="text-[9px] text-white/25 uppercase tracking-[0.3em] mb-6">
-              {statusFilter === "all" ? "All Reservations" : `${visibleReservations.length} Reservation${visibleReservations.length !== 1 ? "s" : ""}`}
-            </p>
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-[9px] text-white/25 uppercase tracking-[0.3em]">
+                {statusFilter === "all" ? "All Reservations" : `${visibleReservations.length} Reservation${visibleReservations.length !== 1 ? "s" : ""}`}
+              </p>
+              {reservations.length > 0 && (
+                <button
+                  onClick={() => {
+                    if (confirm(`Delete all ${reservations.length} ACCESS reservation(s)? This cannot be undone and does not affect table pricing/capacity settings.`)) {
+                      clearReservationsMutation.mutate();
+                    }
+                  }}
+                  disabled={clearReservationsMutation.isPending}
+                  className="flex items-center gap-1.5 border border-white/15 text-white/40 hover:border-red-500/50 hover:text-red-400 text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors disabled:opacity-40"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Clear All Reservations
+                </button>
+              )}
+            </div>
 
             {visibleReservations.length === 0 ? (
               <p className="text-white/20 text-sm">No reservations{statusFilter !== "all" ? " in this category" : ""} yet.</p>

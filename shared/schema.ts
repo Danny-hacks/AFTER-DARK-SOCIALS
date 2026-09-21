@@ -196,6 +196,11 @@ export const accessTableInventory = pgTable("access_table_inventory", {
   capacity: integer("capacity").notNull(),
   maxGuests: integer("max_guests").notNull(),
   minGuests: integer("min_guests").notNull(),
+  // Admin override for "tables used" shown publicly — when set, this
+  // replaces the real confirmed-reservation count entirely (e.g. to hold a
+  // table booked outside the system, or free one up without touching real
+  // reservation rows). Null means use the real count as before.
+  manualUsed: integer("manual_used"),
 });
 
 export const insertAccessTableInventorySchema = createInsertSchema(accessTableInventory);
