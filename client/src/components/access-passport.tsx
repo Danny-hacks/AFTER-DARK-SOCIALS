@@ -174,6 +174,7 @@ export function AccessPassport() {
   const earlyBird = !!currentEvent?.earlyBirdDeadline && new Date() < new Date(currentEvent.earlyBirdDeadline);
   const [geName, setGeName] = useState("");
   const [gePhone, setGePhone] = useState("");
+  const [sendingGeneral, setSendingGeneral] = useState(false);
 
   // ── Past Editions gallery (admin-managed, Admin → ACCESS Gallery) ──
   const { data: allGalleryItems = [], isLoading: galleryLoading } = useQuery<{ success: boolean; photos: GalleryPhoto[] }, Error, GalleryPhoto[]>({
@@ -274,11 +275,28 @@ export function AccessPassport() {
     reader.readAsDataURL(file);
   }
 
-  function handleGeneralEntryWA() {
+  async function handleGeneralEntryWA() {
     if (!geName.trim()) {
       toast({ title: "Please enter your name", variant: "destructive" });
       return;
     }
+
+    // Open the tab synchronously, before the request below — mobile browsers
+    // revoke "this came from a tap" permission the moment we await anything.
+    const waWindow = window.open("", "_blank");
+
+    setSendingGeneral(true);
+    try {
+      await fetch("/api/access/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tableType: "single_entry",
+          guests: [{ name: geName.trim(), phone: gePhone.trim() }],
+        }),
+      });
+    } catch {}
+
     const tierLabel = earlyBird ? `Early Bird MUR ${earlyBirdPrice}` : `General Entry MUR ${regularPrice}`;
     const msg =
       `Hi, I'd like to reserve a General Entry ticket for ACCESS on ${eventDate} at ${eventVenue}.\n\n` +
@@ -286,7 +304,15 @@ export function AccessPassport() {
       `Name: ${geName.trim()}\n` +
       `Phone: ${gePhone.trim() || "—"}\n\n` +
       `Looking forward to hearing from you.`;
-    window.open(`https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`, "_blank");
+    const waUrl = `https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`;
+    if (waWindow) {
+      waWindow.location.href = waUrl;
+    } else {
+      window.open(waUrl, "_blank");
+    }
+
+    setSendingGeneral(false);
+    toast({ title: "Request received", description: "We'll confirm your General Entry pass via WhatsApp once payment is complete." });
   }
 
   async function sendAllPasses() {
@@ -526,10 +552,11 @@ export function AccessPassport() {
                   </div>
                   <button
                     onClick={handleGeneralEntryWA}
-                    className="flex items-center gap-2 bg-[#c72d28] hover:bg-[#a01f1f] text-white text-[9px] uppercase tracking-[0.2em] font-bold px-6 py-3.5 transition-colors self-start"
+                    disabled={sendingGeneral}
+                    className="flex items-center gap-2 bg-[#c72d28] hover:bg-[#a01f1f] disabled:opacity-40 text-white text-[9px] uppercase tracking-[0.2em] font-bold px-6 py-3.5 transition-colors self-start"
                   >
                     <SiWhatsapp className="w-3 h-3" />
-                    Reserve via WhatsApp
+                    {sendingGeneral ? "Sending..." : "Reserve via WhatsApp"}
                   </button>
                 </div>
               </div>
