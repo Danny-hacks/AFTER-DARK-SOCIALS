@@ -10,7 +10,7 @@ import { MediaLightbox } from "@/components/media-lightbox";
 import type { AccessEvent, GalleryPhoto } from "@shared/schema";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const ADMIN_PHONE = "23058205220";
+const ADMIN_PHONE = "23055151185";
 const R2 = "https://pub-0b879285061a49e498441ce2f868eb74.r2.dev/homepage%20pictures";
 // Fallback defaults, used only until an ACCESS event is created in the admin,
 // or when a specific field (lineup, early-bird pricing) is left unset on it.
@@ -422,7 +422,7 @@ export function AccessPassport() {
                 ["DATE", eventDate],
                 ["VENUE", eventVenue],
                 ["TIME", eventTime],
-                ["CONTACT", "+230 5820 5220"],
+                ["CONTACT", "+230 5515 1185"],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-baseline gap-4">
                   <span className="text-[#c9962a] text-[9px] uppercase tracking-[0.25em] w-16 shrink-0">{label}</span>

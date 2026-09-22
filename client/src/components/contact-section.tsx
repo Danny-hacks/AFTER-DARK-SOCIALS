@@ -4,8 +4,12 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 const TICKETS_ENQUIRY = "AFTR Event — Tickets / VIP / Table";
+const ACCESS_ENQUIRY = "ACCESS — Exclusive Lounge";
 const TICKETS_PHONE = "23055151185";
 const GENERAL_PHONE = "23058205220";
+// Ticket/VIP/table enquiries AND ACCESS (table reservations) both go to the
+// dedicated ticket line — everything else goes to the general number.
+const TICKET_LINE_ENQUIRIES = [TICKETS_ENQUIRY, ACCESS_ENQUIRY];
 
 const enquiryTypes = [
   { value: "", label: "Select enquiry type" },
@@ -13,7 +17,7 @@ const enquiryTypes = [
   { value: "Private Booking",                    label: "Private Booking" },
   { value: "Corporate Event",                    label: "Corporate Event" },
   { value: "Brand Activation",                   label: "Brand Activation" },
-  { value: "ACCESS — Exclusive Lounge",          label: "ACCESS — Exclusive Lounge" },
+  { value: ACCESS_ENQUIRY,                       label: ACCESS_ENQUIRY },
   { value: "General Enquiry",                    label: "General Enquiry" },
 ];
 
@@ -70,9 +74,9 @@ export default function ContactSection() {
       formData.message,
     ].filter(Boolean).join("\n");
 
-    // Ticket/VIP/table enquiries go to the dedicated ticket line — everything
-    // else (bookings, corporate, ACCESS, general) goes to the general number.
-    const target = formData.enquiryType === TICKETS_ENQUIRY ? TICKETS_PHONE : GENERAL_PHONE;
+    // Ticket/VIP/table enquiries and ACCESS (table reservations) go to the
+    // dedicated ticket line — everything else goes to the general number.
+    const target = TICKET_LINE_ENQUIRIES.includes(formData.enquiryType) ? TICKETS_PHONE : GENERAL_PHONE;
     window.open(`https://wa.me/${target}?text=${encodeURIComponent(lines)}`, "_blank");
     toast({ title: "Opening WhatsApp", description: "Your enquiry is pre-filled and ready to send." });
     setFormData({ name: "", phone: "", enquiryType: "", eventDate: "", guests: "", message: "" });
