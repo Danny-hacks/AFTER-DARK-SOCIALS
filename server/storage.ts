@@ -74,6 +74,7 @@ export interface IStorage {
   createAdminSinglePass(data: { tableType: string; tableLabel: string; guestsJson: string; eventId?: string | null }): Promise<AccessReservation>;
   countAdminSinglePassesByType(tableType: string): Promise<number>;
   deleteAccessReservation(id: string): Promise<boolean>;
+  updateAccessReservationEventId(id: string, eventId: string): Promise<AccessReservation | undefined>;
   deleteAllAccessReservations(): Promise<number>;
 
   // Gallery photo operations
@@ -461,6 +462,17 @@ export class DatabaseStorage implements IStorage {
   async deleteAccessReservation(id: string): Promise<boolean> {
     const result = await db.delete(accessReservations).where(eq(accessReservations.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Used only by the one-off backfill script (scripts/backfill-access-reservation-events.ts)
+  // to assign an eventId to reservations created before that column existed.
+  async updateAccessReservationEventId(id: string, eventId: string): Promise<AccessReservation | undefined> {
+    const [row] = await db
+      .update(accessReservations)
+      .set({ eventId })
+      .where(eq(accessReservations.id, id))
+      .returning();
+    return row || undefined;
   }
 
   async deleteAllAccessReservations(): Promise<number> {
