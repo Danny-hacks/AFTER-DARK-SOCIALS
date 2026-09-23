@@ -1,20 +1,33 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { ArrowUpRight } from "lucide-react";
-import vol2_1 from "@assets/vol2_4T7A9200.jpg";
-import vol3_1 from "@assets/Serge_74_1777968315600.jpg";
-import vol3_2 from "@assets/Serge_75_1777968402515.jpg";
-import vol3_3 from "@assets/Serge_83_1777968402525.jpg";
-import vol3_4 from "@assets/Serge_103_1777968402526.jpg";
+import type { GalleryPhoto } from "@shared/schema";
 
-const photos = [
-  { src: vol3_3, alt: "AFTR Vol. 3 — Full Capacity", vol: "VOL. 3", date: "Apr 2026", size: "large" },
-  { src: vol3_1, alt: "AFTR Vol. 3 — The Stage",     vol: "VOL. 3", date: "Apr 2026", size: "small" },
-  { src: vol3_2, alt: "AFTR Vol. 3 — The Crowd",     vol: "VOL. 3", date: "Apr 2026", size: "small" },
-  { src: vol3_4, alt: "AFTR Vol. 3 — The Vibe",      vol: "VOL. 3", date: "Apr 2026", size: "small" },
-  { src: vol2_1, alt: "AFTR Vol. 2 — The Energy",    vol: "VOL. 2", date: "Jan 2026", size: "small" },
-];
+function fmtDate(iso: string | Date | null) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+}
 
 export default function GalleryPreview() {
+  // Most recent AFTR photos, whatever edition they're from — this used to
+  // be 5 images hardcoded to Vol. 2/Vol. 3 specifically, which stayed
+  // "current" only until the next event.
+  const { data: allPhotos = [] } = useQuery<{ success: boolean; photos: GalleryPhoto[] }, Error, GalleryPhoto[]>({
+    queryKey: ["/api/gallery"],
+    select: (data) => data.photos ?? [],
+  });
+
+  const photos = [...allPhotos]
+    .filter((p) => (p.section ?? "aftr") === "aftr" && p.type !== "video")
+    .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
+    .slice(0, 5);
+
+  if (photos.length === 0) return null;
+
+  const [hero, ...rest] = photos;
+  const topRight = rest.slice(0, 2);
+  const bottomRight = rest.slice(2, 4);
+
   return (
     <section id="gallery-preview" className="bg-black py-24 sm:py-32 border-t border-white/10" data-testid="gallery-preview-section">
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12">
@@ -36,7 +49,7 @@ export default function GalleryPreview() {
           </div>
           <div className="sm:pb-3 max-w-xs">
             <p className="text-white/40 text-sm leading-relaxed mb-6" data-testid="gallery-preview-subtext">
-              Every flash, every face, every memory — captured across all three AFTR volumes.
+              Every flash, every face, every memory — captured across every AFTR night.
             </p>
             <Link
               href="/gallery"
@@ -63,46 +76,46 @@ export default function GalleryPreview() {
             style={{ gridRow: "1 / 3" }}
           >
             <img
-              src={photos[0].src}
-              alt={photos[0].alt}
+              src={hero.url}
+              alt={hero.alt || hero.volume}
               className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
               loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
             <div className="absolute bottom-0 left-0 p-8">
-              <span className="text-[#c72d28] text-[9px] uppercase tracking-[0.3em] font-bold block mb-1">{photos[0].vol}</span>
-              <span className="text-white/50 text-[10px] uppercase tracking-wider">{photos[0].date}</span>
+              <span className="text-[#c72d28] text-[9px] uppercase tracking-[0.3em] font-bold block mb-1">{hero.volume}</span>
+              <span className="text-white/50 text-[10px] uppercase tracking-wider">{fmtDate(hero.createdAt)}</span>
             </div>
           </div>
 
           {/* Top right 2 */}
-          {photos.slice(1, 3).map((photo) => (
-            <div key={photo.alt} className="relative overflow-hidden bg-[#0a0a0a] group cursor-pointer">
+          {topRight.map((photo) => (
+            <div key={photo.id} className="relative overflow-hidden bg-[#0a0a0a] group cursor-pointer">
               <img
-                src={photo.src}
-                alt={photo.alt}
+                src={photo.url}
+                alt={photo.alt || photo.volume}
                 className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="absolute bottom-0 left-0 p-4 translate-y-1 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-400">
-                <span className="text-white text-[9px] uppercase tracking-[0.25em] font-bold block">{photo.vol}</span>
+                <span className="text-white text-[9px] uppercase tracking-[0.25em] font-bold block">{photo.volume}</span>
               </div>
             </div>
           ))}
 
           {/* Bottom right 2 */}
-          {photos.slice(3, 5).map((photo) => (
-            <div key={photo.alt} className="relative overflow-hidden bg-[#0a0a0a] group cursor-pointer">
+          {bottomRight.map((photo) => (
+            <div key={photo.id} className="relative overflow-hidden bg-[#0a0a0a] group cursor-pointer">
               <img
-                src={photo.src}
-                alt={photo.alt}
+                src={photo.url}
+                alt={photo.alt || photo.volume}
                 className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="absolute bottom-0 left-0 p-4 translate-y-1 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-400">
-                <span className="text-white text-[9px] uppercase tracking-[0.25em] font-bold block">{photo.vol}</span>
+                <span className="text-white text-[9px] uppercase tracking-[0.25em] font-bold block">{photo.volume}</span>
               </div>
             </div>
           ))}
@@ -111,20 +124,22 @@ export default function GalleryPreview() {
         {/* Mobile — stacked */}
         <div className="sm:hidden space-y-1" data-testid="gallery-preview-grid-mobile">
           <div className="relative overflow-hidden bg-[#0a0a0a] aspect-[4/3]">
-            <img src={photos[0].src} alt={photos[0].alt} className="w-full h-full object-cover grayscale" loading="lazy" />
+            <img src={hero.url} alt={hero.alt || hero.volume} className="w-full h-full object-cover grayscale" loading="lazy" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
             <div className="absolute bottom-0 left-0 p-5">
-              <span className="text-[#c72d28] text-[9px] uppercase tracking-[0.3em] font-bold block mb-1">{photos[0].vol}</span>
-              <span className="text-white/50 text-[10px] uppercase tracking-wider">{photos[0].date}</span>
+              <span className="text-[#c72d28] text-[9px] uppercase tracking-[0.3em] font-bold block mb-1">{hero.volume}</span>
+              <span className="text-white/50 text-[10px] uppercase tracking-wider">{fmtDate(hero.createdAt)}</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-1">
-            {photos.slice(1).map((photo) => (
-              <div key={photo.alt} className="relative overflow-hidden bg-[#0a0a0a] aspect-square">
-                <img src={photo.src} alt={photo.alt} className="w-full h-full object-cover grayscale" loading="lazy" />
-              </div>
-            ))}
-          </div>
+          {rest.length > 0 && (
+            <div className="grid grid-cols-2 gap-1">
+              {rest.map((photo) => (
+                <div key={photo.id} className="relative overflow-hidden bg-[#0a0a0a] aspect-square">
+                  <img src={photo.url} alt={photo.alt || photo.volume} className="w-full h-full object-cover grayscale" loading="lazy" />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Full CTA bar */}

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Calendar, MapPin, Clock, ArrowUpRight, Images } from "lucide-react";
@@ -228,6 +229,15 @@ export default function EventsPage() {
   const hasUpcoming = upcoming.length > 0 || !!accessEvent;
   const hasPast = past.length > 0 || pastAccessEvents.length > 0;
 
+  // Client-side route changes don't trigger the browser's native
+  // scroll-to-hash behavior, and the target section only exists once
+  // events have loaded — so retry the scroll once loading finishes.
+  useEffect(() => {
+    if (isLoading || typeof window === "undefined" || !window.location.hash) return;
+    const el = document.querySelector(window.location.hash);
+    if (el) requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth" }));
+  }, [isLoading]);
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
@@ -314,7 +324,7 @@ export default function EventsPage() {
         {/* Past Events — AFTR editions link straight into the Gallery
             (filtered by volume); past ACCESS editions link to /access. */}
         {!isLoading && hasPast && (
-          <div className="mt-20 sm:mt-28 pt-16 border-t border-white/10">
+          <div id="past-events" className="mt-20 sm:mt-28 pt-16 border-t border-white/10 scroll-mt-24">
             <div className="flex items-center gap-4 mb-14">
               <span className="w-8 h-px bg-white/20" />
               <span className="text-white/40 text-[10px] uppercase tracking-[0.35em]">Past Events</span>

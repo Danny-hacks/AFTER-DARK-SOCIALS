@@ -1,3 +1,4 @@
+import { Link } from "wouter";
 import { ArrowUpRight } from "lucide-react";
 
 const services = [
@@ -9,7 +10,8 @@ const services = [
       "Our flagship rave series. Curated lineups, pulsating energy, and nights that Mauritius won't forget. Tickets, tables, and VIP available.",
     tag: "Ticketing & Bookings",
     cta: "View Past Events",
-    ctaTarget: "past-events",
+    // Cross-page — the Past Events section lives on /events, not here.
+    ctaTarget: "/events#past-events",
     accent: true,
   },
   {
@@ -141,18 +143,33 @@ export default function ServicesSection() {
                 </p>
               </div>
 
-              {/* CTA */}
-              <button
-                onClick={() => scrollTo(service.ctaTarget)}
-                className={`group/btn inline-flex items-center gap-3 text-xs uppercase tracking-[0.2em] font-bold transition-colors ${
-                  service.accent
-                    ? "text-white hover:text-white/70"
-                    : "text-white/40 hover:text-white"
-                }`}
-              >
-                {service.cta}
-                <ArrowUpRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
-              </button>
+              {/* CTA — a leading "/" means a different page (real navigation);
+                  anything else scrolls to an id on this same page. */}
+              {service.ctaTarget.startsWith("/") ? (
+                <Link
+                  href={service.ctaTarget}
+                  className={`group/btn inline-flex items-center gap-3 text-xs uppercase tracking-[0.2em] font-bold transition-colors ${
+                    service.accent
+                      ? "text-white hover:text-white/70"
+                      : "text-white/40 hover:text-white"
+                  }`}
+                >
+                  {service.cta}
+                  <ArrowUpRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
+                </Link>
+              ) : (
+                <button
+                  onClick={() => scrollTo(service.ctaTarget)}
+                  className={`group/btn inline-flex items-center gap-3 text-xs uppercase tracking-[0.2em] font-bold transition-colors ${
+                    service.accent
+                      ? "text-white hover:text-white/70"
+                      : "text-white/40 hover:text-white"
+                  }`}
+                >
+                  {service.cta}
+                  <ArrowUpRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
+                </button>
+              )}
             </div>
           ))}
         </div>
