@@ -257,12 +257,25 @@ export function AccessPassport() {
   function selectTable(key: TableKey) {
     setSelectedTable(key);
     setActiveGuest(0);
-    const count = FIXED_COUNTS[key];
+    const config = inventory[key] ?? TABLE_CONFIG[key];
+    // Fixed-price tables (table_4/table_5) always book out to their full
+    // maxGuests; a variable-size section (section_8_12) starts at its
+    // minimum and the customer can add more up to maxGuests below.
+    const count = FIXED_COUNTS[key] === config.maxGuests ? config.maxGuests : config.minGuests;
     const newGuests: GuestData[] = Array.from(
       { length: count },
       (_, i) => guests[i] ?? { name: "", photo: "", phone: "", passId: rndId() },
     );
     setGuests(newGuests);
+  }
+
+  function setGuestCount(count: number) {
+    setGuests((prev) => {
+      const next = prev.slice(0, count);
+      while (next.length < count) next.push({ name: "", photo: "", phone: "", passId: rndId() });
+      return next;
+    });
+    setActiveGuest((i) => Math.min(i, count - 1));
   }
 
   function updateGuest(index: number, patch: Partial<GuestData>) {
@@ -351,10 +364,11 @@ export function AccessPassport() {
       })
       .join("\n");
 
+    const exactTotal = guests.length * selectedConfig.pricePerPerson;
     const adminMsg =
       `NEW ACCESS RESERVATION\n\n` +
       `Table: ${selectedConfig.label}\n` +
-      `Price: MUR ${selectedConfig.pricePerPerson} per person \u00b7 ${selectedConfig.totalLabel}\n` +
+      `Price: MUR ${selectedConfig.pricePerPerson} per person \u00b7 MUR ${exactTotal.toLocaleString()} total (${guests.length} guests)\n` +
       `Date: ${eventDate}\n` +
       `Venue: ${eventVenue}\n` +
       `Note: Entry tickets only \u2014 no drinks included\n\n` +
@@ -633,6 +647,32 @@ export function AccessPassport() {
                   Select a table above to fill in your group details and receive your passes.
                 </p>
               )}
+
+              {/* Variable-size section: let the customer pick exactly how many guests within the min/max range */}
+              {selectedConfig && selectedConfig.minGuests !== selectedConfig.maxGuests && (
+                <div className="mt-8 max-w-xs">
+                  <label htmlFor="guest-count" className={labelCls}>
+                    Number of Guests ({selectedConfig.minGuests}–{selectedConfig.maxGuests})
+                  </label>
+                  <input
+                    id="guest-count"
+                    type="number"
+                    min={selectedConfig.minGuests}
+                    max={selectedConfig.maxGuests}
+                    value={guests.length}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value, 10);
+                      if (!isNaN(n)) {
+                        setGuestCount(Math.max(selectedConfig.minGuests, Math.min(selectedConfig.maxGuests, n)));
+                      }
+                    }}
+                    className={inputCls}
+                  />
+                  <p className="text-white/20 text-[9px] mt-1.5 uppercase tracking-[0.15em]">
+                    Total: MUR {(guests.length * selectedConfig.pricePerPerson).toLocaleString()} · final total confirmed on approval
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* ── Guest forms + passport preview ── */}
@@ -714,7 +754,7 @@ export function AccessPassport() {
                     <div>
                       <p className="text-white text-sm font-mono">{selectedConfig.label}</p>
                       <p className="text-[#c9962a] text-xs font-mono">MUR {selectedConfig.pricePerPerson} per person</p>
-                      <p className="text-white/30 text-[9px] font-mono mt-0.5">{selectedConfig.totalLabel}</p>
+                      <p className="text-white/30 text-[9px] font-mono mt-0.5">MUR {(guests.length * selectedConfig.pricePerPerson).toLocaleString()} total</p>
                       <p className="text-white/30 text-[9px] uppercase tracking-[0.15em] mt-0.5">
                         {guests.length} {guests.length === 1 ? "pass" : "passes"}
                       </p>
