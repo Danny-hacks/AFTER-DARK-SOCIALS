@@ -642,19 +642,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Verify purchase and create tickets (supports multiple tickets per purchase)
   app.post("/api/admin/purchases/:id/verify", requireAuth, async (req, res) => {
+    // Atomically claim the purchase (status pending -> processing in one
+    // conditional UPDATE) so two concurrent verify requests — a double
+    // click, or two admin tabs — can't both pass the status check and
+    // both generate tickets for the same purchase.
+    const purchase = await storage.claimPurchaseForProcessing(req.params.id);
+    if (!purchase) {
+      const existing = await storage.getTicketPurchase(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Purchase not found" });
+      return res.status(400).json({ error: "Purchase already processed (or being processed)" });
+    }
+
     try {
-      const purchase = await storage.getTicketPurchase(req.params.id);
-      if (!purchase) {
-        return res.status(404).json({ error: "Purchase not found" });
-      }
-
-      if (purchase.status !== "pending") {
-        return res.status(400).json({ error: "Purchase already processed" });
-      }
-
-      // IMMEDIATELY mark as processing to prevent race condition from double-clicks
-      await storage.markPurchaseProcessing(req.params.id);
-
       const quantity = purchase.quantity || 1;
       // Honor the price the customer was actually quoted at purchase time
       // (already tier-aware — see /api/tickets/purchase) rather than re-deriving it.
@@ -733,7 +732,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error verifying purchase:", error);
-      res.status(500).json({ error: "Failed to verify purchase" });
+      // Revert the claim so this purchase isn't stuck in "processing"
+      // forever with no way for admin to retry — but only if it's still
+      // sitting at "processing" (i.e. the failure happened before
+      // verifyTicketPurchase actually completed; don't clobber a purchase
+      // that already succeeded and failed on something after that).
+      try {
+        const current = await storage.getTicketPurchase(req.params.id);
+        if (current?.status === "processing") {
+          await storage.updateTicketPurchase(req.params.id, { status: "pending" });
+        }
+      } catch (revertError) {
+        console.error("Error reverting stuck purchase to pending:", revertError);
+      }
+      res.status(500).json({ error: "Failed to verify purchase — please try again" });
     }
   });
 
@@ -925,7 +937,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/access/capacity", async (_req, res) => {
     try {
       const inventory = await storage.getAllTableInventory();
-      const counts = await storage.getAccessReservationCounts();
+      const currentEvent = await storage.getUpcomingAccessEvent();
+      const counts = await storage.getAccessReservationCounts(currentEvent?.id);
       const result: Record<string, object> = {};
       for (const config of inventory) {
         const confirmed = counts[config.tableType]?.confirmed ?? 0;
@@ -958,7 +971,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!config) {
         return res.status(400).json({ error: "Invalid table type" });
       }
-      const counts = await storage.getAccessReservationCounts();
+      const currentEvent = await storage.getUpcomingAccessEvent();
+      const counts = await storage.getAccessReservationCounts(currentEvent?.id);
       if ((counts[tableType]?.confirmed ?? 0) >= config.capacity) {
         return res.status(400).json({ error: "This table type is fully booked" });
       }
@@ -975,6 +989,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tableType,
         tableLabel: config.label,
         guestsJson: JSON.stringify(guestsWithPassIds),
+        eventId: currentEvent?.id ?? null,
       });
       res.json({ success: true });
     } catch (error) {
@@ -986,8 +1001,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ─── Admin ACCESS reservation routes ───────────────────────────────────────
   app.get("/api/admin/access/reservations", requireAuth, async (_req, res) => {
     try {
+      // The reservations list itself stays unfiltered (admin can see full
+      // history), but counts are scoped to the current edition to match
+      // what the public capacity numbers show.
       const reservations = await storage.getAllAccessReservations();
-      const counts = await storage.getAccessReservationCounts();
+      const currentEvent = await storage.getUpcomingAccessEvent();
+      const counts = await storage.getAccessReservationCounts(currentEvent?.id);
       res.json({ success: true, reservations, counts });
     } catch (error) {
       console.error("Error fetching access reservations:", error);
@@ -1007,6 +1026,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/admin/access/:id/approve", requireAuth, async (req, res) => {
     try {
+      const pending = await storage.getAccessReservation(req.params.id);
+      if (!pending) return res.status(404).json({ error: "Reservation not found" });
+
+      // Re-check capacity at approval time — the apply-time check only
+      // guards against overbooking at submission, not at approval, so two
+      // pending reservations for the last slot could otherwise both get
+      // approved.
+      const config = await storage.getTableInventory(pending.tableType);
+      if (config) {
+        const counts = await storage.getAccessReservationCounts(pending.eventId ?? undefined);
+        if ((counts[pending.tableType]?.confirmed ?? 0) >= config.capacity) {
+          return res.status(400).json({ error: "This table type is now fully booked — cannot approve." });
+        }
+      }
+
       const reservation = await storage.approveAccessReservation(req.params.id);
       if (!reservation) return res.status(404).json({ error: "Reservation not found" });
 
@@ -1082,14 +1116,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       notes: notes?.trim() ?? "",
     };
     try {
+      const currentAccessEvent = await storage.getUpcomingAccessEvent();
       const reservation = await storage.createAdminSinglePass({
         tableType,
         tableLabel,
         guestsJson: JSON.stringify([guest]),
+        eventId: currentAccessEvent?.id ?? null,
       });
       let whatsappUrl: string | null = null;
       if (phone?.trim()) {
-        const currentAccessEvent = await storage.getUpcomingAccessEvent();
         const eventDate = currentAccessEvent?.date || "3 July 2026";
         const eventVenue = currentAccessEvent?.venue || "Club Sixty Nine";
         const clean = (phone as string).replace(/[\s\-\+\(\)]/g, "");

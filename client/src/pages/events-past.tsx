@@ -4,7 +4,7 @@ import { Calendar, MapPin, Clock, ArrowUpRight, Loader2, Image as ImageIcon } fr
 import { usePageTitle } from "@/hooks/use-page-title";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-import type { Event } from "@shared/schema";
+import type { AccessEvent, Event } from "@shared/schema";
 
 function parseArtists(json: string | null): string[] {
   if (!json) return [];
@@ -21,6 +21,13 @@ export default function EventsPastPage() {
 
   const { data: pastEvents = [], isLoading } = useQuery<{ success: boolean; events: Event[] }, Error, Event[]>({
     queryKey: ["/api/events/past"],
+    select: (data) => data.events ?? [],
+  });
+  // This page is meant to be "the" past-events archive (linked from the
+  // footer) — it needs to match what /events#past-events shows, which
+  // includes past ACCESS editions too, not just AFTR ones.
+  const { data: pastAccessEvents = [], isLoading: isLoadingAccess } = useQuery<{ success: boolean; events: AccessEvent[] }, Error, AccessEvent[]>({
+    queryKey: ["/api/access/past"],
     select: (data) => data.events ?? [],
   });
 
@@ -51,13 +58,13 @@ export default function EventsPastPage() {
           </p>
         </div>
 
-        {isLoading && (
+        {(isLoading || isLoadingAccess) && (
           <div className="flex items-center justify-center py-24">
             <Loader2 className="w-5 h-5 text-white/30 animate-spin" />
           </div>
         )}
 
-        {!isLoading && pastEvents.length === 0 && (
+        {!isLoading && !isLoadingAccess && pastEvents.length === 0 && pastAccessEvents.length === 0 && (
           <div className="text-center py-24 text-white/20 text-sm uppercase tracking-widest">
             No past events yet.
           </div>
@@ -169,6 +176,74 @@ export default function EventsPastPage() {
             </div>
           );
         })}
+
+        {/* Past ACCESS editions */}
+        {pastAccessEvents.map((ev) => (
+          <div
+            key={ev.id}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-0 border-b border-white/10 group"
+          >
+            {/* Image */}
+            <div className="lg:col-span-5 relative overflow-hidden h-56 sm:h-72 lg:h-auto bg-[#0a0a0a]">
+              {ev.bannerUrl && (
+                <img
+                  src={ev.bannerUrl}
+                  alt={ev.name}
+                  className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                  loading="lazy"
+                />
+              )}
+              <div className="absolute inset-0 bg-black/50 group-hover:bg-black/30 transition-colors duration-500" />
+              <div className="absolute top-5 left-5">
+                <span className="text-[#c9962a] text-[9px] uppercase tracking-[0.35em]">Private Social</span>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="lg:col-span-7 py-10 sm:py-12 lg:px-12 xl:px-16 flex flex-col justify-center">
+              <h2
+                className="text-white leading-none mb-3"
+                style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(36px, 5vw, 72px)" }}
+              >
+                {ev.name}
+              </h2>
+
+              <div className="flex flex-wrap gap-5 mb-6">
+                {ev.date && (
+                  <div className="flex items-center gap-2 text-white/30 text-xs">
+                    <Calendar className="w-3 h-3" />
+                    <span>{ev.date}</span>
+                  </div>
+                )}
+                {ev.time && (
+                  <div className="flex items-center gap-2 text-white/30 text-xs">
+                    <Clock className="w-3 h-3" />
+                    <span>{ev.time}</span>
+                  </div>
+                )}
+                {ev.venue && (
+                  <div className="flex items-center gap-2 text-white/30 text-xs">
+                    <MapPin className="w-3 h-3" />
+                    <span>{ev.venue}</span>
+                  </div>
+                )}
+              </div>
+
+              {ev.description && (
+                <p className="text-white/40 text-sm leading-relaxed mb-8 max-w-lg">{ev.description}</p>
+              )}
+
+              <Link
+                href="/access#past-editions"
+                className="group/link inline-flex items-center gap-2 text-white/30 hover:text-white text-[10px] uppercase tracking-[0.2em] font-bold transition-colors w-fit"
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+                View ACCESS
+                <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
+              </Link>
+            </div>
+          </div>
+        ))}
 
         {/* Back to upcoming */}
         <div className="pt-12 flex items-center justify-between">

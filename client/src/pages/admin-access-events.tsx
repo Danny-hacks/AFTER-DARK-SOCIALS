@@ -283,6 +283,7 @@ export default function AdminAccessEventsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/access/events"] });
       queryClient.invalidateQueries({ queryKey: ["/api/access/current"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/access/past"] });
       setForm(emptyForm);
       toast({ title: "ACCESS event created" });
     },
@@ -295,6 +296,7 @@ export default function AdminAccessEventsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/access/events"] });
       queryClient.invalidateQueries({ queryKey: ["/api/access/current"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/access/past"] });
       setEditingId(null);
       toast({ title: "ACCESS event updated" });
     },
@@ -306,6 +308,7 @@ export default function AdminAccessEventsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/access/events"] });
       queryClient.invalidateQueries({ queryKey: ["/api/access/current"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/access/past"] });
       toast({ title: "ACCESS event deleted" });
     },
     onError: () => toast({ title: "Failed to delete event", variant: "destructive" }),

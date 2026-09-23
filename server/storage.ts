@@ -26,6 +26,7 @@ export interface IStorage {
   verifyTicketPurchase(id: string, ticketId: string): Promise<TicketPurchase | undefined>;
   rejectTicketPurchase(id: string, reason: string): Promise<TicketPurchase | undefined>;
   markPurchaseProcessing(id: string): Promise<TicketPurchase | undefined>;
+  claimPurchaseForProcessing(id: string): Promise<TicketPurchase | undefined>;
   deleteTicketPurchase(id: string): Promise<boolean>;
   
   // Ticket operations
@@ -63,13 +64,14 @@ export interface IStorage {
   deleteHeroSlide(id: string): Promise<boolean>;
 
   // Access reservation operations
-  createAccessReservation(data: { tableType: string; tableLabel: string; guestsJson: string }): Promise<AccessReservation>;
+  createAccessReservation(data: { tableType: string; tableLabel: string; guestsJson: string; eventId?: string | null }): Promise<AccessReservation>;
   getAllAccessReservations(): Promise<AccessReservation[]>;
+  getAccessReservation(id: string): Promise<AccessReservation | undefined>;
   approveAccessReservation(id: string): Promise<AccessReservation | undefined>;
   rejectAccessReservation(id: string): Promise<AccessReservation | undefined>;
-  getAccessReservationCounts(): Promise<Record<string, { confirmed: number; pending: number }>>;
+  getAccessReservationCounts(eventId?: string): Promise<Record<string, { confirmed: number; pending: number }>>;
   getReservationCountByType(tableType: string): Promise<number>;
-  createAdminSinglePass(data: { tableType: string; tableLabel: string; guestsJson: string }): Promise<AccessReservation>;
+  createAdminSinglePass(data: { tableType: string; tableLabel: string; guestsJson: string; eventId?: string | null }): Promise<AccessReservation>;
   countAdminSinglePassesByType(tableType: string): Promise<number>;
   deleteAccessReservation(id: string): Promise<boolean>;
   deleteAllAccessReservations(): Promise<number>;
@@ -170,6 +172,19 @@ export class DatabaseStorage implements IStorage {
       .update(ticketPurchases)
       .set({ status: "processing" })
       .where(eq(ticketPurchases.id, id))
+      .returning();
+    return purchase || undefined;
+  }
+
+  // Atomically claims a pending purchase for verification — the WHERE
+  // clause only matches if status is still "pending", so two concurrent
+  // verify requests for the same purchase can't both succeed (only one
+  // UPDATE actually matches a row; the loser gets undefined back).
+  async claimPurchaseForProcessing(id: string): Promise<TicketPurchase | undefined> {
+    const [purchase] = await db
+      .update(ticketPurchases)
+      .set({ status: "processing" })
+      .where(and(eq(ticketPurchases.id, id), eq(ticketPurchases.status, "pending")))
       .returning();
     return purchase || undefined;
   }
@@ -304,6 +319,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteEvent(id: string): Promise<boolean> {
+    // Ticket tiers are pure config with no standalone value once the event
+    // is gone — clean them up so they don't accumulate as orphaned clutter.
+    // Sold tickets/purchases are deliberately left alone (real sales
+    // history, already store their own name/price snapshot).
+    await db.delete(eventTicketTiers).where(eq(eventTicketTiers.eventId, id));
     const result = await db
       .delete(events)
       .where(eq(events.id, id));
@@ -378,7 +398,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Access reservation operations
-  async createAccessReservation(data: { tableType: string; tableLabel: string; guestsJson: string }): Promise<AccessReservation> {
+  async createAccessReservation(data: { tableType: string; tableLabel: string; guestsJson: string; eventId?: string | null }): Promise<AccessReservation> {
     const [row] = await db
       .insert(accessReservations)
       .values({ ...data, status: "pending_payment" })
@@ -388,6 +408,11 @@ export class DatabaseStorage implements IStorage {
 
   async getAllAccessReservations(): Promise<AccessReservation[]> {
     return db.select().from(accessReservations).orderBy(desc(accessReservations.createdAt));
+  }
+
+  async getAccessReservation(id: string): Promise<AccessReservation | undefined> {
+    const [row] = await db.select().from(accessReservations).where(eq(accessReservations.id, id));
+    return row || undefined;
   }
 
   async approveAccessReservation(id: string): Promise<AccessReservation | undefined> {
@@ -408,8 +433,14 @@ export class DatabaseStorage implements IStorage {
     return row || undefined;
   }
 
-  async getAccessReservationCounts(): Promise<Record<string, { confirmed: number; pending: number }>> {
-    const rows = await db.select().from(accessReservations);
+  // Scoped to a specific ACCESS edition when given an eventId, so a new
+  // edition doesn't inherit a previous one's confirmed/pending counts.
+  // Rows created before eventId existed (null) are excluded from any
+  // eventId-scoped count — they're historical noise at that point.
+  async getAccessReservationCounts(eventId?: string): Promise<Record<string, { confirmed: number; pending: number }>> {
+    const rows = eventId
+      ? await db.select().from(accessReservations).where(eq(accessReservations.eventId, eventId))
+      : await db.select().from(accessReservations);
     const result: Record<string, { confirmed: number; pending: number }> = {};
     for (const row of rows) {
       if (!result[row.tableType]) result[row.tableType] = { confirmed: 0, pending: 0 };
@@ -419,7 +450,7 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async createAdminSinglePass(data: { tableType: string; tableLabel: string; guestsJson: string }): Promise<AccessReservation> {
+  async createAdminSinglePass(data: { tableType: string; tableLabel: string; guestsJson: string; eventId?: string | null }): Promise<AccessReservation> {
     const [row] = await db
       .insert(accessReservations)
       .values({ ...data, status: "approved", source: "admin_single", approvedAt: new Date() })

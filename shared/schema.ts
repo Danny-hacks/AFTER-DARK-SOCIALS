@@ -140,6 +140,11 @@ export const accessReservations = pgTable("access_reservations", {
   guestsJson: text("guests_json").notNull(),
   status: text("status").notNull().default("pending_payment"),
   source: text("source").notNull().default("public"),
+  // Which ACCESS edition this reservation was made for — null on rows
+  // created before this column existed. Capacity counts are scoped to a
+  // specific eventId so a new edition doesn't inherit a previous one's
+  // "sold out" state.
+  eventId: varchar("event_id"),
   createdAt: timestamp("created_at").defaultNow(),
   approvedAt: timestamp("approved_at"),
 });

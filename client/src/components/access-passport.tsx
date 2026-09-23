@@ -172,6 +172,9 @@ export function AccessPassport() {
   // General entry state — early-bird pricing is entirely driven by this
   // edition's own deadline; no deadline configured means it's simply off.
   const earlyBird = !!currentEvent?.earlyBirdDeadline && new Date() < new Date(currentEvent.earlyBirdDeadline);
+  const earlyBirdDeadlineLabel = currentEvent?.earlyBirdDeadline
+    ? new Date(currentEvent.earlyBirdDeadline).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })
+    : "";
   const [geName, setGeName] = useState("");
   const [gePhone, setGePhone] = useState("");
   const [sendingGeneral, setSendingGeneral] = useState(false);
@@ -535,7 +538,9 @@ export function AccessPassport() {
                   {earlyBird && (
                     <div className="space-y-1">
                       <p className="text-white/40 text-[10px] uppercase tracking-[0.2em]">Limited to 50 tickets</p>
-                      <p className="text-white/25 text-[9px] uppercase tracking-[0.15em]">Price increases Friday 3 July</p>
+                      {earlyBirdDeadlineLabel && (
+                        <p className="text-white/25 text-[9px] uppercase tracking-[0.15em]">Price increases {earlyBirdDeadlineLabel}</p>
+                      )}
                     </div>
                   )}
                 </div>

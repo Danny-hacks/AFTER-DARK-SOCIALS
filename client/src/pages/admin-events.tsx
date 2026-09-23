@@ -17,6 +17,7 @@ export default function AdminEventsPage() {
     mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/events/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events/past"] });
       toast({ title: "Event deleted" });
     },
     onError: () => toast({ title: "Delete failed", variant: "destructive" }),
