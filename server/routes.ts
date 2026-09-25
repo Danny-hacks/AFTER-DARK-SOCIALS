@@ -606,6 +606,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Global admin search — ticket orders, generated tickets, and ACCESS
+  // reservations, matched by name/phone/email/reference/pass ID/table.
+  // Small dataset for this app, so a straightforward in-memory filter over
+  // each table (already the pattern used elsewhere, e.g.
+  // getAccessReservationCounts) is simpler than building SQL LIKE queries.
+  app.get("/api/admin/search", requireAuth, async (req, res) => {
+    try {
+      const q = String(req.query.q ?? "").trim().toLowerCase();
+      if (q.length < 2) {
+        return res.json({ success: true, query: q, purchases: [], tickets: [], accessReservations: [] });
+      }
+
+      const [allPurchases, allTickets, allReservations, allEvents] = await Promise.all([
+        storage.getAllTicketPurchases(),
+        storage.getAllTickets(),
+        storage.getAllAccessReservations(),
+        storage.getAllEvents(),
+      ]);
+      const eventNameById = new Map(allEvents.map((e) => [e.id, e.name]));
+
+      const purchases = allPurchases
+        .filter((p) =>
+          p.customerName.toLowerCase().includes(q) ||
+          (p.customerPhone ?? "").toLowerCase().includes(q) ||
+          (p.customerEmail ?? "").toLowerCase().includes(q) ||
+          p.ticketType.toLowerCase().includes(q),
+        )
+        .slice(0, 15)
+        .map((p) => ({ ...p, eventName: p.eventId ? eventNameById.get(p.eventId) ?? null : null }));
+
+      const tickets = allTickets
+        .filter((t) =>
+          t.customerName.toLowerCase().includes(q) ||
+          (t.customerPhone ?? "").toLowerCase().includes(q) ||
+          (t.customerEmail ?? "").toLowerCase().includes(q) ||
+          t.referenceCode.toLowerCase().includes(q),
+        )
+        .slice(0, 15)
+        .map((t) => ({ ...t, eventName: t.eventId ? eventNameById.get(t.eventId) ?? null : null }));
+
+      const accessReservations = allReservations
+        .map((r) => {
+          let guests: { name: string; phone?: string; passId: string }[] = [];
+          try { guests = JSON.parse(r.guestsJson); } catch {}
+          const matchedGuests = guests.filter((g) =>
+            g.name?.toLowerCase().includes(q) ||
+            (g.phone ?? "").toLowerCase().includes(q) ||
+            g.passId?.toLowerCase().includes(q),
+          );
+          const tableMatches = r.tableLabel.toLowerCase().includes(q);
+          return { reservation: r, matchedGuests, tableMatches };
+        })
+        .filter((r) => r.matchedGuests.length > 0 || r.tableMatches)
+        .slice(0, 15)
+        .map(({ reservation, matchedGuests }) => ({ ...reservation, matchedGuests }));
+
+      res.json({ success: true, query: q, purchases, tickets, accessReservations });
+    } catch (error) {
+      console.error("Error running admin search:", error);
+      res.status(500).json({ error: "Search failed" });
+    }
+  });
+
   // Admin Ticket Purchase Management routes
   app.get("/api/admin/purchases", requireAuth, async (req, res) => {
     try {

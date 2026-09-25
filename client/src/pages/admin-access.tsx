@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
+import { useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Check, X, Clock, ChevronDown, ChevronUp, Download, MessageSquare, Plus, Trash2, Pencil, Save } from "lucide-react";
+import { Loader2, Check, X, Clock, ChevronDown, ChevronUp, Download, MessageSquare, Plus, Trash2, Pencil, Save, Search } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { PassportCard, type PassFields } from "@/components/passport-card";
 import { generatePassPDF } from "@/lib/generatePassCanvas";
@@ -65,6 +66,9 @@ function buildWaUrl(guest: Guest, tableLabel: string, eventDate: string): string
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function AdminAccessPage() {
   const { toast } = useToast();
+  // Deep-linked from global search (?q=name) — falls back to empty when
+  // navigated to directly.
+  const initialQuery = new URLSearchParams(useSearch()).get("q") ?? "";
 
   // FIX 3 — preload DM Mono + Bebas Neue into the document font set so
   // html2canvas always finds them loaded (avoids glitched-character exports)
@@ -261,8 +265,20 @@ export default function AdminAccessPage() {
   const rejected = reservations.filter((r) => r.status === "rejected");
 
   const [statusFilter, setStatusFilter] = useState<"all" | "pending_payment" | "approved" | "rejected">("all");
-  const visibleReservations =
+  const statusFiltered =
     statusFilter === "all" ? [...pending, ...approved, ...rejected] : reservations.filter((r) => r.status === statusFilter);
+
+  const [reservationSearch, setReservationSearch] = useState(initialQuery);
+  const visibleReservations = reservationSearch.trim()
+    ? statusFiltered.filter((r) => {
+        const q = reservationSearch.trim().toLowerCase();
+        const guests = parseGuests(r.guestsJson);
+        return (
+          r.tableLabel.toLowerCase().includes(q) ||
+          guests.some((g) => g.name.toLowerCase().includes(q) || (g.phone ?? "").includes(q) || g.passId.toLowerCase().includes(q))
+        );
+      })
+    : statusFiltered;
 
   const isBusy = singleMutation.isPending;
 
@@ -659,9 +675,11 @@ export default function AdminAccessPage() {
 
           {/* ── Reservations list ── */}
           <div className="border-t border-white/10 pt-8">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
               <p className="text-[9px] text-white/25 uppercase tracking-[0.3em]">
-                {statusFilter === "all" ? "All Reservations" : `${visibleReservations.length} Reservation${visibleReservations.length !== 1 ? "s" : ""}`}
+                {reservationSearch.trim() || statusFilter !== "all"
+                  ? `${visibleReservations.length} Reservation${visibleReservations.length !== 1 ? "s" : ""}`
+                  : "All Reservations"}
               </p>
               {reservations.length > 0 && (
                 <button
@@ -679,8 +697,23 @@ export default function AdminAccessPage() {
               )}
             </div>
 
+            {reservations.length > 0 && (
+              <div className="relative max-w-sm mb-6">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                <input
+                  type="text"
+                  value={reservationSearch}
+                  onChange={(e) => setReservationSearch(e.target.value)}
+                  placeholder="Search by guest name, phone, pass ID, table..."
+                  className="w-full bg-[#0a0a0a] border border-white/15 text-white placeholder:text-white/20 text-sm pl-9 pr-3 py-2.5 focus:outline-none focus:border-white/40 transition-colors"
+                />
+              </div>
+            )}
+
             {visibleReservations.length === 0 ? (
-              <p className="text-white/20 text-sm">No reservations{statusFilter !== "all" ? " in this category" : ""} yet.</p>
+              <p className="text-white/20 text-sm">
+                {reservationSearch.trim() ? "No matching reservations." : `No reservations${statusFilter !== "all" ? " in this category" : ""} yet.`}
+              </p>
             ) : (
               <div className="space-y-3">
                 {visibleReservations.map((r) => {

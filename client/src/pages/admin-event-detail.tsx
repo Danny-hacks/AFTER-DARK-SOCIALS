@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, useSearch, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,7 +7,7 @@ import { z } from "zod";
 import {
   ArrowLeft, Loader2, CheckCircle, XCircle, QrCode, Users, Ticket,
   ShoppingBag, Edit2, Save, Image as ImageIcon, Video as VideoIcon,
-  DollarSign, Plus, Trash2, Eye, X, ChevronDown, ChevronUp, Clock,
+  DollarSign, Plus, Trash2, Eye, X, ChevronDown, ChevronUp, Clock, Search,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -67,9 +67,20 @@ function parseGuestNames(json: string | null): string[] {
   }
 }
 
+const VALID_TABS: Tab[] = ["overview", "pricing", "tickets", "orders", "checkin", "scan"];
+
 export default function AdminEventDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [tab, setTab] = useState<Tab>("overview");
+  // Deep-linked from global search (?tab=orders&q=name) — falls back to the
+  // normal default when navigated to directly.
+  const searchParams = new URLSearchParams(useSearch());
+  const initialTab = searchParams.get("tab");
+  const initialQuery = searchParams.get("q") ?? "";
+  const [tab, setTab] = useState<Tab>(
+    initialTab && (VALID_TABS as string[]).includes(initialTab) ? (initialTab as Tab) : "overview",
+  );
+  const [orderSearch, setOrderSearch] = useState(initialQuery);
+  const [ticketSearch, setTicketSearch] = useState(initialQuery);
   const { toast } = useToast();
 
   const { data: eventData, isLoading } = useQuery<{ success: boolean; event: Event; tiers: EventTicketTier[] }>({
@@ -188,9 +199,32 @@ export default function AdminEventDetailPage() {
   }
 
   const eventPurchases = purchases.filter((p) => p.eventId === id);
+  const filteredEventPurchases = orderSearch.trim()
+    ? eventPurchases.filter((p) => {
+        const q = orderSearch.trim().toLowerCase();
+        return (
+          p.customerName.toLowerCase().includes(q) ||
+          (p.customerPhone ?? "").includes(q) ||
+          (p.customerEmail ?? "").toLowerCase().includes(q) ||
+          p.ticketType.toLowerCase().includes(q)
+        );
+      })
+    : eventPurchases;
+
   const eventTickets = allTickets
     .filter((t) => t.eventId === id)
     .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
+  const filteredEventTickets = ticketSearch.trim()
+    ? eventTickets.filter((t) => {
+        const q = ticketSearch.trim().toLowerCase();
+        return (
+          t.customerName.toLowerCase().includes(q) ||
+          (t.customerPhone ?? "").includes(q) ||
+          (t.customerEmail ?? "").toLowerCase().includes(q) ||
+          t.referenceCode.toLowerCase().includes(q)
+        );
+      })
+    : eventTickets;
   // Driven by each ticket's own usedAt timestamp rather than an in-memory
   // scan log — a client-only log disappeared on every page refresh, which
   // made it look like scans weren't being recorded at all.
@@ -557,11 +591,26 @@ export default function AdminEventDetailPage() {
       {/* ── Orders ── */}
       {tab === "orders" && (
         <div className="space-y-3">
-          <p className="text-white/30 text-xs mb-6">{eventPurchases.length} purchase request{eventPurchases.length !== 1 ? "s" : ""}</p>
-          {eventPurchases.length === 0 ? (
-            <p className="text-white/20 text-sm">No orders yet.</p>
+          {eventPurchases.length > 0 && (
+            <div className="relative max-w-sm mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+              <input
+                type="text"
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+                placeholder="Search by name, phone, email, ticket type..."
+                className="w-full bg-[#0a0a0a] border border-white/15 text-white placeholder:text-white/20 text-sm pl-9 pr-3 py-2.5 focus:outline-none focus:border-white/40 transition-colors"
+              />
+            </div>
+          )}
+          <p className="text-white/30 text-xs mb-6">
+            {filteredEventPurchases.length} purchase request{filteredEventPurchases.length !== 1 ? "s" : ""}
+            {orderSearch.trim() && ` of ${eventPurchases.length}`}
+          </p>
+          {filteredEventPurchases.length === 0 ? (
+            <p className="text-white/20 text-sm">{orderSearch.trim() ? "No matching orders." : "No orders yet."}</p>
           ) : (
-            eventPurchases.map((p) => (
+            filteredEventPurchases.map((p) => (
               <div key={p.id} className="bg-[#0a0a0a] border border-white/10 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <p className="text-white text-sm font-medium">{p.customerName}</p>
@@ -684,14 +733,29 @@ export default function AdminEventDetailPage() {
             )}
           </div>
 
-          <p className="text-white/30 text-xs mb-1">{eventTickets.length} ticket{eventTickets.length !== 1 ? "s" : ""} issued</p>
+          {eventTickets.length > 0 && (
+            <div className="relative max-w-sm mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+              <input
+                type="text"
+                value={ticketSearch}
+                onChange={(e) => setTicketSearch(e.target.value)}
+                placeholder="Search by name, phone, email, reference code..."
+                className="w-full bg-[#0a0a0a] border border-white/15 text-white placeholder:text-white/20 text-sm pl-9 pr-3 py-2.5 focus:outline-none focus:border-white/40 transition-colors"
+              />
+            </div>
+          )}
+          <p className="text-white/30 text-xs mb-1">
+            {filteredEventTickets.length} ticket{filteredEventTickets.length !== 1 ? "s" : ""} issued
+            {ticketSearch.trim() && ` of ${eventTickets.length}`}
+          </p>
           <p className="text-white/15 text-[10px] mb-6">
             View/Share Ticket opens the ticket preview to send it the first time. Mark Sent just tracks delivery status — once sent, Resend fires the WhatsApp share again directly.
           </p>
-          {eventTickets.length === 0 ? (
-            <p className="text-white/20 text-sm">No tickets issued yet.</p>
+          {filteredEventTickets.length === 0 ? (
+            <p className="text-white/20 text-sm">{ticketSearch.trim() ? "No matching tickets." : "No tickets issued yet."}</p>
           ) : (
-            eventTickets.map((t) => (
+            filteredEventTickets.map((t) => (
               <div key={t.id} className="bg-[#0a0a0a] border border-white/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap mb-0.5">

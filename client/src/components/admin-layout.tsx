@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   LayoutDashboard, Calendar, ShoppingBag, Crown, Image, LogOut,
-  Menu, X, Loader2, Film, QrCode,
+  Menu, X, Loader2, Film, QrCode, Search, Ticket as TicketIcon, ShieldCheck,
 } from "lucide-react";
 import logoImage from "@assets/ChatGPT_Image_Jan_4,_2026,_09_11_18_AM_1767514346359.png";
 
@@ -127,6 +127,160 @@ function AdminSidebar({ onClose }: { onClose?: () => void }) {
   );
 }
 
+// ─── Global search ──────────────────────────────────────────────────────────
+interface SearchPurchase {
+  id: string; eventId: string | null; customerName: string; customerPhone: string;
+  ticketType: string; status: string; eventName: string | null;
+}
+interface SearchTicket {
+  id: string; eventId: string | null; customerName: string; customerPhone: string | null;
+  referenceCode: string; isUsed: boolean; eventName: string | null;
+}
+interface SearchReservation {
+  id: string; tableType: string; tableLabel: string; status: string;
+  matchedGuests: { name: string; phone?: string; passId: string }[];
+}
+interface SearchResponse {
+  success: boolean;
+  purchases: SearchPurchase[];
+  tickets: SearchTicket[];
+  accessReservations: SearchReservation[];
+}
+
+function GlobalSearch() {
+  const [, navigate] = useLocation();
+  const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(query.trim()), 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  const { data, isFetching } = useQuery<SearchResponse>({
+    queryKey: ["/api/admin/search", debounced],
+    queryFn: () => fetch(`/api/admin/search?q=${encodeURIComponent(debounced)}`, { credentials: "include" }).then((r) => r.json()),
+    enabled: debounced.length >= 2,
+  });
+
+  const purchases = data?.purchases ?? [];
+  const tickets = data?.tickets ?? [];
+  const accessReservations = data?.accessReservations ?? [];
+  const hasResults = purchases.length + tickets.length + accessReservations.length > 0;
+
+  function go(path: string) {
+    navigate(path);
+    setOpen(false);
+    setQuery("");
+  }
+
+  return (
+    <div ref={boxRef} className="relative w-full max-w-sm">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" />
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        placeholder="Search orders, tickets, ACCESS..."
+        className="w-full bg-[#0a0a0a] border border-white/15 text-white placeholder:text-white/20 text-sm pl-9 pr-3 py-2.5 focus:outline-none focus:border-white/40 transition-colors"
+      />
+
+      {open && debounced.length >= 2 && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-[#0a0a0a] border border-white/15 shadow-2xl max-h-[70vh] overflow-y-auto z-50">
+          {isFetching ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-4 h-4 text-white/30 animate-spin" />
+            </div>
+          ) : !hasResults ? (
+            <p className="text-white/20 text-xs text-center py-8">No matches for "{debounced}"</p>
+          ) : (
+            <>
+              {purchases.length > 0 && (
+                <div className="py-2">
+                  <p className="text-white/25 text-[9px] uppercase tracking-[0.2em] px-4 pb-1.5">Ticket Orders</p>
+                  {purchases.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => go(p.eventId ? `/admin/events/${p.eventId}?tab=orders&q=${encodeURIComponent(p.customerName)}` : `/admin/orders?q=${encodeURIComponent(p.customerName)}`)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.04] transition-colors text-left"
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5 text-white/30 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-white text-xs truncate">{p.customerName}</p>
+                        <p className="text-white/30 text-[10px] truncate">{p.customerPhone} · {p.ticketType} · {p.eventName ?? "Unknown event"}</p>
+                      </div>
+                      <span className={`text-[8px] uppercase tracking-[0.15em] px-1.5 py-0.5 border shrink-0 ${
+                        p.status === "verified" ? "border-green-500/30 text-green-400" : p.status === "rejected" ? "border-red-500/30 text-red-400" : "border-yellow-500/30 text-yellow-400"
+                      }`}>{p.status}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {tickets.length > 0 && (
+                <div className="py-2 border-t border-white/10">
+                  <p className="text-white/25 text-[9px] uppercase tracking-[0.2em] px-4 pb-1.5">Tickets</p>
+                  {tickets.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => go(t.eventId ? `/admin/events/${t.eventId}?tab=tickets&q=${encodeURIComponent(t.referenceCode)}` : `/admin/orders?q=${encodeURIComponent(t.customerName)}`)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.04] transition-colors text-left"
+                    >
+                      <TicketIcon className="w-3.5 h-3.5 text-white/30 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-white text-xs truncate">{t.customerName} <span className="text-white/30 font-mono">· {t.referenceCode}</span></p>
+                        <p className="text-white/30 text-[10px] truncate">{t.customerPhone} · {t.eventName ?? "Unknown event"}</p>
+                      </div>
+                      <span className={`text-[8px] uppercase tracking-[0.15em] px-1.5 py-0.5 border shrink-0 ${t.isUsed ? "border-white/10 text-white/20" : "border-green-500/30 text-green-400"}`}>
+                        {t.isUsed ? "Used" : "Valid"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {accessReservations.length > 0 && (
+                <div className="py-2 border-t border-white/10">
+                  <p className="text-white/25 text-[9px] uppercase tracking-[0.2em] px-4 pb-1.5">ACCESS</p>
+                  {accessReservations.map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => go(`/admin/access?q=${encodeURIComponent(r.matchedGuests[0]?.name ?? r.tableLabel)}`)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.04] transition-colors text-left"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-white/30 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-white text-xs truncate">
+                          {r.matchedGuests.length > 0 ? r.matchedGuests.map((g) => g.name).join(", ") : r.tableLabel}
+                        </p>
+                        <p className="text-white/30 text-[10px] truncate">{r.tableLabel}</p>
+                      </div>
+                      <span className={`text-[8px] uppercase tracking-[0.15em] px-1.5 py-0.5 border shrink-0 ${
+                        r.status === "approved" ? "border-green-500/30 text-green-400" : r.status === "rejected" ? "border-red-500/30 text-red-400" : "border-yellow-500/30 text-yellow-400"
+                      }`}>{r.status.replace("_", " ")}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Layout ───────────────────────────────────────────────────────────────────
 export function AdminLayout({ children, title }: { children: React.ReactNode; title?: string }) {
   usePageTitle(title ? `Admin · ${title}` : "Admin");
@@ -168,7 +322,7 @@ export function AdminLayout({ children, title }: { children: React.ReactNode; ti
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <div className="border-b border-white/10 px-6 py-4 flex items-center gap-4">
+        <div className="border-b border-white/10 px-6 py-4 flex items-center gap-4 flex-wrap">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden text-white/40 hover:text-white transition-colors"
@@ -176,11 +330,14 @@ export function AdminLayout({ children, title }: { children: React.ReactNode; ti
             <Menu className="w-5 h-5" />
           </button>
           <h1
-            className="text-white font-black text-lg tracking-wide"
+            className="text-white font-black text-lg tracking-wide shrink-0"
             style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
           >
             {title || "Admin"}
           </h1>
+          <div className="flex-1 min-w-[200px] sm:max-w-sm sm:ml-auto">
+            <GlobalSearch />
+          </div>
         </div>
 
         {/* Page body */}

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { CheckCircle, Eye, ExternalLink, Loader2, Search, Trash2 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
@@ -24,9 +25,12 @@ function parseGuestNames(json: string | null): string[] {
 
 export default function AdminOrdersPage() {
   const { toast } = useToast();
-  const [search, setSearch] = useState("");
+  // Deep-linked from global search (?q=name) — also widens scope to every
+  // event, not just upcoming ones, since the match could be for a past one.
+  const initialQuery = new URLSearchParams(useSearch()).get("q") ?? "";
+  const [search, setSearch] = useState(initialQuery);
   const [filter, setFilter] = useState<"all" | "pending" | "verified" | "rejected">("all");
-  const [eventScope, setEventScope] = useState<string>(UPCOMING_SCOPE);
+  const [eventScope, setEventScope] = useState<string>(initialQuery ? ALL_SCOPE : UPCOMING_SCOPE);
 
   const { data: purchases = [], isLoading } = useQuery<{ success: boolean; purchases: TicketPurchase[] }, Error, TicketPurchase[]>({
     queryKey: ["/api/admin/purchases"],
