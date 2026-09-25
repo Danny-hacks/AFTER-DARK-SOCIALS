@@ -11,6 +11,18 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+// ACCESS events store only a free-text date (no separate end time), parsed
+// as midnight at the start of that day. Comparing straight against that
+// would flip an event to "past" the instant its own day begins — while
+// it's still happening (or into the small hours of the next day, which is
+// normal for a night event). A 48h grace window keeps it "upcoming"
+// through its whole nominal day plus the following day.
+const ACCESS_EVENT_GRACE_MS = 48 * 60 * 60 * 1000;
+function accessEventCutoff(dateStr: string): number | null {
+  const t = new Date(dateStr).getTime();
+  return isNaN(t) ? null : t + ACCESS_EVENT_GRACE_MS;
+}
+
 export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
@@ -564,8 +576,8 @@ export class DatabaseStorage implements IStorage {
     const now = Date.now();
     const upcoming = all
       .filter((e) => {
-        const t = new Date(e.date).getTime();
-        return !isNaN(t) && t > now;
+        const cutoff = accessEventCutoff(e.date);
+        return cutoff !== null && cutoff > now;
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     return upcoming[0] ?? undefined;
@@ -576,8 +588,8 @@ export class DatabaseStorage implements IStorage {
     const now = Date.now();
     return all
       .filter((e) => {
-        const t = new Date(e.date).getTime();
-        return !isNaN(t) && t <= now;
+        const cutoff = accessEventCutoff(e.date);
+        return cutoff !== null && cutoff <= now;
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
