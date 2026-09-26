@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import type { Event, EventTicketTier } from "@shared/schema";
+import earlyBirdTicketPreview from "@assets/Physical_ticket_preview_early_bird.png";
 
 // Dedicated ticket-line number — separate from the general After Dark
 // Socials contact number used elsewhere for non-ticket enquiries.
@@ -79,6 +80,7 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
     customerName: "", customerEmail: "", customerPhone: "",
     ticketType: defaultTicketType, quantity: "1", paymentMethod: "MCB Juice",
   });
+  const isEarlyBird = form.ticketType.trim().toLowerCase() === "early bird";
   // Names for tickets 2..N of a multi-ticket order — the purchaser's own
   // name above already covers ticket 1. Kept sized to quantity - 1.
   const [guestNames, setGuestNames] = useState<string[]>([]);
@@ -219,6 +221,18 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
           </select>
         </div>
       </div>
+
+      {isEarlyBird && (
+        <div className="border-t border-white/10 pt-6">
+          <p className={label}>What Your Physical Ticket Looks Like</p>
+          <img
+            src={earlyBirdTicketPreview}
+            alt="Early Bird physical ticket preview"
+            className="w-full max-w-xl border border-white/10"
+            loading="lazy"
+          />
+        </div>
+      )}
 
       {extraGuestCount > 0 && (
         <div className="border-t border-white/10 pt-6">
