@@ -80,7 +80,9 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
     customerName: "", customerEmail: "", customerPhone: "",
     ticketType: defaultTicketType, quantity: "1", paymentMethod: "MCB Juice",
   });
-  const isEarlyBird = form.ticketType.trim().toLowerCase() === "early bird";
+  // Loose match — the tier might be named "Early Bird Ticket" or similar,
+  // not necessarily the exact string "Early Bird".
+  const isEarlyBird = form.ticketType.trim().toLowerCase().includes("early bird");
   // Names for tickets 2..N of a multi-ticket order — the purchaser's own
   // name above already covers ticket 1. Kept sized to quantity - 1.
   const [guestNames, setGuestNames] = useState<string[]>([]);
