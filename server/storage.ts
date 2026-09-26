@@ -50,6 +50,7 @@ export interface IStorage {
   getTicketsByEvent(eventId: string): Promise<Ticket[]>;
   markTicketAsUsed(id: string): Promise<Ticket | undefined>;
   markTicketAsDelivered(id: string): Promise<Ticket | undefined>;
+  updateTicketReferenceCode(id: string, referenceCode: string): Promise<Ticket | undefined>;
   deleteTicket(id: string): Promise<boolean>;
 
   // Event operations
@@ -259,6 +260,15 @@ export class DatabaseStorage implements IStorage {
     const [ticket] = await db
       .update(tickets)
       .set({ isDelivered: true, deliveredAt: new Date() })
+      .where(eq(tickets.id, id))
+      .returning();
+    return ticket || undefined;
+  }
+
+  async updateTicketReferenceCode(id: string, referenceCode: string): Promise<Ticket | undefined> {
+    const [ticket] = await db
+      .update(tickets)
+      .set({ referenceCode })
       .where(eq(tickets.id, id))
       .returning();
     return ticket || undefined;

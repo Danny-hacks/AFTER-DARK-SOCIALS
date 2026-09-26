@@ -218,7 +218,7 @@ export default function AdminOrdersPage() {
                     )}
                     {p.createdAt && (
                       <p className="text-white/20 text-[10px] mt-1">
-                        {new Date(p.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                        Ordered {new Date(p.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                       </p>
                     )}
                   </div>

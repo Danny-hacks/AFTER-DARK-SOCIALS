@@ -16,6 +16,7 @@ import connectPg from "connect-pg-simple";
 import nodemailer from "nodemailer";
 import { appendTicketToSheet, initializeSheetHeaders } from "./googleSheets";
 import { pool } from "./db";
+import { ticketRefPrefix } from "./ticketRef";
 
 // Simple admin credentials - in production, use proper authentication
 const ADMIN_USERNAME = "aftr_admin";
@@ -735,17 +736,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch {}
       }
 
+      const event = purchase.eventId ? await storage.getEvent(purchase.eventId) : undefined;
+      const refPrefix = ticketRefPrefix(event?.volume);
+
       // Create multiple tickets based on quantity (each with unique reference/QR code)
       for (let i = 0; i < quantity; i++) {
         const randomPart = Math.random()
           .toString(36)
           .substring(2, 8)
           .toUpperCase();
-        const referenceCode = `VOL3-${randomPart}`;
+        const referenceCode = `${refPrefix}-${randomPart}`;
         const holderName = i === 0 ? purchase.customerName : (guestNames[i - 1]?.trim() || purchase.customerName);
 
         const ticket = await storage.createTicket({
-          eventId: purchase.eventId || "aftr-vol-3",
+          eventId: purchase.eventId,
           purchaseId: purchase.id,
           referenceCode,
           customerName: holderName,
@@ -772,7 +776,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             deliveryMethod: purchase.deliveryMethod,
             referenceCode: referenceCode,
             qrCode: ticket.qrCode,
-            eventId: purchase.eventId || "aftr-vol-3",
+            eventId: purchase.eventId || "",
             status: "verified",
           });
         } catch (sheetError) {
