@@ -147,7 +147,7 @@ export function AccessPassport() {
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { toast } = useToast();
 
-  const { data: currentEventData } = useQuery<{ success: boolean; event: AccessEvent | null }>({
+  const { data: currentEventData, isLoading: eventLoading } = useQuery<{ success: boolean; event: AccessEvent | null }>({
     queryKey: ["/api/access/current"],
   });
   const currentEvent = currentEventData?.event ?? null;
@@ -419,6 +419,9 @@ export function AccessPassport() {
         </p>
       </div>
 
+      {/* Banner + event details only show while there's a real upcoming
+          edition — no fallback/default event info once it's past. */}
+      {currentEvent && (<>
       {/* ── Section 2: Banner Image (hidden on mobile) ── */}
       <div className="hidden sm:block my-12 px-5 sm:px-6 lg:px-12">
         <div className="relative h-[45vh] sm:h-[55vh] overflow-hidden">
@@ -500,10 +503,22 @@ export function AccessPassport() {
           </div>
         </div>
       </div>
+      </>)}
 
       {/* ── Reservation content ── */}
       <div className="px-5 sm:px-6 lg:px-12 pb-20 pt-12">
-        {allSoldOut ? (
+        {!currentEvent ? (
+          eventLoading ? null : (
+            <div className="border border-white/10 px-8 py-12 text-center max-w-lg mx-auto">
+              <div className="font-black text-[#c9962a] mb-3" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "32px" }}>
+                NEXT NIGHT COMING SOON
+              </div>
+              <p className="text-white/40 text-sm">
+                There's no upcoming ACCESS night right now. Follow <span className="text-white/60">@afterdarksocials.mu</span> to hear first when the next one opens.
+              </p>
+            </div>
+          )
+        ) : allSoldOut ? (
           <div className="border border-[#c72d28]/30 bg-[#c72d28]/8 px-8 py-12 text-center max-w-lg mx-auto">
             <div className="font-black text-[#c72d28] mb-3" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "32px" }}>
               FULLY BOOKED
