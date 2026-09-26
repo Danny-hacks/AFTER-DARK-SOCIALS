@@ -13,6 +13,11 @@ import type { Event, Ticket as TicketType, TicketPurchase } from "@shared/schema
 const UPCOMING_SCOPE = "__upcoming__";
 const ALL_SCOPE = "__all__";
 
+// Prices are stored as strings like "Rs 1,000".
+function priceOf(s: string | null | undefined): number {
+  return parseInt((s ?? "").replace(/\D/g, ""), 10) || 0;
+}
+
 function parseGuestNames(json: string | null): string[] {
   if (!json) return [];
   try {
@@ -47,19 +52,52 @@ export default function AdminOrdersPage() {
 
   // Scope orders to a specific event, every upcoming event, or everything —
   // defaults to upcoming so stats aren't diluted by long-settled past orders.
-  const scopedPurchases = useMemo(() => {
-    if (eventScope === ALL_SCOPE) return purchases;
-    if (eventScope === UPCOMING_SCOPE) {
-      const upcomingIds = new Set(upcomingEvents.map((e) => e.id));
-      return purchases.filter((p) => p.eventId && upcomingIds.has(p.eventId));
-    }
-    return purchases.filter((p) => p.eventId === eventScope);
-  }, [purchases, eventScope, upcomingEvents]);
+  const matchesScope = useMemo(() => {
+    const upcomingIds = new Set(upcomingEvents.map((e) => e.id));
+    return (eventId: string | null) => {
+      if (eventScope === ALL_SCOPE) return true;
+      if (eventScope === UPCOMING_SCOPE) return !!eventId && upcomingIds.has(eventId);
+      return eventId === eventScope;
+    };
+  }, [eventScope, upcomingEvents]);
+  const scopedPurchases = useMemo(() => purchases.filter((p) => matchesScope(p.eventId)), [purchases, matchesScope]);
 
   const { data: tickets = [] } = useQuery<{ success: boolean; tickets: TicketType[] }, Error, TicketType[]>({
     queryKey: ["/api/admin/tickets"],
     select: (data) => data.tickets ?? [],
   });
+
+  // ── Revenue ──
+  // Verified orders store their total price; tickets created manually in
+  // admin (walk-ins, no order behind them) carry their own price and count
+  // as sales too. Pending = orders still awaiting payment verification.
+  const manualTickets = useMemo(() => tickets.filter((t) => !t.purchaseId), [tickets]);
+  const revenueStats = (ps: TicketPurchase[], manual: TicketType[]) => {
+    const verified = ps.filter((p) => p.status === "verified");
+    return {
+      revenue: verified.reduce((sum, p) => sum + priceOf(p.price), 0) + manual.reduce((sum, t) => sum + priceOf(t.price), 0),
+      ticketsSold: verified.reduce((sum, p) => sum + (p.quantity || 1), 0) + manual.length,
+      pending: ps.filter((p) => p.status === "pending").reduce((sum, p) => sum + priceOf(p.price), 0),
+    };
+  };
+  const scopedRevenue = revenueStats(scopedPurchases, manualTickets.filter((t) => matchesScope(t.eventId)));
+  const scopeLabel =
+    eventScope === ALL_SCOPE ? "All events" :
+    eventScope === UPCOMING_SCOPE ? "Upcoming events" :
+    eventNameById.get(eventScope) ?? "Selected event";
+
+  const revenueByEvent = useMemo(() => {
+    const rows = allEvents
+      .map((e) => ({
+        id: e.id,
+        name: e.name,
+        ...revenueStats(purchases.filter((p) => p.eventId === e.id), manualTickets.filter((t) => t.eventId === e.id)),
+      }))
+      .filter((r) => r.revenue > 0 || r.pending > 0 || r.ticketsSold > 0);
+    const total = revenueStats(purchases, manualTickets);
+    return { rows, total };
+  }, [allEvents, purchases, manualTickets]);
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   const ticketsByPurchase = useMemo(() => {
     const map = new Map<string, TicketType[]>();
@@ -128,6 +166,72 @@ export default function AdminOrdersPage() {
 
   return (
     <AdminLayout title="Orders">
+      {/* Revenue — follows the event scope dropdown below */}
+      <div className="border border-white/10 p-5 mb-3">
+        <p className="text-white/30 text-[9px] uppercase tracking-[0.2em] mb-4">Revenue · {scopeLabel}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div>
+            <p className="text-[#c9962a] font-black text-3xl leading-none mb-1" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>
+              Rs {scopedRevenue.revenue.toLocaleString()}
+            </p>
+            <p className="text-white/30 text-[9px] uppercase tracking-[0.2em]">Confirmed revenue</p>
+          </div>
+          <div>
+            <p className="text-white font-black text-3xl leading-none mb-1" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>
+              {scopedRevenue.ticketsSold}
+            </p>
+            <p className="text-white/30 text-[9px] uppercase tracking-[0.2em]">Tickets sold</p>
+          </div>
+          <div>
+            <p className="text-yellow-400/80 font-black text-3xl leading-none mb-1" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}>
+              Rs {scopedRevenue.pending.toLocaleString()}
+            </p>
+            <p className="text-white/30 text-[9px] uppercase tracking-[0.2em]">Pending (awaiting verification)</p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setShowBreakdown((v) => !v)}
+          className="mt-5 text-white/40 hover:text-white text-[9px] uppercase tracking-[0.2em] transition-colors"
+        >
+          {showBreakdown ? "Hide" : "Show"} revenue by event
+        </button>
+        {showBreakdown && (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-white/30 text-[9px] uppercase tracking-[0.15em] text-left">
+                  <th className="py-2 pr-4 font-normal">Event</th>
+                  <th className="py-2 pr-4 font-normal text-right">Tickets sold</th>
+                  <th className="py-2 pr-4 font-normal text-right">Revenue</th>
+                  <th className="py-2 font-normal text-right">Pending</th>
+                </tr>
+              </thead>
+              <tbody>
+                {revenueByEvent.rows.length === 0 ? (
+                  <tr><td colSpan={4} className="py-3 text-white/20">No sales yet.</td></tr>
+                ) : (
+                  revenueByEvent.rows.map((r) => (
+                    <tr key={r.id} className="border-t border-white/5">
+                      <td className="py-2 pr-4 text-white/70">{r.name}</td>
+                      <td className="py-2 pr-4 text-right text-white/50 font-mono">{r.ticketsSold}</td>
+                      <td className="py-2 pr-4 text-right text-[#c9962a] font-mono">Rs {r.revenue.toLocaleString()}</td>
+                      <td className="py-2 text-right text-yellow-400/60 font-mono">Rs {r.pending.toLocaleString()}</td>
+                    </tr>
+                  ))
+                )}
+                <tr className="border-t border-white/20">
+                  <td className="py-2 pr-4 text-white font-medium">Total (all events)</td>
+                  <td className="py-2 pr-4 text-right text-white font-mono">{revenueByEvent.total.ticketsSold}</td>
+                  <td className="py-2 pr-4 text-right text-[#c9962a] font-mono font-medium">Rs {revenueByEvent.total.revenue.toLocaleString()}</td>
+                  <td className="py-2 text-right text-yellow-400/80 font-mono">Rs {revenueByEvent.total.pending.toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {(["all", "pending", "verified", "rejected"] as const).map((s) => (
