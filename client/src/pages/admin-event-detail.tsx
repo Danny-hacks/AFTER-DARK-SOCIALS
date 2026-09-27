@@ -31,6 +31,7 @@ const editSchema = z.object({
   volume: z.string().optional(),
   artistsInput: z.string().optional(),
   collaborators: z.string().optional(),
+  banners: z.array(z.string()).default([]),
   imageUrl: z.string().optional(),
   videoUrl: z.string().optional(),
   isPast: z.boolean().default(false),
@@ -233,7 +234,7 @@ export default function AdminEventDetailPage() {
     .sort((a, b) => new Date(b.usedAt!).getTime() - new Date(a.usedAt!).getTime())
     .slice(0, 25);
 
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<EditData>({
+  const { register, handleSubmit, watch, setValue, getValues, formState: { errors } } = useForm<EditData>({
     resolver: zodResolver(editSchema),
     values: event ? {
       name: event.name, date: event.date, time: event.time ?? "",
@@ -241,6 +242,7 @@ export default function AdminEventDetailPage() {
       subtitle: event.subtitle ?? "", volume: event.volume ?? "",
       artistsInput: parseArtists(event.artists).join(", "),
       collaborators: event.collaborators ?? "",
+      banners: parseArtists(event.bannersJson),
       imageUrl: event.imageUrl ?? "", videoUrl: event.videoUrl ?? "",
       isPast: event.isPast,
     } : undefined,
@@ -248,6 +250,7 @@ export default function AdminEventDetailPage() {
 
   const editImageUrl = watch("imageUrl");
   const editVideoUrl = watch("videoUrl");
+  const editBanners = watch("banners") ?? [];
 
   const updateMutation = useMutation({
     mutationFn: (data: EditData) => {
@@ -255,10 +258,11 @@ export default function AdminEventDetailPage() {
         .split(",")
         .map((a) => a.trim())
         .filter(Boolean);
-      const { artistsInput, ...rest } = data;
+      const { artistsInput, banners, ...rest } = data;
       return apiRequest("PATCH", `/api/admin/events/${id}`, {
         ...rest,
         artists: artists.length > 0 ? JSON.stringify(artists) : null,
+        bannersJson: banners.length > 0 ? JSON.stringify(banners) : null,
       });
     },
     onSuccess: () => {
@@ -415,6 +419,38 @@ export default function AdminEventDetailPage() {
                 </button>
               )}
             </div>
+          </div>
+          <div>
+            <label className={labelCls}>Banner Slider</label>
+            <p className="text-white/20 text-[10px] mb-3">
+              Extra banners that auto-slide on the event page, below the event info. Separate from the Cover Image above. Save Changes to apply.
+            </p>
+            {editBanners.length > 0 && (
+              <div className="flex flex-wrap gap-3 mb-3">
+                {editBanners.map((url, i) => (
+                  <div key={`${url}-${i}`} className="relative">
+                    <img src={url} alt="" className="h-16 w-28 object-cover border border-white/10" />
+                    <button
+                      type="button"
+                      onClick={() => setValue("banners", getValues("banners").filter((_, idx) => idx !== i), { shouldDirty: true })}
+                      className="absolute -top-2 -right-2 bg-black border border-white/20 rounded-full p-1 text-white/60 hover:text-white"
+                      aria-label="Remove banner"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <ObjectUploader
+              maxFileSize={20 * 1024 * 1024}
+              allowedFileTypes={["image/*"]}
+              onComplete={(url) => setValue("banners", [...(getValues("banners") ?? []), url], { shouldDirty: true })}
+              buttonClassName="gap-2"
+            >
+              <ImageIcon className="w-4 h-4" />
+              Add Banner
+            </ObjectUploader>
           </div>
           <div>
             <label className={labelCls}>Event Video</label>

@@ -107,6 +107,7 @@ export const events = pgTable("events", {
   artists: text("artists"), // JSON-encoded string[]
   volume: text("volume"), // matches gallery_photos.volume, links a past event to its photo set
   collaborators: text("collaborators"), // free text, e.g. "Kultur'M, Brand X" — shown as "In collaboration with ..."
+  bannersJson: text("banners_json"), // JSON-encoded string[] of image URLs for the event page's banner slider
   videoUrl: text("video_url"),
   imageUrl: text("image_url"),
   isPast: boolean("is_past").notNull().default(false),

@@ -304,6 +304,62 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
   );
 }
 
+// ─── Banner slider ──────────────────────────────────────────────────────────
+function parseBanners(json: string | null): string[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed.filter((u) => typeof u === "string" && u) : [];
+  } catch {
+    return [];
+  }
+}
+
+const SLIDE_INTERVAL_MS = 4500;
+
+function BannerSlider({ banners, alt }: { banners: string[]; alt: string }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (banners.length < 2) return;
+    const t = setInterval(() => setIndex((i) => (i + 1) % banners.length), SLIDE_INTERVAL_MS);
+    return () => clearInterval(t);
+  }, [banners.length]);
+
+  if (banners.length === 0) return null;
+
+  return (
+    <div className="mt-10 max-w-3xl">
+      {/* object-contain so text on the banners never gets cropped */}
+      <div className="relative aspect-[16/9] bg-[#0a0a0a] border border-white/10 overflow-hidden">
+        {banners.map((url, i) => (
+          <img
+            key={`${url}-${i}`}
+            src={url}
+            alt={`${alt} — banner ${i + 1}`}
+            className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-700 ${i === index ? "opacity-100" : "opacity-0"}`}
+            loading={i === 0 ? "eager" : "lazy"}
+          />
+        ))}
+      </div>
+      {banners.length > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-3">
+          {banners.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setIndex(i)}
+              aria-label={`Show banner ${i + 1}`}
+              aria-current={i === index}
+              className={`h-1 transition-all duration-300 ${i === index ? "w-6 bg-[#c72d28]" : "w-3 bg-white/20 hover:bg-white/40"}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -417,6 +473,7 @@ export default function EventDetailPage() {
           {event.collaborators && (
             <p className="text-white/25 text-[10px] mt-4">In collaboration with {event.collaborators}</p>
           )}
+          <BannerSlider banners={parseBanners(event.bannersJson)} alt={event.name} />
         </div>
 
         {/* Countdown (upcoming only) */}
