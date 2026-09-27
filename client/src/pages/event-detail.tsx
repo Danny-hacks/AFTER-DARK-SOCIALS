@@ -438,7 +438,7 @@ export default function EventDetailPage() {
         </Link>
 
         {/* Title + meta */}
-        <div className="mb-16 pb-16 border-b border-white/10">
+        <div className="mb-8 pb-8 sm:mb-12 sm:pb-12 border-b border-white/10">
           <p className="text-[#c72d28] text-[9px] uppercase tracking-[0.35em] mb-4">
             {event.isPast ? "Past Event" : "Upcoming Event"}
           </p>
@@ -448,7 +448,7 @@ export default function EventDetailPage() {
           >
             {event.name}
           </h1>
-          <div className="flex flex-wrap gap-6 mb-6">
+          <div className="flex flex-wrap gap-6">
             {event.date && (
               <div className="flex items-center gap-2 text-white/40 text-sm">
                 <Calendar className="w-3.5 h-3.5" />
@@ -469,7 +469,7 @@ export default function EventDetailPage() {
             )}
           </div>
           {event.description && (
-            <p className="text-white/40 text-sm leading-relaxed max-w-2xl">{event.description}</p>
+            <p className="text-white/40 text-sm leading-relaxed max-w-2xl mt-6">{event.description}</p>
           )}
           {event.collaborators && (
             <p className="text-white/25 text-[10px] mt-4">In collaboration with {event.collaborators}</p>
