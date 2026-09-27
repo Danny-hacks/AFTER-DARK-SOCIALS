@@ -31,7 +31,6 @@ const editSchema = z.object({
   volume: z.string().optional(),
   artistsInput: z.string().optional(),
   collaborators: z.string().optional(),
-  banners: z.array(z.string()).default([]),
   imageUrl: z.string().optional(),
   videoUrl: z.string().optional(),
   isPast: z.boolean().default(false),
@@ -234,7 +233,7 @@ export default function AdminEventDetailPage() {
     .sort((a, b) => new Date(b.usedAt!).getTime() - new Date(a.usedAt!).getTime())
     .slice(0, 25);
 
-  const { register, handleSubmit, watch, setValue, getValues, formState: { errors } } = useForm<EditData>({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<EditData>({
     resolver: zodResolver(editSchema),
     values: event ? {
       name: event.name, date: event.date, time: event.time ?? "",
@@ -242,15 +241,30 @@ export default function AdminEventDetailPage() {
       subtitle: event.subtitle ?? "", volume: event.volume ?? "",
       artistsInput: parseArtists(event.artists).join(", "),
       collaborators: event.collaborators ?? "",
-      banners: parseArtists(event.bannersJson),
       imageUrl: event.imageUrl ?? "", videoUrl: event.videoUrl ?? "",
       isPast: event.isPast,
     } : undefined,
+    // Banner uploads save instantly and refetch the event — keep any
+    // unsaved edits in the rest of the form instead of resetting them.
+    resetOptions: { keepDirtyValues: true },
   });
 
   const editImageUrl = watch("imageUrl");
   const editVideoUrl = watch("videoUrl");
-  const editBanners = watch("banners") ?? [];
+
+  // Banner slider images save immediately on add/remove (like the gallery
+  // pages), independent of the Save Changes button below.
+  const banners = parseArtists(event?.bannersJson ?? null);
+  const bannersMutation = useMutation({
+    mutationFn: (next: string[]) =>
+      apiRequest("PATCH", `/api/admin/events/${id}`, { bannersJson: next.length > 0 ? JSON.stringify(next) : null }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      toast({ title: "Banners saved" });
+    },
+    onError: () => toast({ title: "Failed to save banners", variant: "destructive" }),
+  });
 
   const updateMutation = useMutation({
     mutationFn: (data: EditData) => {
@@ -258,11 +272,10 @@ export default function AdminEventDetailPage() {
         .split(",")
         .map((a) => a.trim())
         .filter(Boolean);
-      const { artistsInput, banners, ...rest } = data;
+      const { artistsInput, ...rest } = data;
       return apiRequest("PATCH", `/api/admin/events/${id}`, {
         ...rest,
         artists: artists.length > 0 ? JSON.stringify(artists) : null,
-        bannersJson: banners.length > 0 ? JSON.stringify(banners) : null,
       });
     },
     onSuccess: () => {
@@ -423,17 +436,18 @@ export default function AdminEventDetailPage() {
           <div>
             <label className={labelCls}>Banner Slider</label>
             <p className="text-white/20 text-[10px] mb-3">
-              Extra banners that auto-slide on the event page, below the event info. Separate from the Cover Image above. Save Changes to apply.
+              Extra banners that auto-slide on the event page, below the event info. Separate from the Cover Image above. Saved as soon as you add or remove one.
             </p>
-            {editBanners.length > 0 && (
+            {banners.length > 0 && (
               <div className="flex flex-wrap gap-3 mb-3">
-                {editBanners.map((url, i) => (
+                {banners.map((url, i) => (
                   <div key={`${url}-${i}`} className="relative">
                     <img src={url} alt="" className="h-16 w-28 object-cover border border-white/10" />
                     <button
                       type="button"
-                      onClick={() => setValue("banners", getValues("banners").filter((_, idx) => idx !== i), { shouldDirty: true })}
-                      className="absolute -top-2 -right-2 bg-black border border-white/20 rounded-full p-1 text-white/60 hover:text-white"
+                      onClick={() => bannersMutation.mutate(banners.filter((_, idx) => idx !== i))}
+                      disabled={bannersMutation.isPending}
+                      className="absolute -top-2 -right-2 bg-black border border-white/20 rounded-full p-1 text-white/60 hover:text-white disabled:opacity-40"
                       aria-label="Remove banner"
                     >
                       <X className="w-3 h-3" />
@@ -445,7 +459,7 @@ export default function AdminEventDetailPage() {
             <ObjectUploader
               maxFileSize={20 * 1024 * 1024}
               allowedFileTypes={["image/*"]}
-              onComplete={(url) => setValue("banners", [...(getValues("banners") ?? []), url], { shouldDirty: true })}
+              onComplete={(url) => bannersMutation.mutate([...banners, url])}
               buttonClassName="gap-2"
             >
               <ImageIcon className="w-4 h-4" />
