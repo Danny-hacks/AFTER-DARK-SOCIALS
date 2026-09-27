@@ -329,9 +329,10 @@ function BannerSlider({ banners, alt }: { banners: string[]; alt: string }) {
   if (banners.length === 0) return null;
 
   return (
-    <div className="mb-16 max-w-3xl mx-auto">
-      {/* object-contain so text on the banners never gets cropped */}
-      <div className="relative aspect-[16/9] bg-[#0a0a0a] border border-white/10 overflow-hidden">
+    <div className="mb-16 max-w-sm mx-auto">
+      {/* 4:5 portrait to fit Instagram-size posters; object-contain so any
+          off-size banner still shows whole rather than getting cropped */}
+      <div className="relative aspect-[4/5] bg-[#0a0a0a] border border-white/10 overflow-hidden">
         {banners.map((url, i) => (
           <img
             key={`${url}-${i}`}
