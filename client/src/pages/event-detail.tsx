@@ -10,6 +10,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import type { Event, EventTicketTier } from "@shared/schema";
 import earlyBirdTicketPreview from "@assets/Physical_ticket_preview_early_bird.png";
+import earlyBirdVipTicketPreview from "@assets/EarlyBird_VIP_Preview.png";
 
 // Dedicated ticket-line number — separate from the general After Dark
 // Socials contact number used elsewhere for non-ticket enquiries.
@@ -80,9 +81,16 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
     customerName: "", customerEmail: "", customerPhone: "",
     ticketType: defaultTicketType, quantity: "1", paymentMethod: "MCB Juice",
   });
-  // Loose match — the tier might be named "Early Bird Ticket" or similar,
-  // not necessarily the exact string "Early Bird".
-  const isEarlyBird = form.ticketType.trim().toLowerCase().includes("early bird");
+  // Physical ticket preview for the selected tier. Loose match — tiers may be
+  // named "Early Bird Ticket" etc. VIP is checked first, since "Early Bird
+  // VIP" also contains "early bird".
+  const tierName = form.ticketType.trim().toLowerCase();
+  const ticketPreview =
+    tierName.includes("early bird") && tierName.includes("vip")
+      ? { src: earlyBirdVipTicketPreview, alt: "Early Bird VIP physical ticket preview" }
+      : tierName.includes("early bird")
+        ? { src: earlyBirdTicketPreview, alt: "Early Bird physical ticket preview" }
+        : null;
   // Names for tickets 2..N of a multi-ticket order — the purchaser's own
   // name above already covers ticket 1. Kept sized to quantity - 1.
   const [guestNames, setGuestNames] = useState<string[]>([]);
@@ -224,12 +232,12 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
         </div>
       </div>
 
-      {isEarlyBird && (
+      {ticketPreview && (
         <div className="border-t border-white/10 pt-6">
           <p className={label}>What Your Physical Ticket Looks Like</p>
           <img
-            src={earlyBirdTicketPreview}
-            alt="Early Bird physical ticket preview"
+            src={ticketPreview.src}
+            alt={ticketPreview.alt}
             className="w-full max-w-xl border border-white/10"
             loading="lazy"
           />
