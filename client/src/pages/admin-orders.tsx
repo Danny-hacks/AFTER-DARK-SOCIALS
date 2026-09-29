@@ -18,6 +18,33 @@ function priceOf(s: string | null | undefined): number {
   return parseInt((s ?? "").replace(/\D/g, ""), 10) || 0;
 }
 
+// wa.me needs the full international number, digits only. Customers often
+// type a local 8-digit Mauritius number, so add the 230 country code then.
+function waNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length === 8 ? `230${digits}` : digits;
+}
+
+// Pre-filled follow-up to the customer, worded for their order status and
+// payment method — reaches people who never tapped Send on their own request.
+function customerFollowUpUrl(p: TicketPurchase, eventName: string | undefined): string {
+  const first = p.customerName.trim().split(/\s+/)[0] || p.customerName;
+  const order = `${p.quantity}x ${p.ticketType}${eventName ? ` for ${eventName}` : ""} (total ${p.price})`;
+  let msg: string;
+  if (p.status === "verified") {
+    msg = `Hi ${first}, your payment for ${order} is confirmed — thank you! Your ticket is on its way.`;
+  } else if (p.status === "rejected") {
+    msg = `Hi ${first}, this is After Dark Socials about your ticket request for ${order}.`;
+  } else if (p.paymentMethod === "Cash") {
+    msg = `Hi ${first}, thanks for your ticket request for ${order}. You chose to pay in cash — let us know a convenient time and place to arrange payment, and we'll confirm your ticket once it's received.`;
+  } else if (p.paymentMethod === "Bank Transfer") {
+    msg = `Hi ${first}, thanks for your ticket request for ${order}. You chose bank transfer — please transfer the total and send us the receipt here so we can confirm your ticket.`;
+  } else {
+    msg = `Hi ${first}, thanks for your ticket request for ${order}. You chose ${p.paymentMethod} — please send the total and share the payment screenshot here so we can confirm your ticket.`;
+  }
+  return `https://wa.me/${waNumber(p.customerPhone)}?text=${encodeURIComponent(msg)}`;
+}
+
 function parseGuestNames(json: string | null): string[] {
   if (!json) return [];
   try {
@@ -326,7 +353,19 @@ export default function AdminOrdersPage() {
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    {p.customerPhone && (
+                      <a
+                        href={customerFollowUpUrl(p, p.eventId ? eventNameById.get(p.eventId) : undefined)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`Message ${p.customerName} on WhatsApp — pre-filled for ${p.paymentMethod}`}
+                        className="flex items-center gap-1.5 border border-[#25D366]/40 text-[#25D366] hover:border-[#25D366] text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
+                      >
+                        <SiWhatsapp className="w-3 h-3" />
+                        Message
+                      </a>
+                    )}
                     {p.paymentProofUrl && (
                       <a
                         href={p.paymentProofUrl}

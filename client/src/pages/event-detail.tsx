@@ -64,6 +64,14 @@ function CountdownTimer({ targetDate }: { targetDate: Date }) {
   );
 }
 
+// Closing line of the customer's WhatsApp request, worded for their chosen
+// payment method.
+function paymentMethodNote(method: string): string {
+  if (method === "Cash") return "I'd like to pay in cash — please let me know how and where to arrange payment.";
+  if (method === "Bank Transfer") return "I'll pay by bank transfer — please send me the account details and I'll share my receipt here.";
+  return `I'll pay via ${method} — please send me the payment details and I'll share my payment screenshot here.`;
+}
+
 // ─── Order Form ───────────────────────────────────────────────────────────────
 function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] }) {
   const { toast } = useToast();
@@ -143,11 +151,11 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
       return;
     }
 
-    toast({ title: "Request submitted!", description: "We'll confirm your ticket via WhatsApp." });
+    toast({ title: "Almost done — tap Send in WhatsApp", description: "Your request is saved. Sending the message lets us follow up on your payment." });
 
-    // Notify the admin on WhatsApp immediately with the full order — this is as
-    // "automatic" as a browser can make it without a paid WhatsApp Business API:
-    // it opens the chat pre-filled, no typing required on the admin's end.
+    // Opens a pre-filled chat to the admin. The browser can only pre-fill it —
+    // the customer still has to tap Send — so the wording is per payment
+    // method, giving every buyer (cash included) a reason to send it.
     const otherGuests = trimmedGuestNames.filter(Boolean);
     const adminMessage =
       `New ticket request — ${event.name}\n\n` +
@@ -157,7 +165,8 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
       `Ticket: ${form.ticketType} x${quantity}\n` +
       (otherGuests.length > 0 ? `Other guests: ${otherGuests.join(", ")}\n` : "") +
       (total !== null ? `Total: Rs ${total.toLocaleString()}\n` : "") +
-      `Payment method: ${form.paymentMethod}`;
+      `Payment method: ${form.paymentMethod}\n\n` +
+      paymentMethodNote(form.paymentMethod);
     const waUrl = `https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(adminMessage)}`;
     if (waWindow) {
       waWindow.location.href = waUrl;
@@ -292,7 +301,8 @@ function OrderForm({ event, tiers }: { event: Event; tiers: EventTicketTier[] })
           <p className="text-white/40 text-[9px] uppercase tracking-[0.25em] mb-3">What happens next</p>
           <ol className="space-y-2 text-white/40 text-xs leading-relaxed list-decimal list-inside">
             <li>Submit this form — no payment is taken here.</li>
-            <li>We'll WhatsApp you at the number above with payment details for your selected method.</li>
+            <li>WhatsApp opens with your request filled in — <span className="text-white/70">tap Send</span>. Your request isn't complete until you do.</li>
+            <li>We'll reply with how to pay for your selected method (cash included).</li>
             <li>Once payment is confirmed, your ticket is generated and sent to you on WhatsApp.</li>
           </ol>
           <p className="text-white/20 text-[10px] mt-3">
