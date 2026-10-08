@@ -11,6 +11,7 @@ import Footer from "@/components/footer";
 import type { Event, EventTicketTier } from "@shared/schema";
 import earlyBirdTicketPreview from "@assets/Physical_ticket_preview_early_bird.png";
 import earlyBirdVipTicketPreview from "@assets/EarlyBird_VIP_Preview.png";
+import { eventStartTime, eventEndCutoff } from "@shared/eventTime";
 
 // Dedicated ticket-line number — separate from the general After Dark
 // Socials contact number used elsewhere for non-ticket enquiries.
@@ -414,8 +415,13 @@ export default function EventDetailPage() {
     );
   }
 
-  const eventDate = event.date ? new Date(event.date) : null;
-  const isUpcoming = eventDate && eventDate > new Date() && !event.isPast;
+  // Start = date + the time field (e.g. 10 PM), not midnight; the event only
+  // counts as over once the night has run its course.
+  const eventDate = event.date ? eventStartTime(event.date, event.time) : null;
+  const endCutoff = event.date ? eventEndCutoff(event.date, event.time) : null;
+  const now = Date.now();
+  const isUpcoming = !event.isPast && endCutoff !== null && now < endCutoff;
+  const beforeDoors = !!eventDate && now < eventDate.getTime();
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -497,7 +503,7 @@ export default function EventDetailPage() {
         <BannerSlider banners={parseBanners(event.bannersJson)} alt={event.name} />
 
         {/* Countdown (upcoming only) */}
-        {isUpcoming && eventDate && (
+        {isUpcoming && beforeDoors && eventDate && (
           <div className="mb-16 pb-16 border-b border-white/10">
             <p className="text-[9px] text-white/25 uppercase tracking-[0.3em] mb-8 text-center">Time Until Doors Open</p>
             <CountdownTimer targetDate={eventDate} />

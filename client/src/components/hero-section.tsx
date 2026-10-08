@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import type { HeroSlide, Event } from "@shared/schema";
+import { eventStartTime, eventEndCutoff } from "@shared/eventTime";
 import heroImage from "@assets/stock_images/dark_nightclub_rave__d23cebfd.jpg";
 import aftr2Image from "@assets/IMG_6112_1774435245159.jpg";
 
@@ -34,11 +35,11 @@ export default function HeroSection() {
     const events = eventsData?.events ?? [];
     const now = Date.now();
     const upcoming = events.filter((e) => {
-      if (e.isPast) return false;
-      const t = e.date ? new Date(e.date).getTime() : NaN;
-      return !isNaN(t) && t > now;
+      if (e.isPast || !e.date) return false;
+      const cutoff = eventEndCutoff(e.date, e.time);
+      return cutoff !== null && cutoff > now;
     });
-    upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    upcoming.sort((a, b) => (eventStartTime(a.date, a.time)?.getTime() ?? 0) - (eventStartTime(b.date, b.time)?.getTime() ?? 0));
     return upcoming[0] ?? null;
   }, [eventsData]);
 
