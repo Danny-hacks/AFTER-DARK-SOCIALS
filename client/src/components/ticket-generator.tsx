@@ -22,6 +22,19 @@ interface TicketGeneratorProps {
   autoShare?: boolean;
 }
 
+// Export the ticket at its full content width. The QR stub can be wider than
+// the ticket's own box (its width is fixed), and html-to-image only captures
+// the box — so without this the right side of the QR got cut off in exports.
+// Height stays the box height so the punched-hole edges don't add a strip.
+function captureOptions(node: HTMLElement) {
+  return {
+    pixelRatio: 2,
+    backgroundColor: "#0a0a0a",
+    width: Math.ceil(Math.max(node.scrollWidth, node.offsetWidth)),
+    height: node.offsetHeight,
+  };
+}
+
 export function TicketGenerator({ ticket, autoShare }: TicketGeneratorProps) {
   const ticketRef = useRef<HTMLDivElement>(null);
   const autoSharedRef = useRef(false);
@@ -45,10 +58,7 @@ export function TicketGenerator({ ticket, autoShare }: TicketGeneratorProps) {
   const downloadTicket = async () => {
     if (ticketRef.current) {
       try {
-        const canvas = await toCanvas(ticketRef.current, {
-          pixelRatio: 2,
-          backgroundColor: '#0a0a0a',
-        });
+        const canvas = await toCanvas(ticketRef.current, captureOptions(ticketRef.current));
         
         const imgData = canvas.toDataURL('image/png');
         
@@ -100,10 +110,7 @@ export function TicketGenerator({ ticket, autoShare }: TicketGeneratorProps) {
 
     try {
       // Generate ticket PDF
-      const canvas = await toCanvas(ticketRef.current, {
-        pixelRatio: 2,
-        backgroundColor: '#0a0a0a',
-      });
+      const canvas = await toCanvas(ticketRef.current, captureOptions(ticketRef.current));
 
       const imgData = canvas.toDataURL('image/png');
 
@@ -212,10 +219,7 @@ export function TicketGenerator({ ticket, autoShare }: TicketGeneratorProps) {
     
     try {
       // Generate ticket PDF
-      const canvas = await toCanvas(ticketRef.current, {
-        pixelRatio: 2,
-        backgroundColor: '#0a0a0a',
-      });
+      const canvas = await toCanvas(ticketRef.current, captureOptions(ticketRef.current));
       
       const imgData = canvas.toDataURL('image/png');
       
@@ -337,12 +341,7 @@ IMPORTANT: Please find your ticket PDF attached to this email. This PDF is your 
   const shareTicket = async () => {
     if (ticketRef.current) {
       try {
-        const dataUrl = await toPng(ticketRef.current, {
-          quality: 0.95,
-          width: 800,
-          height: 600,
-          backgroundColor: '#0a0a0a',
-        });
+        const dataUrl = await toPng(ticketRef.current, { ...captureOptions(ticketRef.current), quality: 0.95 });
         
         // Convert dataURL to blob
         const response = await fetch(dataUrl);
