@@ -386,7 +386,10 @@ export default function AdminOrdersPage() {
 
       {/* Search + event scope */}
       <div className="mb-3">
-        <TicketClassFilter value={ticketClass} onChange={setTicketClass} ticketTypes={eventScopedPurchases.map((p) => p.ticketType)} />
+        <TicketClassFilter value={ticketClass} onChange={setTicketClass} ticketTypes={[
+          ...eventScopedPurchases.map((p) => p.ticketType),
+          ...tickets.filter((t) => !t.purchaseId && matchesScope(t.eventId)).map((t) => t.ticketType),
+        ]} />
       </div>
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1 max-w-md">
