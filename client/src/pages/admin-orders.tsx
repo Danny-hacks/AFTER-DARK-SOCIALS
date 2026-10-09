@@ -8,6 +8,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AdminLayout } from "@/components/admin-layout";
 import { TicketGenerator } from "@/components/ticket-generator";
+import { TicketClassFilter, matchesTicketClass, type TicketClass } from "@/components/ticket-class-filter";
 import type { Event, Ticket as TicketType, TicketPurchase } from "@shared/schema";
 
 const UPCOMING_SCOPE = "__upcoming__";
@@ -87,7 +88,13 @@ export default function AdminOrdersPage() {
       return eventId === eventScope;
     };
   }, [eventScope, upcomingEvents]);
-  const scopedPurchases = useMemo(() => purchases.filter((p) => matchesScope(p.eventId)), [purchases, matchesScope]);
+  const eventScopedPurchases = useMemo(() => purchases.filter((p) => matchesScope(p.eventId)), [purchases, matchesScope]);
+  // VIP / Standard filter narrows the list, status counts and revenue together.
+  const [ticketClass, setTicketClass] = useState<TicketClass>("all");
+  const scopedPurchases = useMemo(
+    () => eventScopedPurchases.filter((p) => matchesTicketClass(p.ticketType, ticketClass)),
+    [eventScopedPurchases, ticketClass],
+  );
 
   const { data: tickets = [] } = useQuery<{ success: boolean; tickets: TicketType[] }, Error, TicketType[]>({
     queryKey: ["/api/admin/tickets"],
@@ -98,7 +105,10 @@ export default function AdminOrdersPage() {
   // Verified orders store their total price; tickets created manually in
   // admin (walk-ins, no order behind them) carry their own price and count
   // as sales too. Pending = orders still awaiting payment verification.
-  const manualTickets = useMemo(() => tickets.filter((t) => !t.purchaseId), [tickets]);
+  const manualTickets = useMemo(
+    () => tickets.filter((t) => !t.purchaseId && matchesTicketClass(t.ticketType, ticketClass)),
+    [tickets, ticketClass],
+  );
   const revenueStats = (ps: TicketPurchase[], manual: TicketType[]) => {
     const verified = ps.filter((p) => p.status === "verified");
     return {
@@ -109,21 +119,26 @@ export default function AdminOrdersPage() {
   };
   const scopedRevenue = revenueStats(scopedPurchases, manualTickets.filter((t) => matchesScope(t.eventId)));
   const scopeLabel =
-    eventScope === ALL_SCOPE ? "All events" :
+    (eventScope === ALL_SCOPE ? "All events" :
     eventScope === UPCOMING_SCOPE ? "Upcoming events" :
-    eventNameById.get(eventScope) ?? "Selected event";
+    eventNameById.get(eventScope) ?? "Selected event") +
+    (ticketClass === "vip" ? " · VIP" : ticketClass === "standard" ? " · Standard" : "");
+  const classPurchases = useMemo(
+    () => purchases.filter((p) => matchesTicketClass(p.ticketType, ticketClass)),
+    [purchases, ticketClass],
+  );
 
   const revenueByEvent = useMemo(() => {
     const rows = allEvents
       .map((e) => ({
         id: e.id,
         name: e.name,
-        ...revenueStats(purchases.filter((p) => p.eventId === e.id), manualTickets.filter((t) => t.eventId === e.id)),
+        ...revenueStats(classPurchases.filter((p) => p.eventId === e.id), manualTickets.filter((t) => t.eventId === e.id)),
       }))
       .filter((r) => r.revenue > 0 || r.pending > 0 || r.ticketsSold > 0);
-    const total = revenueStats(purchases, manualTickets);
+    const total = revenueStats(classPurchases, manualTickets);
     return { rows, total };
-  }, [allEvents, purchases, manualTickets]);
+  }, [allEvents, classPurchases, manualTickets]);
   const [showBreakdown, setShowBreakdown] = useState(false);
 
   const ticketsByPurchase = useMemo(() => {
@@ -274,6 +289,9 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Search + event scope */}
+      <div className="mb-3">
+        <TicketClassFilter value={ticketClass} onChange={setTicketClass} ticketTypes={eventScopedPurchases.map((p) => p.ticketType)} />
+      </div>
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />

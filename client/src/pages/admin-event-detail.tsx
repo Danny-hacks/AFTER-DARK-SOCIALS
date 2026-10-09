@@ -17,6 +17,7 @@ import { AdminLayout } from "@/components/admin-layout";
 import { QRScanner } from "@/components/qr-scanner";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { TicketGenerator } from "@/components/ticket-generator";
+import { TicketClassFilter, matchesTicketClass, type TicketClass } from "@/components/ticket-class-filter";
 import type { Event, Ticket as TicketType, TicketPurchase, EventTicketTier } from "@shared/schema";
 
 type Tab = "overview" | "pricing" | "tickets" | "orders" | "checkin" | "scan";
@@ -214,8 +215,11 @@ export default function AdminEventDetailPage() {
   const eventTickets = allTickets
     .filter((t) => t.eventId === id)
     .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
+  // VIP / Standard filter, shared by the Tickets and Check-in tabs.
+  const [ticketClass, setTicketClass] = useState<TicketClass>("all");
+  const classTickets = eventTickets.filter((t) => matchesTicketClass(t.ticketType, ticketClass));
   const filteredEventTickets = ticketSearch.trim()
-    ? eventTickets.filter((t) => {
+    ? classTickets.filter((t) => {
         const q = ticketSearch.trim().toLowerCase();
         return (
           t.customerName.toLowerCase().includes(q) ||
@@ -224,7 +228,7 @@ export default function AdminEventDetailPage() {
           t.referenceCode.toLowerCase().includes(q)
         );
       })
-    : eventTickets;
+    : classTickets;
   // Driven by each ticket's own usedAt timestamp rather than an in-memory
   // scan log — a client-only log disappeared on every page refresh, which
   // made it look like scans weren't being recorded at all.
@@ -784,6 +788,11 @@ export default function AdminEventDetailPage() {
           </div>
 
           {eventTickets.length > 0 && (
+            <div className="mb-3">
+              <TicketClassFilter value={ticketClass} onChange={setTicketClass} ticketTypes={eventTickets.map((t) => t.ticketType)} />
+            </div>
+          )}
+          {eventTickets.length > 0 && (
             <div className="relative max-w-sm mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
               <input
@@ -797,7 +806,7 @@ export default function AdminEventDetailPage() {
           )}
           <p className="text-white/30 text-xs mb-1">
             {filteredEventTickets.length} ticket{filteredEventTickets.length !== 1 ? "s" : ""} issued
-            {ticketSearch.trim() && ` of ${eventTickets.length}`}
+            {(ticketSearch.trim() || ticketClass !== "all") && ` of ${eventTickets.length}`}
           </p>
           <p className="text-white/15 text-[10px] mb-6">
             View/Share Ticket opens the ticket preview to send it the first time. Mark Sent just tracks delivery status — once sent, Resend fires the WhatsApp share again directly.
@@ -876,11 +885,18 @@ export default function AdminEventDetailPage() {
       {/* ── Check-in ── */}
       {tab === "checkin" && (
         <div className="space-y-3">
-          <p className="text-white/30 text-xs mb-6">Guest check-in — {eventTickets.filter((t) => t.isUsed).length}/{eventTickets.length} checked in</p>
-          {eventTickets.length === 0 ? (
-            <p className="text-white/20 text-sm">No tickets to check in.</p>
+          {eventTickets.length > 0 && (
+            <div className="mb-4">
+              <TicketClassFilter value={ticketClass} onChange={setTicketClass} ticketTypes={eventTickets.map((t) => t.ticketType)} />
+            </div>
+          )}
+          <p className="text-white/30 text-xs mb-6">
+            {ticketClass === "vip" ? "VIP check-in" : ticketClass === "standard" ? "Standard check-in" : "Guest check-in"} — {classTickets.filter((t) => t.isUsed).length}/{classTickets.length} checked in
+          </p>
+          {classTickets.length === 0 ? (
+            <p className="text-white/20 text-sm">{eventTickets.length === 0 ? "No tickets to check in." : "No tickets in this category."}</p>
           ) : (
-            eventTickets.map((t) => (
+            classTickets.map((t) => (
               <div key={t.id} className="bg-[#0a0a0a] border border-white/10 p-4 flex items-center justify-between gap-4">
                 <div>
                   <p className="text-white text-sm font-medium">{t.customerName}</p>
