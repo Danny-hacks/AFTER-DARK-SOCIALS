@@ -192,19 +192,115 @@ export default function AdminOrdersPage() {
     deliverMutation.mutate(t.id);
   }
 
-  const filtered = scopedPurchases.filter((p) => {
-    const matchesFilter = filter === "all" || p.status === filter;
-    const s = search.toLowerCase();
-    const matchesSearch = !s || p.customerName.toLowerCase().includes(s) || (p.customerPhone || "").includes(s) || (p.customerEmail || "").toLowerCase().includes(s);
-    return matchesFilter && matchesSearch;
-  });
+  const matchesSearchText = (fields: (string | null | undefined)[]) => {
+    const q = search.trim().toLowerCase();
+    return !q || fields.some((f) => (f ?? "").toLowerCase().includes(q));
+  };
+
+  const filtered = scopedPurchases.filter((p) =>
+    (filter === "all" || p.status === filter) &&
+    matchesSearchText([p.customerName, p.customerPhone, p.customerEmail]),
+  );
+
+  // Tickets created by hand in admin (walk-ins, comps) have no order behind
+  // them; list them here too. They're already issued, so they count as
+  // verified and only show under All / Verified.
+  const scopedManualTickets = manualTickets.filter((t) => matchesScope(t.eventId));
+  const filteredManual = filter === "all" || filter === "verified"
+    ? scopedManualTickets.filter((t) => matchesSearchText([t.customerName, t.customerPhone, t.customerEmail, t.referenceCode]))
+    : [];
+
+  type ListItem = { kind: "order"; p: TicketPurchase; at: number } | { kind: "manual"; t: TicketType; at: number };
+  const listItems: ListItem[] = [
+    ...filtered.map((p): ListItem => ({ kind: "order", p, at: new Date(p.createdAt ?? 0).getTime() })),
+    ...filteredManual.map((t): ListItem => ({ kind: "manual", t, at: new Date(t.createdAt ?? 0).getTime() })),
+  ].sort((a, b) => b.at - a.at);
 
   const counts = {
-    all: scopedPurchases.length,
+    all: scopedPurchases.length + scopedManualTickets.length,
     pending: scopedPurchases.filter((p) => p.status === "pending").length,
-    verified: scopedPurchases.filter((p) => p.status === "verified").length,
+    verified: scopedPurchases.filter((p) => p.status === "verified").length + scopedManualTickets.length,
     rejected: scopedPurchases.filter((p) => p.status === "rejected").length,
   };
+
+  const renderTicketRow = (t: TicketType) => (
+    <div key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex items-center gap-2 flex-wrap">
+        <p className="text-white/70 text-xs font-mono">{t.referenceCode}</p>
+        <span className={`text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 border ${t.isUsed ? "border-white/10 text-white/20" : "border-green-500/30 text-green-400"}`}>
+          {t.isUsed ? "Used" : "Valid"}
+        </span>
+        <span className={`text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 border ${t.isDelivered ? "border-[#25D366]/30 text-[#25D366]" : "border-yellow-500/30 text-yellow-400"}`}>
+          {t.isDelivered ? "Sent" : "Not Sent"}
+        </span>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          onClick={() => { setViewingTicket(t); setAutoShareTicket(false); }}
+          className="flex items-center gap-1.5 border border-white/15 text-white/50 hover:border-white/40 hover:text-white text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
+        >
+          <Eye className="w-3 h-3" />
+          View/Share Ticket
+        </button>
+        {t.isDelivered ? (
+          <button
+            onClick={() => { setViewingTicket(t); setAutoShareTicket(true); }}
+            title="Sends the ticket again via WhatsApp, same as Share Ticket inside the preview"
+            className="flex items-center gap-1.5 border border-[#25D366]/40 text-[#25D366] hover:border-[#25D366] text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 transition-colors"
+          >
+            <SiWhatsapp className="w-3 h-3" />
+            Resend
+          </button>
+        ) : (
+          <button
+            onClick={() => markTicketSent(t)}
+            disabled={deliverMutation.isPending}
+            title="Marks this ticket as sent — send the actual PDF first via View/Share Ticket"
+            className="flex items-center gap-1.5 bg-[#25D366] text-black text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 hover:bg-[#1ebe5b] disabled:opacity-40 transition-colors"
+          >
+            <SiWhatsapp className="w-3 h-3" />
+            Mark Sent
+          </button>
+        )}
+        <button
+          onClick={() => { if (confirm(`Delete ticket ${t.referenceCode}? This cannot be undone.`)) deleteTicketMutation.mutate(t.id); }}
+          disabled={deleteTicketMutation.isPending}
+          title="Delete this ticket"
+          className="flex items-center gap-1.5 border border-white/15 text-white/30 hover:border-red-500/50 hover:text-red-400 text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors disabled:opacity-40"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderManualCard = (t: TicketType) => (
+    <div key={t.id} className="bg-[#0a0a0a] border border-white/10 p-5 hover:border-white/20 transition-colors">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-3 mb-1">
+          <p className="text-white text-sm font-medium">{t.customerName}</p>
+          <span className="text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 border shrink-0 border-[#c9962a]/40 text-[#c9962a]">Manual</span>
+        </div>
+        <div className="flex flex-wrap gap-4 text-white/30 text-xs">
+          {t.eventId && eventNameById.get(t.eventId) && (
+            <span className="text-white/50">{eventNameById.get(t.eventId)}</span>
+          )}
+          <span>{t.ticketType}</span>
+          {t.paymentMethod && <span>{t.paymentMethod}</span>}
+          <span>{t.price}</span>
+          {t.customerPhone && <span>{t.customerPhone}</span>}
+        </div>
+        {t.createdAt && (
+          <p className="text-white/20 text-[10px] mt-1">
+            Created {new Date(t.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+          </p>
+        )}
+      </div>
+      <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
+        {renderTicketRow(t)}
+      </div>
+    </div>
+  );
 
   return (
     <AdminLayout title="Orders">
@@ -331,13 +427,15 @@ export default function AdminOrdersPage() {
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-5 h-5 text-white/30 animate-spin" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : listItems.length === 0 ? (
         <div className="border border-white/10 p-12 text-center">
           <p className="text-white/20 text-sm">No orders found.</p>
         </div>
       ) : (
         <div className="space-y-px">
-          {filtered.map((p) => {
+          {listItems.map((item) => {
+            if (item.kind === "manual") return renderManualCard(item.t);
+            const p = item.p;
             const orderTickets = ticketsByPurchase.get(p.id) ?? [];
             return (
               <div key={p.id} className="bg-[#0a0a0a] border border-white/10 p-5 hover:border-white/20 transition-colors">
@@ -418,56 +516,7 @@ export default function AdminOrdersPage() {
 
                 {orderTickets.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
-                    {orderTickets.map((t) => (
-                      <div key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-white/70 text-xs font-mono">{t.referenceCode}</p>
-                          <span className={`text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 border ${t.isUsed ? "border-white/10 text-white/20" : "border-green-500/30 text-green-400"}`}>
-                            {t.isUsed ? "Used" : "Valid"}
-                          </span>
-                          <span className={`text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 border ${t.isDelivered ? "border-[#25D366]/30 text-[#25D366]" : "border-yellow-500/30 text-yellow-400"}`}>
-                            {t.isDelivered ? "Sent" : "Not Sent"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            onClick={() => { setViewingTicket(t); setAutoShareTicket(false); }}
-                            className="flex items-center gap-1.5 border border-white/15 text-white/50 hover:border-white/40 hover:text-white text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors"
-                          >
-                            <Eye className="w-3 h-3" />
-                            View/Share Ticket
-                          </button>
-                          {t.isDelivered ? (
-                            <button
-                              onClick={() => { setViewingTicket(t); setAutoShareTicket(true); }}
-                              title="Sends the ticket again via WhatsApp, same as Share Ticket inside the preview"
-                              className="flex items-center gap-1.5 border border-[#25D366]/40 text-[#25D366] hover:border-[#25D366] text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 transition-colors"
-                            >
-                              <SiWhatsapp className="w-3 h-3" />
-                              Resend
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => markTicketSent(t)}
-                              disabled={deliverMutation.isPending}
-                              title="Marks this ticket as sent — send the actual PDF first via View/Share Ticket"
-                              className="flex items-center gap-1.5 bg-[#25D366] text-black text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 hover:bg-[#1ebe5b] disabled:opacity-40 transition-colors"
-                            >
-                              <SiWhatsapp className="w-3 h-3" />
-                              Mark Sent
-                            </button>
-                          )}
-                          <button
-                            onClick={() => { if (confirm(`Delete ticket ${t.referenceCode}? This cannot be undone.`)) deleteTicketMutation.mutate(t.id); }}
-                            disabled={deleteTicketMutation.isPending}
-                            title="Delete this ticket"
-                            className="flex items-center gap-1.5 border border-white/15 text-white/30 hover:border-red-500/50 hover:text-red-400 text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors disabled:opacity-40"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                    {orderTickets.map((t) => renderTicketRow(t))}
                   </div>
                 )}
               </div>
