@@ -2,6 +2,8 @@ import { Storage, File } from "@google-cloud/storage";
 import { Response } from "express";
 import { randomUUID } from "crypto";
 
+const MAX_RANGE_BYTES = 8 * 1024 * 1024;
+
 const EXTENSION_TYPES: Record<string, string> = {
   mp4: "video/mp4",
   m4v: "video/mp4",
@@ -128,6 +130,11 @@ export class ObjectStorageService {
           start = parseInt(match[1], 10);
           end = match[2] === "" ? size - 1 : Math.min(parseInt(match[2], 10), size - 1);
         }
+        // The host (Cloud Run) rejects any single response of 32 MiB or more
+        // with a bare 500. Browsers open video with "bytes=0-" (the whole
+        // file), so serve big ranges in smaller pieces — players simply ask
+        // for the next piece.
+        end = Math.min(end, start + MAX_RANGE_BYTES - 1);
         if (start >= size || start > end) {
           res.status(416).set("Content-Range", `bytes */${size}`).end();
           return;
@@ -138,7 +145,9 @@ export class ObjectStorageService {
         });
         stream = file.createReadStream({ start, end });
       } else {
-        res.set("Content-Length", String(metadata.size));
+        // Large files without a Range header are streamed chunked (no
+        // Content-Length) to stay clear of the same response-size limit.
+        if (isNaN(size) || size < MAX_RANGE_BYTES) res.set("Content-Length", String(metadata.size));
         stream = file.createReadStream();
       }
 
