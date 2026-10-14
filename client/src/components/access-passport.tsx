@@ -5,6 +5,8 @@ import { SiWhatsapp } from "react-icons/si";
 import { ChevronDown, Play, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PassportCard } from "@/components/passport-card";
+import { CountdownTimer } from "@/components/countdown-timer";
+import { eventStartTime } from "@shared/eventTime";
 import type { PassFields } from "@/components/passport-card";
 import { MediaLightbox } from "@/components/media-lightbox";
 import { ACCESS_AREAS, ACCESS_AREA_LABELS, type AccessArea, type AccessEvent, type GalleryPhoto } from "@shared/schema";
@@ -112,6 +114,18 @@ export function AccessPassport() {
     return isNaN(parsed.getTime()) ? "" : String(parsed.getFullYear());
   })();
   const lineup = parseLineup(currentEvent?.lineupJson);
+  // Countdown to doors — only while it's still in the future. Re-checked
+  // every minute so it disappears on its own once doors open.
+  const doorsOpen = useMemo(
+    () => (currentEvent?.date ? eventStartTime(currentEvent.date, currentEvent.time) : null),
+    [currentEvent?.date, currentEvent?.time],
+  );
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  const showCountdown = !!doorsOpen && doorsOpen.getTime() > nowTick;
   const earlyBirdPrice = currentEvent?.earlyBirdPrice ?? DEFAULT_EARLY_BIRD_PRICE;
   const regularPrice = currentEvent?.regularPrice ?? DEFAULT_REGULAR_PRICE;
 
@@ -469,6 +483,15 @@ export function AccessPassport() {
           </div>
         </div>
       </div>
+
+      {showCountdown && doorsOpen && (
+        <div className="border-b border-white/10 py-14 px-5 sm:px-6 lg:px-12">
+          <p className="text-[9px] text-[#c9962a]/60 uppercase tracking-[0.3em] mb-8 text-center">
+            Time Until Doors Open · {eventName}
+          </p>
+          <CountdownTimer targetDate={doorsOpen} accent="gold" />
+        </div>
+      )}
       </>)}
 
       {/* ── Reservation content ── */}

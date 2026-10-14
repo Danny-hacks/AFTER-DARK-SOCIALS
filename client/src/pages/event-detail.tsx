@@ -12,58 +12,12 @@ import type { Event, EventTicketTier } from "@shared/schema";
 import earlyBirdTicketPreview from "@assets/Physical_ticket_preview_early_bird.png";
 import earlyBirdVipTicketPreview from "@assets/EarlyBird_VIP_Preview.png";
 import { eventStartTime, eventEndCutoff } from "@shared/eventTime";
+import { CountdownTimer } from "@/components/countdown-timer";
 
 // Dedicated ticket-line number — separate from the general After Dark
 // Socials contact number used elsewhere for non-ticket enquiries.
 const ADMIN_CONTACT = "+230 5515 1185";
 const ADMIN_PHONE = "23055151185";
-
-// ─── Countdown ───────────────────────────────────────────────────────────────
-function CountdownTimer({ targetDate }: { targetDate: Date }) {
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-
-  useEffect(() => {
-    const calculate = () => {
-      const diff = targetDate.getTime() - Date.now();
-      if (diff > 0) {
-        setTimeLeft({
-          days: Math.floor(diff / 86400000),
-          hours: Math.floor((diff % 86400000) / 3600000),
-          minutes: Math.floor((diff % 3600000) / 60000),
-          seconds: Math.floor((diff % 60000) / 1000),
-        });
-      }
-    };
-    calculate();
-    const timer = setInterval(calculate, 1000);
-    return () => clearInterval(timer);
-  }, [targetDate]);
-
-  const units = [
-    { label: "Days", value: timeLeft.days },
-    { label: "Hrs",  value: timeLeft.hours },
-    { label: "Min",  value: timeLeft.minutes },
-    { label: "Sec",  value: timeLeft.seconds },
-  ];
-
-  return (
-    <div className="flex justify-center gap-3 sm:gap-5">
-      {units.map(({ label, value }) => (
-        <div key={label} className="flex flex-col items-center">
-          <div className="border border-white/20 px-4 sm:px-6 py-4 sm:py-5 min-w-[60px] sm:min-w-[88px] text-center">
-            <span
-              className="text-3xl sm:text-5xl font-black text-white block leading-none"
-              style={{ fontFamily: "'Bebas Neue', Impact, sans-serif" }}
-            >
-              {String(value).padStart(2, "0")}
-            </span>
-          </div>
-          <span className="text-[9px] text-white/30 uppercase tracking-[0.25em] mt-2">{label}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 // Closing line of the customer's WhatsApp request, worded for their chosen
 // payment method.
