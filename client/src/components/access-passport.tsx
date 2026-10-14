@@ -131,16 +131,34 @@ export function AccessPassport() {
     select: (data) => data.photos ?? [],
   });
   const galleryItems = useMemo(() => allGalleryItems.filter((p) => p.section === "access"), [allGalleryItems]);
+  // "All" shows everything in a random order (shuffled once per visit);
+  // each night's tab keeps the admin's order.
+  const shuffledGallery = useMemo(() => {
+    const arr = [...galleryItems];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }, [galleryItems]);
   const [galleryTab, setGalleryTab] = useState<"photos" | "videos">("photos");
+  const [galleryEdition, setGalleryEdition] = useState<string>("all");
   const galleryFiltered = useMemo(
-    () => galleryItems.filter((p) => (p.type === "video") === (galleryTab === "videos")),
-    [galleryItems, galleryTab],
+    () =>
+      (galleryEdition === "all" ? shuffledGallery : galleryItems.filter((p) => p.eventId === galleryEdition))
+        .filter((p) => (p.type === "video") === (galleryTab === "videos")),
+    [galleryItems, shuffledGallery, galleryEdition, galleryTab],
   );
   const GALLERY_PAGE_SIZE = 8;
   const [galleryVisibleCount, setGalleryVisibleCount] = useState(GALLERY_PAGE_SIZE);
   const [galleryLightboxIndex, setGalleryLightboxIndex] = useState<number | null>(null);
   const galleryDisplayed = galleryFiltered.slice(0, galleryVisibleCount);
   const galleryHasMore = galleryVisibleCount < galleryFiltered.length;
+  const selectGalleryEdition = (id: string) => {
+    setGalleryEdition(id);
+    setGalleryVisibleCount(GALLERY_PAGE_SIZE);
+    setGalleryLightboxIndex(null);
+  };
   const selectGalleryTab = (tab: "photos" | "videos") => {
     setGalleryTab(tab);
     setGalleryVisibleCount(GALLERY_PAGE_SIZE);
@@ -158,6 +176,16 @@ export function AccessPassport() {
     queryKey: ["/api/access/past"],
     select: (data) => data.events ?? [],
   });
+
+  // Gallery tabs for every edition that has at least one item, newest first.
+  const galleryEditions = useMemo(() => {
+    const known = [...(currentEvent ? [currentEvent] : []), ...pastAccessEvents];
+    return known
+      .filter((ev, i) => known.findIndex((k) => k.id === ev.id) === i)
+      .filter((ev) => galleryItems.some((p) => p.eventId === ev.id))
+      .sort((a, b) => (new Date(b.date).getTime() || 0) - (new Date(a.date).getTime() || 0))
+      .map((ev) => ({ id: ev.id, label: ev.date ? `${ev.name} · ${ev.date}` : ev.name }));
+  }, [currentEvent, pastAccessEvents, galleryItems]);
 
   // Client-side route changes (wouter) don't trigger the browser's native
   // scroll-to-hash behavior the way a full page load does, so a link like
@@ -782,6 +810,23 @@ export function AccessPassport() {
                     {ev.date}{ev.venue ? ` · ${ev.venue}` : ""}
                   </span>
                 </div>
+              ))}
+            </div>
+          )}
+
+          {/* Night tabs — All, then each edition that has photos/videos */}
+          {galleryEditions.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {[{ id: "all", label: "All" }, ...galleryEditions].map((ed) => (
+                <button
+                  key={ed.id}
+                  onClick={() => selectGalleryEdition(ed.id)}
+                  className={`px-4 py-2 text-[10px] uppercase tracking-[0.2em] font-bold border transition-colors ${
+                    galleryEdition === ed.id ? "border-[#c9962a] text-[#c9962a]" : "border-white/10 text-white/40 hover:text-white"
+                  }`}
+                >
+                  {ed.label}
+                </button>
               ))}
             </div>
           )}

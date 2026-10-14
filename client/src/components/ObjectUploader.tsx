@@ -107,7 +107,7 @@ export function ObjectUploader({
         file = await compressImage(file);
       }
 
-      const extension = file.name.split(".").pop() || "";
+      const extension = (file.name.split(".").pop() || "").toLowerCase();
       const response = await apiRequest("POST", "/api/objects/upload", { fileExtension: extension });
       const data = await response.json();
 
@@ -141,7 +141,11 @@ export function ObjectUploader({
       });
 
       xhr.open('PUT', data.uploadURL);
-      xhr.setRequestHeader('Content-Type', file.type);
+      // Some devices report no type for e.g. uppercase ".MP4" — store a real
+      // one so the file is served as playable video.
+      const ext = extension.toLowerCase();
+      const contentType = file.type || (ext === "mp4" || ext === "m4v" ? "video/mp4" : "application/octet-stream");
+      xhr.setRequestHeader('Content-Type', contentType);
       xhr.send(file);
 
     } catch (err) {

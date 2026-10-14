@@ -3,7 +3,7 @@ import { SiTiktok } from "react-icons/si";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import type { HeroSlide, Event } from "@shared/schema";
+import type { HeroSlide, Event, AccessEvent } from "@shared/schema";
 import { eventStartTime, eventEndCutoff } from "@shared/eventTime";
 import heroImage from "@assets/stock_images/dark_nightclub_rave__d23cebfd.jpg";
 import aftr2Image from "@assets/IMG_6112_1774435245159.jpg";
@@ -14,7 +14,9 @@ interface DisplaySlide {
   url: string;
   title: string | null;
   isAuto?: boolean;
-  event?: Event;
+  // What the "Up Next" block shows for an auto slide (AFTR event or ACCESS night)
+  upNext?: { name: string; date: string; venue: string | null; href: string; cta: string };
+  startsAt?: number;
 }
 
 export default function HeroSection() {
@@ -28,6 +30,12 @@ export default function HeroSection() {
   const { data: eventsData } = useQuery<{ success: boolean; events: Event[] }>({
     queryKey: ['/api/events'],
   });
+
+  // The next ACCESS night (server already drops it once it's passed)
+  const { data: accessData } = useQuery<{ success: boolean; event: AccessEvent | null }>({
+    queryKey: ['/api/access/current'],
+  });
+  const upcomingAccess = accessData?.event ?? null;
 
   // Automatically surface the nearest upcoming event as the first slide,
   // so the hero never needs manual updating just because a new event exists.
@@ -50,19 +58,45 @@ export default function HeroSection() {
     return { ...slide, url: processedUrl };
   });
 
-  const autoSlide: DisplaySlide | null =
-    upcomingEvent && (upcomingEvent.videoUrl || upcomingEvent.imageUrl)
-      ? {
-          id: `auto-${upcomingEvent.id}`,
-          type: upcomingEvent.videoUrl ? 'video' : 'image',
-          url: (upcomingEvent.videoUrl || upcomingEvent.imageUrl) as string,
-          title: upcomingEvent.name,
-          isAuto: true,
-          event: upcomingEvent,
-        }
-      : null;
+  const autoSlides: DisplaySlide[] = [];
+  if (upcomingEvent && (upcomingEvent.videoUrl || upcomingEvent.imageUrl)) {
+    autoSlides.push({
+      id: `auto-${upcomingEvent.id}`,
+      type: upcomingEvent.videoUrl ? 'video' : 'image',
+      url: (upcomingEvent.videoUrl || upcomingEvent.imageUrl) as string,
+      title: upcomingEvent.name,
+      isAuto: true,
+      upNext: {
+        name: upcomingEvent.name,
+        date: upcomingEvent.date,
+        venue: upcomingEvent.venue,
+        href: `/events/${upcomingEvent.slug ?? upcomingEvent.id}`,
+        cta: 'Get Tickets',
+      },
+      startsAt: eventStartTime(upcomingEvent.date, upcomingEvent.time)?.getTime() ?? 0,
+    });
+  }
+  if (upcomingAccess && (upcomingAccess.bannerUrl || upcomingAccess.posterUrl)) {
+    autoSlides.push({
+      id: `auto-access-${upcomingAccess.id}`,
+      type: 'image',
+      url: (upcomingAccess.bannerUrl || upcomingAccess.posterUrl) as string,
+      title: upcomingAccess.name,
+      isAuto: true,
+      upNext: {
+        name: upcomingAccess.name,
+        date: upcomingAccess.date,
+        venue: upcomingAccess.venue,
+        href: '/access',
+        cta: 'Reserve Now',
+      },
+      startsAt: eventStartTime(upcomingAccess.date, upcomingAccess.time)?.getTime() ?? 0,
+    });
+  }
+  // Whichever night is soonest leads the hero
+  autoSlides.sort((a, b) => (a.startsAt ?? 0) - (b.startsAt ?? 0));
 
-  const processedSlides: DisplaySlide[] = autoSlide ? [autoSlide, ...adminSlides] : adminSlides;
+  const processedSlides: DisplaySlide[] = [...autoSlides, ...adminSlides];
   const hasSlides = processedSlides.length > 0;
   const activeSlide = processedSlides[currentSlide];
 
@@ -151,7 +185,7 @@ export default function HeroSection() {
         {/* Red accent line */}
         <div className="w-10 h-0.5 bg-[#c72d28] mb-6" />
 
-        {activeSlide?.isAuto && activeSlide.event ? (
+        {activeSlide?.isAuto && activeSlide.upNext ? (
           /* Upcoming event — the primary content while its auto-generated slide is active */
           <div className="mb-8 max-w-lg" data-testid="hero-upcoming-event">
             <p className="text-[#c72d28] text-[10px] uppercase tracking-[0.3em] mb-3">Up Next</p>
@@ -160,16 +194,16 @@ export default function HeroSection() {
               style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(44px, 9vw, 110px)" }}
               data-testid="hero-event-title"
             >
-              {activeSlide.event.name}
+              {activeSlide.upNext.name}
             </h1>
             <p className="text-sm sm:text-base text-white/50 font-light tracking-[0.2em] uppercase mb-6">
-              {[activeSlide.event.date, activeSlide.event.venue].filter(Boolean).join(" · ")}
+              {[activeSlide.upNext.date, activeSlide.upNext.venue].filter(Boolean).join(" · ")}
             </p>
             <Link
-              href={`/events/${activeSlide.event.slug ?? activeSlide.event.id}`}
+              href={activeSlide.upNext.href}
               className="inline-flex items-center gap-2 bg-[#c72d28] text-white text-[10px] uppercase tracking-[0.2em] font-bold px-6 py-3.5 hover:bg-[#a82421] transition-colors"
             >
-              Get Tickets
+              {activeSlide.upNext.cta}
             </Link>
           </div>
         ) : (

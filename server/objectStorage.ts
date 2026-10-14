@@ -2,6 +2,19 @@ import { Storage, File } from "@google-cloud/storage";
 import { Response } from "express";
 import { randomUUID } from "crypto";
 
+const EXTENSION_TYPES: Record<string, string> = {
+  mp4: "video/mp4",
+  m4v: "video/mp4",
+  mov: "video/quicktime",
+  webm: "video/webm",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  pdf: "application/pdf",
+};
+
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 
 export const objectStorageClient = new Storage({
@@ -80,17 +93,54 @@ export class ObjectStorageService {
     return null;
   }
 
-  async downloadObject(file: File, res: Response, cacheTtlSec: number = 3600) {
+  async downloadObject(file: File, res: Response, cacheTtlSec: number = 3600, rangeHeader?: string) {
     try {
       const [metadata] = await file.getMetadata();
-      
+      const size = Number(metadata.size);
+
+      // Uploads sometimes arrive with a blank or generic type (e.g. an
+      // uppercase ".MP4" on some phones) — browsers won't play a video
+      // served as application/octet-stream, so fall back to the extension.
+      let contentType = metadata.contentType || "";
+      if (!contentType || contentType === "application/octet-stream") {
+        const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+        contentType = EXTENSION_TYPES[ext] ?? "application/octet-stream";
+      }
+
       res.set({
-        "Content-Type": metadata.contentType || "application/octet-stream",
-        "Content-Length": metadata.size,
+        "Content-Type": contentType,
+        "Accept-Ranges": "bytes",
         "Cache-Control": `public, max-age=${cacheTtlSec}`,
       });
 
-      const stream = file.createReadStream();
+      // Safari/iOS only play video when the server answers byte-range
+      // requests with 206 Partial Content.
+      const match = rangeHeader && !isNaN(size) ? /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim()) : null;
+      let stream;
+      if (match && (match[1] !== "" || match[2] !== "")) {
+        let start: number;
+        let end: number;
+        if (match[1] === "") {
+          // "bytes=-500" = last 500 bytes
+          start = Math.max(0, size - parseInt(match[2], 10));
+          end = size - 1;
+        } else {
+          start = parseInt(match[1], 10);
+          end = match[2] === "" ? size - 1 : Math.min(parseInt(match[2], 10), size - 1);
+        }
+        if (start >= size || start > end) {
+          res.status(416).set("Content-Range", `bytes */${size}`).end();
+          return;
+        }
+        res.status(206).set({
+          "Content-Range": `bytes ${start}-${end}/${size}`,
+          "Content-Length": String(end - start + 1),
+        });
+        stream = file.createReadStream({ start, end });
+      } else {
+        res.set("Content-Length", String(metadata.size));
+        stream = file.createReadStream();
+      }
 
       stream.on("error", (err) => {
         console.error("Stream error:", err);

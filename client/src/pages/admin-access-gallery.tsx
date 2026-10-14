@@ -5,21 +5,39 @@ import { AdminLayout } from "@/components/admin-layout";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { GalleryPhoto } from "@shared/schema";
+import type { AccessEvent, GalleryPhoto } from "@shared/schema";
 
 export default function AdminAccessGalleryPage() {
   const { toast } = useToast();
   const [alt, setAlt] = useState("");
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
+  // Which ACCESS edition new uploads belong to ("" = not tied to a night)
+  const [uploadEventId, setUploadEventId] = useState("");
+  const [listFilter, setListFilter] = useState("all");
+
+  const { data: editions = [] } = useQuery<{ success: boolean; events: AccessEvent[] }, Error, AccessEvent[]>({
+    queryKey: ["/api/admin/access/events"],
+    select: (d) => d.events ?? [],
+  });
+  const editionLabel = (id: string | null) => {
+    const e = editions.find((x) => x.id === id);
+    return e ? `${e.name} · ${e.date}` : "No edition";
+  };
 
   const { data: allPhotos = [], isLoading } = useQuery<{ success: boolean; photos: GalleryPhoto[] }, Error, GalleryPhoto[]>({
     queryKey: ["/api/admin/gallery"],
     select: (data) => data.photos ?? [],
   });
-  const photos = useMemo(() => allPhotos.filter((p) => p.section === "access"), [allPhotos]);
+  const accessPhotos = useMemo(() => allPhotos.filter((p) => p.section === "access"), [allPhotos]);
+  const photos = useMemo(
+    () => listFilter === "all" ? accessPhotos
+      : listFilter === "none" ? accessPhotos.filter((p) => !p.eventId)
+      : accessPhotos.filter((p) => p.eventId === listFilter),
+    [accessPhotos, listFilter],
+  );
 
   const createMutation = useMutation({
-    mutationFn: (data: { url: string; alt: string; order: number; type: "image" | "video"; section: "access" }) =>
+    mutationFn: (data: { url: string; alt: string; order: number; type: "image" | "video"; section: "access"; eventId: string | null }) =>
       apiRequest("POST", "/api/admin/gallery", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/gallery"] });
@@ -31,8 +49,8 @@ export default function AdminAccessGalleryPage() {
   });
 
   const updateOrderMutation = useMutation({
-    mutationFn: ({ id, order }: { id: string; order: number }) =>
-      apiRequest("PATCH", `/api/admin/gallery/${id}`, { order }),
+    mutationFn: ({ id, ...patch }: { id: string; order?: number; eventId?: string | null }) =>
+      apiRequest("PATCH", `/api/admin/gallery/${id}`, patch),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/gallery"] });
       queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
@@ -56,7 +74,8 @@ export default function AdminAccessGalleryPage() {
           Upload and manage ACCESS photos & videos
         </p>
         <p className="text-white/20 text-xs">
-          Shown in the "Past Editions" section of the public ACCESS page. Photos are automatically resized; videos must be MP4.
+          Shown in the "Past Editions" section of the public ACCESS page — an "All" tab (shuffled) plus a tab for each night.
+          Pick the night each upload belongs to. Photos are automatically resized; videos must be MP4.
         </p>
       </div>
 
@@ -94,11 +113,25 @@ export default function AdminAccessGalleryPage() {
           />
         </div>
 
+        <div className="mb-5">
+          <label className="block text-[9px] text-white/30 uppercase tracking-[0.2em] mb-2">ACCESS Night</label>
+          <select
+            value={uploadEventId}
+            onChange={(e) => setUploadEventId(e.target.value)}
+            className="w-full bg-black border border-white/15 text-white text-sm px-3 py-2.5 focus:outline-none focus:border-white/40"
+          >
+            <option value="">No specific night (shows under All only)</option>
+            {editions.map((e) => (
+              <option key={e.id} value={e.id}>{e.name} · {e.date}</option>
+            ))}
+          </select>
+        </div>
+
         <ObjectUploader
           maxFileSize={mediaType === "video" ? 500 * 1024 * 1024 : 20 * 1024 * 1024}
           allowedFileTypes={mediaType === "video" ? ["video/mp4"] : ["image/*"]}
           onComplete={(url) => {
-            createMutation.mutate({ url, alt: alt || "ACCESS", order: photos.length, type: mediaType, section: "access" });
+            createMutation.mutate({ url, alt: alt || "ACCESS", order: accessPhotos.length, type: mediaType, section: "access", eventId: uploadEventId || null });
           }}
           buttonClassName="gap-2"
         >
@@ -108,9 +141,22 @@ export default function AdminAccessGalleryPage() {
       </div>
 
       {/* List */}
-      <p className="text-white/20 text-xs mb-3">
-        {photos.length} item{photos.length !== 1 ? "s" : ""} in the ACCESS gallery
-      </p>
+      <div className="flex items-center gap-3 flex-wrap mb-3">
+        <p className="text-white/20 text-xs flex-1">
+          {photos.length} item{photos.length !== 1 ? "s" : ""}{listFilter === "all" ? " in the ACCESS gallery" : ""}
+        </p>
+        <select
+          value={listFilter}
+          onChange={(e) => setListFilter(e.target.value)}
+          className="bg-black border border-white/15 text-white text-xs px-3 py-2 focus:outline-none focus:border-white/40"
+        >
+          <option value="all">All nights</option>
+          <option value="none">No night assigned</option>
+          {editions.map((e) => (
+            <option key={e.id} value={e.id}>{e.name} · {e.date}</option>
+          ))}
+        </select>
+      </div>
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-5 h-5 text-white/30 animate-spin" />
@@ -135,7 +181,7 @@ export default function AdminAccessGalleryPage() {
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-white text-sm truncate">{photo.alt || "(no alt text)"}</p>
-                <div className="flex items-center gap-3 text-white/30 text-xs mt-1">
+                <div className="flex items-center gap-3 flex-wrap text-white/30 text-xs mt-1">
                   {photo.type === "video" && <span className="text-white/40 uppercase tracking-wider text-[9px]">Video</span>}
                   <span>Order:</span>
                   <input
@@ -149,6 +195,17 @@ export default function AdminAccessGalleryPage() {
                     }}
                     className="w-16 bg-black border border-white/15 text-white text-xs px-2 py-1 focus:outline-none focus:border-white/40"
                   />
+                  <select
+                    value={photo.eventId ?? ""}
+                    onChange={(e) => updateOrderMutation.mutate({ id: photo.id, eventId: e.target.value || null })}
+                    className="max-w-[200px] bg-black border border-white/15 text-white text-xs px-2 py-1 focus:outline-none focus:border-white/40"
+                    title={editionLabel(photo.eventId)}
+                  >
+                    <option value="">No night</option>
+                    {editions.map((e) => (
+                      <option key={e.id} value={e.id}>{e.name} · {e.date}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <button
