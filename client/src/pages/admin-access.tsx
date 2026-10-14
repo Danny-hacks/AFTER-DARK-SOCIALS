@@ -7,7 +7,13 @@ import { PassportCard, type PassFields } from "@/components/passport-card";
 import { generatePassPDF } from "@/lib/generatePassCanvas";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { AccessTableInventory, AccessEvent } from "@shared/schema";
+import { ACCESS_AREAS, ACCESS_AREA_LABELS, type AccessTableInventory, type AccessEvent } from "@shared/schema";
+import {
+  accessPassPrefix,
+  accessTicketTypeFullLabel,
+  accessTicketTypeTotal,
+  type AccessTicketTypeWithAvailability,
+} from "@shared/accessTickets";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Guest {
@@ -24,6 +30,8 @@ interface Reservation {
   guestsJson: string;
   status: "pending_payment" | "approved" | "rejected";
   source?: string;
+  eventId?: string | null;
+  ticketTypeId?: string | null;
   createdAt: string;
   approvedAt: string | null;
 }
@@ -96,11 +104,46 @@ export default function AdminAccessPage() {
   const { data: currentEventData } = useQuery<{ success: boolean; event: AccessEvent | null }>({
     queryKey: ["/api/access/current"],
   });
-  const currentEventDate = currentEventData?.event?.date || "3 July 2026";
-  const currentEventVenue = currentEventData?.event?.venue || "Club Sixty Nine";
+  const currentEvent = currentEventData?.event ?? null;
+  const currentEventDate = currentEvent?.date || "TBA";
+  const currentEventVenue = currentEvent?.venue || "TBA";
   const inventoryMap: Record<string, AccessTableInventory> = {};
   for (const row of inventory) inventoryMap[row.tableType] = row;
-  const TABLE_TYPES = ["single_entry", "table_4", "table_5", "section_8_12"];
+  // Table options now live per edition (access_ticket_types); only Solo
+  // Entry still uses the global inventory row.
+  const TABLE_TYPES = ["single_entry"];
+
+  const { data: editions = [] } = useQuery<{ success: boolean; events: AccessEvent[] }, Error, AccessEvent[]>({
+    queryKey: ["/api/admin/access/events"],
+    select: (d) => d.events ?? [],
+  });
+  const editionById: Record<string, AccessEvent> = {};
+  for (const e of editions) editionById[e.id] = e;
+
+  const { data: allTicketTypes = [] } = useQuery<
+    { success: boolean; ticketTypes: AccessTicketTypeWithAvailability[] },
+    Error,
+    AccessTicketTypeWithAvailability[]
+  >({
+    queryKey: ["/api/admin/access/ticket-types"],
+    select: (d) => d.ticketTypes ?? [],
+  });
+  const ticketTypeById: Record<string, AccessTicketTypeWithAvailability> = {};
+  for (const t of allTicketTypes) ticketTypeById[t.id] = t;
+  const currentTicketTypes = currentEvent ? allTicketTypes.filter((t) => t.eventId === currentEvent.id) : [];
+
+  // Which edition the stats, availability and list are showing.
+  // "current" = the upcoming edition (empty once it's passed, until the next
+  // one is created); "all" = every reservation ever.
+  const [edition, setEdition] = useState<string>(initialQuery ? "all" : "current");
+  const selectedEventId = edition === "current" ? currentEvent?.id ?? null : edition === "all" ? null : edition;
+  const selectedEdition = selectedEventId ? editionById[selectedEventId] : undefined;
+
+  // Date/venue for a reservation's pass — from its own edition.
+  function eventInfoFor(r: Reservation) {
+    const ev = r.eventId ? editionById[r.eventId] : undefined;
+    return { date: ev?.date || currentEventDate, venue: ev?.venue || currentEventVenue };
+  }
 
   const [editingType, setEditingType] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{ price: string; pricePerPerson: string; capacity: string; manualUsed: string }>({ price: "", pricePerPerson: "", capacity: "", manualUsed: "" });
@@ -142,6 +185,7 @@ export default function AdminAccessPage() {
     mutationFn: (id: string) => apiRequest("PUT", `/api/admin/access/${id}/approve`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/access/reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/access/ticket-types"] });
       toast({ title: "Reservation approved", description: "Payment confirmed — use Send Passes to dispatch." });
     },
     onError: () => toast({ title: "Failed to approve", variant: "destructive" }),
@@ -151,6 +195,7 @@ export default function AdminAccessPage() {
     mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/access/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/access/reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/access/ticket-types"] });
       toast({ title: "Pass deleted" });
     },
     onError: () => toast({ title: "Failed to delete", variant: "destructive" }),
@@ -160,6 +205,7 @@ export default function AdminAccessPage() {
     mutationFn: (id: string) => apiRequest("PUT", `/api/admin/access/${id}/reject`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/access/reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/access/ticket-types"] });
       toast({ title: "Reservation rejected" });
     },
     onError: () => toast({ title: "Failed to reject", variant: "destructive" }),
@@ -169,7 +215,8 @@ export default function AdminAccessPage() {
   const [showIssueForm, setShowIssueForm]     = useState(false);
   const [singleName, setSingleName]           = useState("");
   const [singlePhone, setSinglePhone]         = useState("");
-  const [singleType, setSingleType]           = useState("table_4");
+  // "single_entry" or a ticket type id from the current edition
+  const [singleType, setSingleType]           = useState("single_entry");
   const [singleTableNum, setSingleTableNum]   = useState(1);
   const [singleNotes, setSingleNotes]         = useState("");
   const [singlePhoto, setSinglePhoto]         = useState("");
@@ -183,14 +230,23 @@ export default function AdminAccessPage() {
     reader.readAsDataURL(file);
   }
 
-  const computedTableLabel =
-    singleType === "section_8_12" ? `Section ${singleTableNum}` :
-    inventoryMap[singleType]?.label ?? "";
+  const singleTicketType = singleType === "single_entry" ? undefined : ticketTypeById[singleType];
+  const singleMaxTable = Math.max(1, singleTicketType?.capacity ?? 1);
 
-  const livePassId =
-    singleType === "single_entry" ? "ACC-SE???" :
-    singleType === "section_8_12" ? `ACC-S${singleTableNum}001` :
-    `ACC-${singleTableNum}001`;
+  const computedTableLabel = singleTicketType
+    ? `${accessTicketTypeFullLabel(singleTicketType)} #${singleTableNum}`
+    : "Solo Entry";
+
+  const livePassId = singleTicketType
+    ? `ACC-${accessPassPrefix(singleTicketType)}-${singleTableNum}001`
+    : "ACC-SE???";
+
+  const singleBody = () => ({
+    name: singleName,
+    phone: singlePhone,
+    ...(singleTicketType ? { ticketTypeId: singleTicketType.id, tableNumber: singleTableNum } : { tableType: "single_entry" }),
+    notes: singleNotes,
+  });
 
   const livePass: PassFields = {
     name: singleName,
@@ -204,12 +260,13 @@ export default function AdminAccessPage() {
     mutationFn: (body: object) => apiRequest("POST", "/api/admin/access/single", body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/access/reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/access/ticket-types"] });
     },
     onError: () => toast({ title: "Failed to create pass", variant: "destructive" }),
   });
 
   function resetSingleForm() {
-    setSingleName(""); setSinglePhone(""); setSingleType("table_4");
+    setSingleName(""); setSinglePhone(""); setSingleType("single_entry");
     setSingleTableNum(1); setSingleNotes(""); setSinglePhoto("");
     if (photoInputRef.current) photoInputRef.current.value = "";
   }
@@ -217,14 +274,14 @@ export default function AdminAccessPage() {
   // Single pass actions
   async function handleSaveOnly() {
     if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
-    await singleMutation.mutateAsync({ name: singleName, phone: singlePhone, tableType: singleType, tableNumber: singleTableNum, notes: singleNotes });
+    await singleMutation.mutateAsync(singleBody());
     resetSingleForm();
     toast({ title: "Pass saved", description: `Pass ID: ${livePassId}` });
   }
 
   async function handleDownloadPass() {
     if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
-    const raw = await singleMutation.mutateAsync({ name: singleName, phone: singlePhone, tableType: singleType, tableNumber: singleTableNum, notes: singleNotes });
+    const raw = await singleMutation.mutateAsync(singleBody());
     const res = await (raw as Response).json();
     const passId: string = res.passId;
     const tableLabel: string = res.tableLabel ?? computedTableLabel;
@@ -236,7 +293,7 @@ export default function AdminAccessPage() {
 
   async function handleSendWhatsApp() {
     if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
-    const raw = await singleMutation.mutateAsync({ name: singleName, phone: singlePhone, tableType: singleType, tableNumber: singleTableNum, notes: singleNotes });
+    const raw = await singleMutation.mutateAsync(singleBody());
     const res = await (raw as Response).json();
     const passId: string = res.passId;
     const tableLabel: string = res.tableLabel ?? computedTableLabel;
@@ -248,21 +305,62 @@ export default function AdminAccessPage() {
   }
 
   // Per-guest download / send
-  async function downloadGuestPass(guest: Guest, tableLabel: string) {
-    await generatePassPDF({ name: guest.name, table: tableLabel, date: currentEventDate, venue: currentEventVenue, passId: guest.passId, photoUrl: undefined });
+  async function downloadGuestPass(guest: Guest, r: Reservation) {
+    const { date, venue } = eventInfoFor(r);
+    await generatePassPDF({ name: guest.name, table: r.tableLabel, date, venue, passId: guest.passId, photoUrl: undefined });
     toast({ title: "Downloading…", description: `ACCESS-PASS-${guest.passId}.pdf` });
   }
 
-  function sendGuestWhatsApp(guest: Guest, tableLabel: string) {
-    downloadGuestPass(guest, tableLabel);
-    setTimeout(() => window.open(buildWaUrl(guest, tableLabel, currentEventDate), "_blank"), 400);
+  function sendGuestWhatsApp(guest: Guest, r: Reservation) {
+    downloadGuestPass(guest, r);
+    setTimeout(() => window.open(buildWaUrl(guest, r.tableLabel, eventInfoFor(r).date), "_blank"), 400);
   }
 
-  const reservations = data?.reservations ?? [];
-  const counts       = data?.counts ?? {};
+  const allReservations = data?.reservations ?? [];
+  // Everything below (stats, availability, list) follows the edition picker.
+  const editionReservations = selectedEventId
+    ? allReservations.filter((r) => r.eventId === selectedEventId)
+    : edition === "all" ? allReservations : [];
+
+  // Solo Entry counts for the selected edition
+  const soloCounts = {
+    confirmed: editionReservations.filter((r) => r.tableType === "single_entry" && r.status === "approved").length,
+    pending: editionReservations.filter((r) => r.tableType === "single_entry" && r.status === "pending_payment").length,
+  };
+  const counts: Record<string, TableCounts> = { single_entry: soloCounts };
+
+  const editionTicketTypes = selectedEventId ? allTicketTypes.filter((t) => t.eventId === selectedEventId) : [];
+
+  // Area / ticket-type filter: "all" | "solo" | "area:<area>" | "type:<id>"
+  const [kindFilter, setKindFilter] = useState<string>("all");
+  const reservationArea = (r: Reservation): string | null =>
+    r.ticketTypeId ? ticketTypeById[r.ticketTypeId]?.area ?? r.tableType : null;
+  const matchesKind = (r: Reservation, f: string) =>
+    f === "all" ? true
+    : f === "solo" ? r.tableType === "single_entry"
+    : f.startsWith("area:") ? reservationArea(r) === f.slice(5)
+    : f.startsWith("type:") ? r.ticketTypeId === f.slice(5)
+    : true;
+  const reservations = editionReservations.filter((r) => matchesKind(r, kindFilter));
+  const activeArea = kindFilter.startsWith("area:")
+    ? kindFilter.slice(5)
+    : kindFilter.startsWith("type:") ? ticketTypeById[kindFilter.slice(5)]?.area ?? null : null;
+  const typesInEditionReservations = (area: string) => {
+    const ids = new Set(editionReservations.filter((r) => reservationArea(r) === area && r.ticketTypeId).map((r) => r.ticketTypeId!));
+    const fromEdition = editionTicketTypes.filter((t) => t.area === area);
+    for (const t of fromEdition) ids.add(t.id);
+    return Array.from(ids).map((id) => ticketTypeById[id]).filter(Boolean);
+  };
+
   const pending  = reservations.filter((r) => r.status === "pending_payment");
   const approved = reservations.filter((r) => r.status === "approved");
   const rejected = reservations.filter((r) => r.status === "rejected");
+
+  // Expected revenue from confirmed table bookings (table options only)
+  const confirmedTableRevenue = approved.reduce((sum, r) => {
+    const t = r.ticketTypeId ? ticketTypeById[r.ticketTypeId] : undefined;
+    return t && r.source !== "admin_single" ? sum + accessTicketTypeTotal(t, parseGuests(r.guestsJson).length) : sum;
+  }, 0);
 
   const [statusFilter, setStatusFilter] = useState<"all" | "pending_payment" | "approved" | "rejected">("all");
   const statusFiltered =
@@ -362,27 +460,38 @@ export default function AdminAccessPage() {
                     onChange={(e) => { setSingleType(e.target.value); setSingleTableNum(1); }}
                     className="w-full bg-[#0a0a0a] border border-white/15 text-white text-sm px-4 py-3 focus:outline-none focus:border-[#c9962a]/50"
                   >
-                    <option value="single_entry">Single Entry</option>
-                    <option value="table_4">Table for 4</option>
-                    <option value="table_5">Table for 5</option>
-                    <option value="section_8_12">Section (8–12 guests)</option>
+                    <option value="single_entry">Solo Entry</option>
+                    {ACCESS_AREAS.map((area) => {
+                      const areaTypes = currentTicketTypes.filter((t) => t.area === area);
+                      if (areaTypes.length === 0) return null;
+                      return (
+                        <optgroup key={area} label={ACCESS_AREA_LABELS[area]}>
+                          {areaTypes.map((t) => (
+                            <option key={t.id} value={t.id}>{t.label}</option>
+                          ))}
+                        </optgroup>
+                      );
+                    })}
                   </select>
+                  {currentTicketTypes.length === 0 && (
+                    <p className="text-white/20 text-[9px] mt-1.5">
+                      No table options set up for the current edition — add them under ACCESS Events → Tables.
+                    </p>
+                  )}
                 </div>
 
                 {/* Table / Section Number — hidden for single_entry */}
                 {singleType !== "single_entry" && (
                   <div>
                     <label className="block text-[9px] text-[#c9962a]/60 uppercase tracking-[0.3em] mb-2">
-                      {singleType === "section_8_12"
-                        ? `Section Number (1–${inventoryMap[singleType]?.capacity ?? 1})`
-                        : `Table Number (1–${inventoryMap[singleType]?.capacity ?? 1})`}
+                      {`Table Number (1–${singleMaxTable})`}
                     </label>
                     <input
                       type="number"
                       min={1}
-                      max={inventoryMap[singleType]?.capacity ?? 1}
+                      max={singleMaxTable}
                       value={singleTableNum}
-                      onChange={(e) => setSingleTableNum(Math.max(1, Math.min(inventoryMap[singleType]?.capacity ?? 1, parseInt(e.target.value) || 1)))}
+                      onChange={(e) => setSingleTableNum(Math.max(1, Math.min(singleMaxTable, parseInt(e.target.value) || 1)))}
                       className="w-full bg-transparent border border-white/15 text-white text-sm px-4 py-3 focus:outline-none focus:border-[#c9962a]/50"
                     />
                     <p className="text-white/20 text-[9px] mt-1.5 uppercase tracking-[0.15em]">
@@ -513,7 +622,90 @@ export default function AdminAccessPage() {
         </div>
       ) : (
         <>
-          {/* ── Table inventory cards — pricing & capacity, editable ── */}
+          {/* ── Edition picker ── */}
+          <div className="flex items-center gap-3 flex-wrap mb-8">
+            <span className="text-[9px] text-white/30 uppercase tracking-[0.3em]">Showing</span>
+            <select
+              value={edition}
+              onChange={(e) => { setEdition(e.target.value); setKindFilter("all"); }}
+              className="bg-[#0a0a0a] border border-white/15 text-white text-sm px-3 py-2 focus:outline-none focus:border-[#c9962a]/50"
+            >
+              <option value="current">
+                {currentEvent ? `Current — ${currentEvent.name} · ${currentEvent.date}` : "Current — no upcoming edition"}
+              </option>
+              <option value="all">All time</option>
+              {editions.map((e) => (
+                <option key={e.id} value={e.id}>{e.name} · {e.date}</option>
+              ))}
+            </select>
+            {edition === "current" && !currentEvent && (
+              <span className="text-white/25 text-[10px]">
+                Nothing upcoming — stats reset until the next edition is added. Pick "All time" or a past edition to look back.
+              </span>
+            )}
+          </div>
+
+          {/* ── Table options availability for the selected edition ── */}
+          {selectedEventId && (
+            <div className="mb-10">
+              <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+                <p className="text-[9px] text-white/25 uppercase tracking-[0.3em]">
+                  Tables · {selectedEdition?.name ?? "Edition"}
+                </p>
+                <p className="text-[9px] text-white/25 uppercase tracking-[0.2em]">
+                  Confirmed table revenue (shown filter): <span className="text-[#c9962a]">MUR {confirmedTableRevenue.toLocaleString()}</span>
+                </p>
+              </div>
+              {editionTicketTypes.length === 0 ? (
+                <p className="text-white/20 text-xs">No table options for this edition — set them up under ACCESS Events → Tables.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {ACCESS_AREAS.map((area) => {
+                    const areaTypes = editionTicketTypes.filter((t) => t.area === area);
+                    if (areaTypes.length === 0) return null;
+                    return (
+                      <div key={area} className="bg-[#0a0a0a] border border-white/10 p-5">
+                        <h3
+                          className="text-white font-black leading-none mb-4"
+                          style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "24px" }}
+                        >
+                          {ACCESS_AREA_LABELS[area]}
+                        </h3>
+                        <div className="space-y-3">
+                          {areaTypes.map((t) => {
+                            const pct = t.capacity > 0 ? Math.round((t.used / t.capacity) * 100) : 0;
+                            return (
+                              <div key={t.id}>
+                                <div className="flex items-center justify-between text-[10px] mb-1">
+                                  <span className="text-white/70">{t.label}</span>
+                                  <span className={t.available <= 0 ? "text-[#c72d28] font-bold" : "text-white/30"}>
+                                    {t.available <= 0 ? "Full" : `${t.available} left`}
+                                  </span>
+                                </div>
+                                <div className="h-1 bg-white/10 mb-1">
+                                  <div
+                                    className={`h-full ${pct >= 100 ? "bg-[#c72d28]" : pct >= 75 ? "bg-yellow-500" : "bg-[#c9962a]"}`}
+                                    style={{ width: `${Math.min(100, pct)}%` }}
+                                  />
+                                </div>
+                                <p className="text-[9px] text-white/25">
+                                  <span className="text-green-400">{t.confirmed} confirmed</span> · <span className="text-yellow-400">{t.pending} pending</span> · {t.capacity} total
+                                  {t.manualUsed !== null && <span className="text-[#c9962a]"> · override {t.manualUsed}</span>}
+                                  {" · "}MUR {t.price.toLocaleString()}{t.pricingMode === "per_person" ? "/person" : ""}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Solo Entry card — pricing & capacity, editable ── */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
             {TABLE_TYPES.map((key) => {
               const config = inventoryMap[key];
@@ -673,6 +865,54 @@ export default function AdminAccessPage() {
             ))}
           </div>
 
+          {/* ── Area / ticket type filter ── */}
+          <div className="mb-10 space-y-3">
+            <div className="flex border border-white/15 w-fit flex-wrap" role="group" aria-label="Filter by area">
+              {[
+                { key: "all", label: "All" },
+                { key: "solo", label: "Solo" },
+                ...ACCESS_AREAS.map((a) => ({ key: `area:${a}`, label: ACCESS_AREA_LABELS[a] })),
+              ].map((o) => {
+                const active = o.key === kindFilter || (o.key === `area:${activeArea}` && kindFilter.startsWith("type:"));
+                const count = editionReservations.filter((r) => matchesKind(r, o.key)).length;
+                return (
+                  <button
+                    key={o.key}
+                    type="button"
+                    onClick={() => setKindFilter(o.key)}
+                    className={`px-4 py-2 text-[9px] uppercase tracking-[0.2em] font-bold transition-colors border-r border-white/15 last:border-r-0 ${
+                      active ? "bg-[#c9962a] text-black" : "text-white/40 hover:text-white"
+                    }`}
+                  >
+                    {o.label} <span className={active ? "text-black/60" : "text-white/25"}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {activeArea && typesInEditionReservations(activeArea).length > 1 && (
+              <div className="flex gap-2 flex-wrap">
+                {typesInEditionReservations(activeArea).map((t) => {
+                  const key = `type:${t.id}`;
+                  const active = kindFilter === key;
+                  const count = editionReservations.filter((r) => r.ticketTypeId === t.id).length;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setKindFilter(active ? `area:${activeArea}` : key)}
+                      className={`border px-3 py-1.5 text-[9px] uppercase tracking-[0.15em] transition-colors ${
+                        active ? "border-[#c9962a] text-[#c9962a]" : "border-white/15 text-white/40 hover:text-white"
+                      }`}
+                    >
+                      {t.label}
+                      {edition === "all" && editionById[t.eventId] ? ` · ${editionById[t.eventId].date}` : ""} <span className="text-white/25">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           {/* ── Reservations list ── */}
           <div className="border-t border-white/10 pt-8">
             <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
@@ -681,10 +921,10 @@ export default function AdminAccessPage() {
                   ? `${visibleReservations.length} Reservation${visibleReservations.length !== 1 ? "s" : ""}`
                   : "All Reservations"}
               </p>
-              {reservations.length > 0 && (
+              {allReservations.length > 0 && (
                 <button
                   onClick={() => {
-                    if (confirm(`Delete all ${reservations.length} ACCESS reservation(s)? This cannot be undone and does not affect table pricing/capacity settings.`)) {
+                    if (confirm(`Delete ALL ${allReservations.length} ACCESS reservation(s) across every edition? This cannot be undone and does not affect table pricing/capacity settings.`)) {
                       clearReservationsMutation.mutate();
                     }
                   }}
@@ -754,6 +994,11 @@ export default function AdminAccessPage() {
                               Admin Issued
                             </span>
                           )}
+                          {edition === "all" && (
+                            <span className="text-[8px] uppercase tracking-[0.2em] px-2 py-0.5 border border-white/10 text-white/30">
+                              {r.eventId && editionById[r.eventId] ? `${editionById[r.eventId].name} · ${editionById[r.eventId].date}` : "No edition"}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <Clock className="w-2.5 h-2.5 text-white/20" />
@@ -792,7 +1037,7 @@ export default function AdminAccessPage() {
                             {isApproved && (
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <button
-                                  onClick={() => downloadGuestPass(g, r.tableLabel)}
+                                  onClick={() => downloadGuestPass(g, r)}
                                   className="flex items-center gap-1 border border-white/15 hover:border-[#c9962a]/50 text-white/40 hover:text-[#c9962a] text-[8px] uppercase tracking-[0.15em] font-bold px-2.5 py-1.5 transition-colors"
                                   title={`Download pass for ${g.name}`}
                                 >
@@ -801,7 +1046,7 @@ export default function AdminAccessPage() {
                                 </button>
                                 {g.phone?.trim() && (
                                   <button
-                                    onClick={() => sendGuestWhatsApp(g, r.tableLabel)}
+                                    onClick={() => sendGuestWhatsApp(g, r)}
                                     className="flex items-center gap-1 border border-[#c9962a]/30 hover:border-[#c9962a] text-[#c9962a]/60 hover:text-[#c9962a] text-[8px] uppercase tracking-[0.15em] font-bold px-2.5 py-1.5 transition-colors"
                                     title={`Send pass to ${g.name} via WhatsApp`}
                                   >

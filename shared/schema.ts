@@ -146,6 +146,9 @@ export const accessReservations = pgTable("access_reservations", {
   // specific eventId so a new edition doesn't inherit a previous one's
   // "sold out" state.
   eventId: varchar("event_id"),
+  // The access_ticket_types row this booking is for (null for Solo Entry
+  // and for reservations made before ticket types existed).
+  ticketTypeId: varchar("ticket_type_id"),
   createdAt: timestamp("created_at").defaultNow(),
   approvedAt: timestamp("approved_at"),
 });
@@ -272,3 +275,40 @@ export const insertAccessEventSchema = createInsertSchema(accessEvents, {
 
 export type InsertAccessEvent = z.infer<typeof insertAccessEventSchema>;
 export type AccessEvent = typeof accessEvents.$inferSelect;
+
+// Bookable table options for one ACCESS edition, set up by admin per edition
+// (e.g. "VIP Lounge — Table for 4"). Solo Entry is not one of these — it
+// keeps its own pricing on the edition (earlyBirdPrice/regularPrice).
+export const ACCESS_AREAS = ["vip_lounge", "terrace", "bar_area"] as const;
+export type AccessArea = (typeof ACCESS_AREAS)[number];
+export const ACCESS_AREA_LABELS: Record<AccessArea, string> = {
+  vip_lounge: "VIP Lounge",
+  terrace: "Terrace",
+  bar_area: "Bar Area",
+};
+
+export const accessTicketTypes = pgTable("access_ticket_types", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull(),
+  area: text("area").notNull(), // one of ACCESS_AREAS
+  label: text("label").notNull(), // e.g. "Table for 4", "Section (8–12 guests)"
+  minGuests: integer("min_guests").notNull().default(1),
+  maxGuests: integer("max_guests").notNull().default(1),
+  // "flat" = price is for the whole table (books out to maxGuests);
+  // "per_person" = price per guest, customer picks minGuests..maxGuests.
+  pricingMode: text("pricing_mode").notNull().default("flat"),
+  price: integer("price").notNull(),
+  capacity: integer("capacity").notNull().default(1), // how many of these tables exist
+  // Admin override for "tables used" — replaces the real confirmed count.
+  manualUsed: integer("manual_used"),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAccessTicketTypeSchema = createInsertSchema(accessTicketTypes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertAccessTicketType = z.infer<typeof insertAccessTicketTypeSchema>;
+export type AccessTicketType = typeof accessTicketTypes.$inferSelect;

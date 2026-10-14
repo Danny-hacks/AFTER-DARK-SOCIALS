@@ -10,6 +10,8 @@ import {
   insertGalleryPhotoSchema,
   insertEventTicketTierSchema,
   insertAccessEventSchema,
+  insertAccessTicketTypeSchema,
+  ACCESS_AREAS,
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -17,6 +19,7 @@ import nodemailer from "nodemailer";
 import { appendTicketToSheet, initializeSheetHeaders } from "./googleSheets";
 import { pool } from "./db";
 import { ticketRefPrefix } from "./ticketRef";
+import { accessPassPrefix, accessTicketTypeFullLabel, withAvailability } from "@shared/accessTickets";
 
 // Simple admin credentials - in production, use proper authentication
 const ADMIN_USERNAME = "aftr_admin";
@@ -1028,19 +1031,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Table options (ticket types) for the current edition, with availability.
+  app.get("/api/access/ticket-types", async (_req, res) => {
+    try {
+      const currentEvent = await storage.getUpcomingAccessEvent();
+      if (!currentEvent) return res.json({ success: true, ticketTypes: [] });
+      const [types, counts] = await Promise.all([
+        storage.getAccessTicketTypes(currentEvent.id),
+        storage.getAccessTicketTypeCounts(currentEvent.id),
+      ]);
+      res.json({ success: true, ticketTypes: types.map((t) => withAvailability(t, counts[t.id])) });
+    } catch (error) {
+      console.error("Error fetching access ticket types:", error);
+      res.status(500).json({ error: "Failed to fetch ticket types" });
+    }
+  });
+
   app.post("/api/access/apply", async (req, res) => {
-    const { tableType, guests } = req.body;
+    const { tableType, ticketTypeId, guests } = req.body;
     if (!Array.isArray(guests) || guests.length === 0) {
       return res.status(400).json({ error: "Guests required" });
     }
     try {
+      const currentEvent = await storage.getUpcomingAccessEvent();
+
+      // Table booking against one of this edition's ticket types
+      if (ticketTypeId) {
+        const type = await storage.getAccessTicketType(ticketTypeId);
+        if (!type || !currentEvent || type.eventId !== currentEvent.id) {
+          return res.status(400).json({ error: "This table option is no longer available" });
+        }
+        if (guests.length < type.minGuests || guests.length > type.maxGuests) {
+          return res.status(400).json({ error: `This option is for ${type.minGuests}–${type.maxGuests} guests` });
+        }
+        const counts = await storage.getAccessTicketTypeCounts(currentEvent.id);
+        if (withAvailability(type, counts[type.id]).available <= 0) {
+          return res.status(400).json({ error: "This table option is fully booked" });
+        }
+        const tableNumber = (await storage.countReservationsByTicketType(type.id)) + 1;
+        const prefix = accessPassPrefix(type);
+        const guestsWithPassIds = (guests as { name: string; phone?: string }[]).map((g, i) => ({
+          name: g.name,
+          phone: g.phone ?? "",
+          passId: `ACC-${prefix}-${tableNumber}${String(i + 1).padStart(3, "0")}`,
+        }));
+        await storage.createAccessReservation({
+          tableType: type.area,
+          tableLabel: accessTicketTypeFullLabel(type),
+          guestsJson: JSON.stringify(guestsWithPassIds),
+          eventId: currentEvent.id,
+          ticketTypeId: type.id,
+        });
+        return res.json({ success: true });
+      }
+
+      // Solo entry (and any legacy inventory-based table type)
       const config = tableType ? await storage.getTableInventory(tableType) : undefined;
       if (!config) {
         return res.status(400).json({ error: "Invalid table type" });
       }
-      const currentEvent = await storage.getUpcomingAccessEvent();
       const counts = await storage.getAccessReservationCounts(currentEvent?.id);
-      if ((counts[tableType]?.confirmed ?? 0) >= config.capacity) {
+      if ((config.manualUsed ?? counts[tableType]?.confirmed ?? 0) >= config.capacity) {
         return res.status(400).json({ error: "This table type is fully booked" });
       }
       // Assign the next table number for this type (non-rejected count + 1)
@@ -1100,20 +1151,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // guards against overbooking at submission, not at approval, so two
       // pending reservations for the last slot could otherwise both get
       // approved.
-      const config = await storage.getTableInventory(pending.tableType);
-      if (config) {
-        const counts = await storage.getAccessReservationCounts(pending.eventId ?? undefined);
-        if ((counts[pending.tableType]?.confirmed ?? 0) >= config.capacity) {
-          return res.status(400).json({ error: "This table type is now fully booked — cannot approve." });
+      if (pending.ticketTypeId) {
+        const type = await storage.getAccessTicketType(pending.ticketTypeId);
+        if (type && pending.eventId) {
+          const counts = await storage.getAccessTicketTypeCounts(pending.eventId);
+          if (withAvailability(type, counts[type.id]).available <= 0) {
+            return res.status(400).json({ error: "This table option is now fully booked — cannot approve." });
+          }
+        }
+      } else {
+        const config = await storage.getTableInventory(pending.tableType);
+        if (config) {
+          const counts = await storage.getAccessReservationCounts(pending.eventId ?? undefined);
+          if ((counts[pending.tableType]?.confirmed ?? 0) >= config.capacity) {
+            return res.status(400).json({ error: "This table type is now fully booked — cannot approve." });
+          }
         }
       }
 
       const reservation = await storage.approveAccessReservation(req.params.id);
       if (!reservation) return res.status(404).json({ error: "Reservation not found" });
 
-      const currentAccessEvent = await storage.getUpcomingAccessEvent();
-      const eventDate = currentAccessEvent?.date || "3 July 2026";
-      const eventVenue = currentAccessEvent?.venue || "Club Sixty Nine";
+      // Date/venue come from the edition this reservation was made for.
+      const reservationEvent = reservation.eventId
+        ? await storage.getAccessEvent(reservation.eventId)
+        : await storage.getUpcomingAccessEvent();
+      const eventDate = reservationEvent?.date || "TBA";
+      const eventVenue = reservationEvent?.venue || "TBA";
 
       // Build per-guest WhatsApp URLs for admin to dispatch manually
       const guests: { name: string; phone?: string; passId: string }[] = (() => {
@@ -1148,32 +1212,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/admin/access/single", requireAuth, async (req, res) => {
-    const { name, phone, tableType, tableNumber, notes } = req.body;
+    const { name, phone, tableType, ticketTypeId, tableNumber, notes } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: "Name required" });
-    const inventoryConfig = tableType ? await storage.getTableInventory(tableType) : undefined;
-    if (!inventoryConfig) {
-      return res.status(400).json({ error: "Invalid table type" });
-    }
 
     let passId: string;
     let tableLabel: string;
+    let reservationTableType: string;
+    let accessEvent: Awaited<ReturnType<typeof storage.getAccessEvent>>;
 
-    if (tableType === "single_entry") {
-      const count = await storage.countAdminSinglePassesByType("single_entry");
-      passId = `ACC-SE${(count + 1).toString().padStart(3, "0")}`;
-      tableLabel = "Single Entry";
-    } else {
+    if (ticketTypeId) {
+      const type = await storage.getAccessTicketType(ticketTypeId);
+      if (!type) return res.status(400).json({ error: "Invalid table option" });
       const tNum = parseInt(tableNumber, 10);
       if (isNaN(tNum) || tNum < 1) {
-        return res.status(400).json({ error: "Invalid number" });
+        return res.status(400).json({ error: "Invalid table number" });
       }
-      if (tableType === "section_8_12") {
-        passId = `ACC-S${tNum}001`;
-        tableLabel = `Section ${tNum}`;
-      } else {
-        passId = `ACC-${tNum}001`;
-        tableLabel = inventoryConfig.label;
-      }
+      accessEvent = await storage.getAccessEvent(type.eventId);
+      passId = `ACC-${accessPassPrefix(type)}-${tNum}001`;
+      tableLabel = `${accessTicketTypeFullLabel(type)} #${tNum}`;
+      reservationTableType = type.area;
+    } else if (tableType === "single_entry") {
+      const inventoryConfig = await storage.getTableInventory(tableType);
+      if (!inventoryConfig) return res.status(400).json({ error: "Invalid table type" });
+      accessEvent = await storage.getUpcomingAccessEvent();
+      const count = await storage.countAdminSinglePassesByType("single_entry");
+      passId = `ACC-SE${(count + 1).toString().padStart(3, "0")}`;
+      tableLabel = "Solo Entry";
+      reservationTableType = "single_entry";
+    } else {
+      return res.status(400).json({ error: "Pick Solo Entry or a table option" });
     }
 
     const guest = {
@@ -1183,17 +1250,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       notes: notes?.trim() ?? "",
     };
     try {
-      const currentAccessEvent = await storage.getUpcomingAccessEvent();
       const reservation = await storage.createAdminSinglePass({
-        tableType,
+        tableType: reservationTableType,
         tableLabel,
         guestsJson: JSON.stringify([guest]),
-        eventId: currentAccessEvent?.id ?? null,
+        eventId: accessEvent?.id ?? null,
+        ticketTypeId: ticketTypeId || null,
       });
       let whatsappUrl: string | null = null;
       if (phone?.trim()) {
-        const eventDate = currentAccessEvent?.date || "3 July 2026";
-        const eventVenue = currentAccessEvent?.venue || "Club Sixty Nine";
+        const eventDate = accessEvent?.date || "TBA";
+        const eventVenue = accessEvent?.venue || "TBA";
         const clean = (phone as string).replace(/[\s\-\+\(\)]/g, "");
         const msg =
           `Your ACCESS pass is confirmed.\n\n` +
@@ -1322,6 +1389,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting access event:", error);
       res.status(500).json({ error: "Failed to delete access event" });
+    }
+  });
+
+  // ─── ACCESS ticket types (table options per edition) ───────────────────────
+  // All types across every edition — the admin reservations page uses this to
+  // label and filter bookings for any edition.
+  app.get("/api/admin/access/ticket-types", requireAuth, async (_req, res) => {
+    try {
+      const all = await storage.getAllAccessTicketTypes();
+      const eventIds = Array.from(new Set(all.map((t) => t.eventId)));
+      const countsByEvent = Object.fromEntries(
+        await Promise.all(eventIds.map(async (id) => [id, await storage.getAccessTicketTypeCounts(id)] as const)),
+      );
+      res.json({ success: true, ticketTypes: all.map((t) => withAvailability(t, countsByEvent[t.eventId]?.[t.id])) });
+    } catch (error) {
+      console.error("Error fetching ticket types:", error);
+      res.status(500).json({ error: "Failed to fetch ticket types" });
+    }
+  });
+
+  const parseTicketTypeBody = (body: any, eventId: string) => {
+    const pricingMode = body.pricingMode === "per_person" ? "per_person" : "flat";
+    const minGuests = Math.max(1, parseInt(body.minGuests, 10) || 1);
+    const maxGuests = Math.max(minGuests, parseInt(body.maxGuests, 10) || minGuests);
+    const manualUsedRaw = body.manualUsed;
+    return insertAccessTicketTypeSchema.parse({
+      eventId,
+      area: (ACCESS_AREAS as readonly string[]).includes(body.area) ? body.area : "vip_lounge",
+      label: String(body.label ?? "").trim() || `Table for ${maxGuests}`,
+      minGuests,
+      maxGuests,
+      pricingMode,
+      price: Math.max(0, parseInt(body.price, 10) || 0),
+      capacity: Math.max(0, parseInt(body.capacity, 10) || 0),
+      manualUsed: manualUsedRaw === null || manualUsedRaw === "" || manualUsedRaw === undefined
+        ? null
+        : Math.max(0, parseInt(manualUsedRaw, 10) || 0),
+      order: parseInt(body.order, 10) || 0,
+    });
+  };
+
+  app.post("/api/admin/access/events/:id/ticket-types", requireAuth, async (req, res) => {
+    try {
+      const event = await storage.getAccessEvent(req.params.id);
+      if (!event) return res.status(404).json({ error: "Access event not found" });
+      const type = await storage.createAccessTicketType(parseTicketTypeBody(req.body, event.id));
+      res.json({ success: true, ticketType: type });
+    } catch (error) {
+      console.error("Error creating ticket type:", error);
+      res.status(400).json({ error: "Failed to create ticket type" });
+    }
+  });
+
+  app.patch("/api/admin/access/ticket-types/:id", requireAuth, async (req, res) => {
+    try {
+      const existing = await storage.getAccessTicketType(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Ticket type not found" });
+      const { eventId: _ignored, ...data } = parseTicketTypeBody({ ...existing, ...req.body }, existing.eventId);
+      const type = await storage.updateAccessTicketType(existing.id, data);
+      res.json({ success: true, ticketType: type });
+    } catch (error) {
+      console.error("Error updating ticket type:", error);
+      res.status(400).json({ error: "Failed to update ticket type" });
+    }
+  });
+
+  app.delete("/api/admin/access/ticket-types/:id", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteAccessTicketType(req.params.id);
+      if (!deleted) return res.status(404).json({ error: "Ticket type not found" });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting ticket type:", error);
+      res.status(500).json({ error: "Failed to delete ticket type" });
+    }
+  });
+
+  // Copy every ticket type from the most recent other edition that has any.
+  app.post("/api/admin/access/events/:id/ticket-types/copy-last", requireAuth, async (req, res) => {
+    try {
+      const event = await storage.getAccessEvent(req.params.id);
+      if (!event) return res.status(404).json({ error: "Access event not found" });
+      const all = await storage.getAllAccessTicketTypes();
+      const editions = (await storage.getAllAccessEvents()).filter((e) => e.id !== event.id);
+      const source = editions.find((e) => all.some((t) => t.eventId === e.id));
+      if (!source) return res.status(404).json({ error: "No other edition has ticket types to copy" });
+      const toCopy = all.filter((t) => t.eventId === source.id);
+      for (const t of toCopy) {
+        await storage.createAccessTicketType({
+          eventId: event.id,
+          area: t.area,
+          label: t.label,
+          minGuests: t.minGuests,
+          maxGuests: t.maxGuests,
+          pricingMode: t.pricingMode,
+          price: t.price,
+          capacity: t.capacity,
+          manualUsed: null,
+          order: t.order,
+        });
+      }
+      res.json({ success: true, copied: toCopy.length, from: source.name });
+    } catch (error) {
+      console.error("Error copying ticket types:", error);
+      res.status(500).json({ error: "Failed to copy ticket types" });
+    }
+  });
+
+  // Starter set: Table for 4, Table for 5 and Section 8–12 in each area,
+  // priced from the old global table pricing. Admin adjusts afterwards.
+  app.post("/api/admin/access/events/:id/ticket-types/standard-set", requireAuth, async (req, res) => {
+    try {
+      const event = await storage.getAccessEvent(req.params.id);
+      if (!event) return res.status(404).json({ error: "Access event not found" });
+      const inv = Object.fromEntries((await storage.getAllTableInventory()).map((r) => [r.tableType, r]));
+      const templates = [
+        { label: "Table for 4", minGuests: 4, maxGuests: 4, pricingMode: "flat", price: inv.table_4?.price ?? 0, capacity: inv.table_4?.capacity ?? 1 },
+        { label: "Table for 5", minGuests: 5, maxGuests: 5, pricingMode: "flat", price: inv.table_5?.price ?? 0, capacity: inv.table_5?.capacity ?? 1 },
+        { label: "Section (8–12 guests)", minGuests: 8, maxGuests: 12, pricingMode: "per_person", price: inv.section_8_12?.pricePerPerson ?? inv.section_8_12?.price ?? 0, capacity: inv.section_8_12?.capacity ?? 1 },
+      ];
+      let order = 0;
+      for (const area of ACCESS_AREAS) {
+        for (const t of templates) {
+          await storage.createAccessTicketType({ eventId: event.id, area, ...t, manualUsed: null, order: order++ });
+        }
+      }
+      res.json({ success: true, created: order });
+    } catch (error) {
+      console.error("Error creating standard ticket types:", error);
+      res.status(500).json({ error: "Failed to create ticket types" });
     }
   });
 

@@ -2,6 +2,7 @@ import { useState, type Dispatch, type SetStateAction } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, Plus, Trash2, Image as ImageIcon, X } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
+import { AccessTicketTypesEditor } from "@/components/access-ticket-types-editor";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -272,6 +273,7 @@ export default function AdminAccessEventsPage() {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState(emptyForm);
+  const [tablesId, setTablesId] = useState<string | null>(null);
 
   const { data: events = [], isLoading } = useQuery<{ success: boolean; events: AccessEvent[] }, Error, AccessEvent[]>({
     queryKey: ["/api/admin/access/events"],
@@ -342,7 +344,7 @@ export default function AdminAccessEventsPage() {
         <div className="space-y-px mb-10">
           {events.map((ev) => (
             <div key={ev.id} className="bg-[#0a0a0a] border border-white/10">
-              <div className="p-4 flex items-center gap-4">
+              <div className="p-4 flex flex-wrap items-center gap-4">
                 {ev.posterUrl ? (
                   <img src={ev.posterUrl} alt="" className="w-12 h-16 object-cover border border-white/10 shrink-0" />
                 ) : (
@@ -363,6 +365,14 @@ export default function AdminAccessEventsPage() {
                   </p>
                 </div>
                 <button
+                  onClick={() => setTablesId(tablesId === ev.id ? null : ev.id)}
+                  className={`flex items-center gap-1.5 border text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors shrink-0 ${
+                    tablesId === ev.id ? "border-[#c9962a] text-[#c9962a]" : "border-white/15 text-white/40 hover:border-white/40 hover:text-white"
+                  }`}
+                >
+                  Tables
+                </button>
+                <button
                   onClick={() => { if (editingId === ev.id) { setEditingId(null); } else { startEditing(ev); } }}
                   className="flex items-center gap-1.5 border border-white/15 text-white/40 hover:border-white/40 hover:text-white text-[9px] uppercase tracking-[0.15em] px-3 py-2 transition-colors shrink-0"
                 >
@@ -377,6 +387,12 @@ export default function AdminAccessEventsPage() {
                   Delete
                 </button>
               </div>
+
+              {tablesId === ev.id && (
+                <div className="border-t border-white/10 p-6">
+                  <AccessTicketTypesEditor eventId={ev.id} />
+                </div>
+              )}
 
               {editingId === ev.id && (
                 <div className="border-t border-white/10 p-6 space-y-6">

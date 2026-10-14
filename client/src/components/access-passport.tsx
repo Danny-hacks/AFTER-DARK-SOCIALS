@@ -7,7 +7,13 @@ import { useToast } from "@/hooks/use-toast";
 import { PassportCard } from "@/components/passport-card";
 import type { PassFields } from "@/components/passport-card";
 import { MediaLightbox } from "@/components/media-lightbox";
-import type { AccessEvent, GalleryPhoto } from "@shared/schema";
+import { ACCESS_AREAS, ACCESS_AREA_LABELS, type AccessArea, type AccessEvent, type GalleryPhoto } from "@shared/schema";
+import {
+  accessTicketTypeFullLabel,
+  accessTicketTypeTotal,
+  type AccessTicketTypeWithAvailability,
+} from "@shared/accessTickets";
+import { queryClient } from "@/lib/queryClient";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const ADMIN_PHONE = "23055151185";
@@ -40,85 +46,26 @@ function parseLineup(json: string | null | undefined): LineupEntry[] {
   }
 }
 
-// How many guest slots the reservation form collects up front for each
-// table type — also doubles as the "is this a flat-price table or a
-// variable-size section" signal below: table_4/table_5 always book out to
-// their maxGuests for one flat price (minGuests is just "book with as few
-// as 1 and still pay full price"), while section_8_12 is genuinely
-// variable (8–12 guests, priced per person within that range).
-const FIXED_COUNTS: Record<string, number> = {
-  table_4: 4,
-  table_5: 5,
-  section_8_12: 8,
+const AREA_BLURBS: Record<AccessArea, string> = {
+  vip_lounge: "The best seats in the house. Entry tickets only.",
+  terrace: "Open air, close to the action. Entry tickets only.",
+  bar_area: "Right by the bar. Entry tickets only.",
 };
 
-function computeTotalLabel(key: string, item: { price: number; pricePerPerson: number; minGuests: number; maxGuests: number }): string {
-  if (FIXED_COUNTS[key] === item.maxGuests) {
-    return `MUR ${item.price.toLocaleString()} total`;
-  }
-  const lo = item.pricePerPerson * item.minGuests;
-  const hi = item.pricePerPerson * item.maxGuests;
-  return `MUR ${lo.toLocaleString()}–${hi.toLocaleString()} · final total confirmed on approval`;
+function priceLine(t: AccessTicketTypeWithAvailability): string {
+  return t.pricingMode === "per_person"
+    ? `MUR ${t.price.toLocaleString()} per person`
+    : `MUR ${t.price.toLocaleString()} per table`;
 }
 
-// ─── Table config (mirrors server TABLE_INVENTORY) ────────────────────────────
-const TABLE_CONFIG: Record<
-  string,
-  {
-    label: string;
-    price: number;
-    pricePerPerson: number;
-    totalLabel: string;
-    capacity: number;
-    maxGuests: number;
-    minGuests: number;
-    description: string;
+function totalLine(t: AccessTicketTypeWithAvailability): string {
+  if (t.pricingMode !== "per_person") {
+    return `MUR ${t.price.toLocaleString()} total · up to ${t.maxGuests} guests`;
   }
-> = {
-  table_4: {
-    label: "Table for 4",
-    price: 2000,
-    pricePerPerson: 500,
-    totalLabel: "MUR 2,000 total",
-    capacity: 5,
-    maxGuests: 4,
-    minGuests: 1,
-    description: "Reserved table. Entry tickets only.",
-  },
-  table_5: {
-    label: "Table for 5",
-    price: 2500,
-    pricePerPerson: 500,
-    totalLabel: "MUR 2,500 total",
-    capacity: 5,
-    maxGuests: 5,
-    minGuests: 1,
-    description: "Premium positioning. Entry tickets only.",
-  },
-  section_8_12: {
-    label: "Section (8\u201312 guests)",
-    price: 4000,
-    pricePerPerson: 500,
-    totalLabel: "MUR 4,000\u20136,000 \u00b7 final total confirmed on approval",
-    capacity: 3,
-    maxGuests: 12,
-    minGuests: 8,
-    description: "Exclusive floor section. Entry tickets only.",
-  },
-};
-
-type TableKey = keyof typeof TABLE_CONFIG;
-
-interface InventoryItem {
-  label: string;
-  price: number;
-  pricePerPerson: number;
-  totalLabel: string;
-  capacity: number;
-  maxGuests: number;
-  minGuests: number;
-  description: string;
-  used: number;
+  if (t.minGuests === t.maxGuests) {
+    return `MUR ${(t.price * t.maxGuests).toLocaleString()} total · ${t.maxGuests} guests`;
+  }
+  return `MUR ${(t.price * t.minGuests).toLocaleString()}–${(t.price * t.maxGuests).toLocaleString()} · ${t.minGuests}–${t.maxGuests} guests`;
 }
 
 interface GuestData {
@@ -138,9 +85,8 @@ function rndId() {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export function AccessPassport() {
-  const [inventory, setInventory] = useState<Record<string, InventoryItem>>({});
-  const [loadingInventory, setLoadingInventory] = useState(true);
-  const [selectedTable, setSelectedTable] = useState<TableKey | null>(null);
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [selectedArea, setSelectedArea] = useState<AccessArea | null>(null);
   const [guests, setGuests] = useState<GuestData[]>([]);
   const [activeGuest, setActiveGuest] = useState<number>(0);
   const [sending, setSending] = useState(false);
@@ -222,54 +168,45 @@ export function AccessPassport() {
     if (el) requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth" }));
   }, []);
 
-  // Fetch inventory on mount — price/pricePerPerson/capacity/guest range all
-  // come from the server (admin-editable in Admin → ACCESS → Pricing) and
-  // override the local fallback; only `description` has no server column.
-  useEffect(() => {
-    fetch("/api/access/capacity")
-      .then((r) => r.json())
-      .then((data) => {
-        const merged: Record<string, InventoryItem> = {};
-        for (const key of Object.keys(TABLE_CONFIG)) {
-          const local = TABLE_CONFIG[key];
-          const server = data[key] || {};
-          const item = { ...local, ...server, used: server.used ?? 0 };
-          merged[key] = { ...item, totalLabel: computeTotalLabel(key, item) };
-        }
-        setInventory(merged);
-      })
-      .catch(() => {
-        const fallback: Record<string, InventoryItem> = {};
-        for (const key of Object.keys(TABLE_CONFIG)) {
-          fallback[key] = { ...TABLE_CONFIG[key], used: 0 };
-        }
-        setInventory(fallback);
-      })
-      .finally(() => setLoadingInventory(false));
-  }, []);
+  // Table options for the current edition — set up per edition in
+  // Admin → ACCESS Events → Tables, grouped into areas.
+  const { data: ticketTypes = [] } = useQuery<
+    { success: boolean; ticketTypes: AccessTicketTypeWithAvailability[] },
+    Error,
+    AccessTicketTypeWithAvailability[]
+  >({
+    queryKey: ["/api/access/ticket-types"],
+    select: (data) => data.ticketTypes ?? [],
+    staleTime: 30_000,
+  });
+  const areasWithTables = ACCESS_AREAS.filter((a) => ticketTypes.some((t) => t.area === a));
+  const activeArea: AccessArea | null =
+    selectedArea && areasWithTables.includes(selectedArea) ? selectedArea : areasWithTables[0] ?? null;
+  const areaTypes = ticketTypes.filter((t) => t.area === activeArea);
+  const allTablesSoldOut = ticketTypes.length > 0 && ticketTypes.every((t) => t.available <= 0);
 
-  const allSoldOut =
-    !loadingInventory &&
-    Object.keys(TABLE_CONFIG).every((key) => {
-      const item = inventory[key];
-      return item && item.used >= item.capacity;
-    });
+  const selectedConfig = ticketTypes.find((t) => t.id === selectedTableId) ?? null;
+  const selectedTotal = selectedConfig ? accessTicketTypeTotal(selectedConfig, guests.length) : 0;
 
-  const selectedConfig = selectedTable ? inventory[selectedTable] : null;
-
-  function selectTable(key: TableKey) {
-    setSelectedTable(key);
+  function selectTable(t: AccessTicketTypeWithAvailability) {
+    setSelectedTableId(t.id);
     setActiveGuest(0);
-    const config = inventory[key] ?? TABLE_CONFIG[key];
-    // Fixed-price tables (table_4/table_5) always book out to their full
-    // maxGuests; a variable-size section (section_8_12) starts at its
-    // minimum and the customer can add more up to maxGuests below.
-    const count = FIXED_COUNTS[key] === config.maxGuests ? config.maxGuests : config.minGuests;
+    // Per-table pricing books out to the full table; per-person starts at
+    // the minimum and the customer can add guests up to the maximum.
+    const count = t.pricingMode === "per_person" ? t.minGuests : t.maxGuests;
     const newGuests: GuestData[] = Array.from(
       { length: count },
       (_, i) => guests[i] ?? { name: "", photo: "", phone: "", passId: rndId() },
     );
     setGuests(newGuests);
+  }
+
+  function selectArea(area: AccessArea) {
+    setSelectedArea(area);
+    if (selectedConfig && selectedConfig.area !== area) {
+      setSelectedTableId(null);
+      setGuests([]);
+    }
   }
 
   function setGuestCount(count: number) {
@@ -313,9 +250,9 @@ export function AccessPassport() {
       });
     } catch {}
 
-    const tierLabel = earlyBird ? `Early Bird MUR ${earlyBirdPrice}` : `General Entry MUR ${regularPrice}`;
+    const tierLabel = earlyBird ? `Solo Entry (Early Bird) MUR ${earlyBirdPrice}` : `Solo Entry MUR ${regularPrice}`;
     const msg =
-      `Hi, I'd like to reserve a General Entry ticket for ACCESS on ${eventDate} at ${eventVenue}.\n\n` +
+      `Hi, I'd like to reserve a Solo Entry ticket for ACCESS on ${eventDate} at ${eventVenue}.\n\n` +
       `Ticket: ${tierLabel}\n` +
       `Name: ${geName.trim()}\n` +
       `Phone: ${gePhone.trim() || "—"}\n\n` +
@@ -328,11 +265,11 @@ export function AccessPassport() {
     }
 
     setSendingGeneral(false);
-    toast({ title: "Request received", description: "We'll confirm your General Entry pass via WhatsApp once payment is complete." });
+    toast({ title: "Request received", description: "We'll confirm your Solo Entry pass via WhatsApp once payment is complete." });
   }
 
   async function sendAllPasses() {
-    if (!selectedTable || !selectedConfig) return;
+    if (!selectedConfig) return;
 
     const unfilled = guests.findIndex((g) => !g.name.trim());
     if (unfilled !== -1) {
@@ -353,11 +290,12 @@ export function AccessPassport() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tableType: selectedTable,
+          ticketTypeId: selectedConfig.id,
           guests: guests.map(({ name, phone }) => ({ name, phone })),
         }),
       });
     } catch {}
+    queryClient.invalidateQueries({ queryKey: ["/api/access/ticket-types"] });
 
     const guestLines = guests
       .map((g, i) => {
@@ -367,11 +305,11 @@ export function AccessPassport() {
       })
       .join("\n");
 
-    const exactTotal = guests.length * selectedConfig.pricePerPerson;
     const adminMsg =
       `NEW ACCESS RESERVATION\n\n` +
+      `Area: ${ACCESS_AREA_LABELS[selectedConfig.area as AccessArea] ?? selectedConfig.area}\n` +
       `Table: ${selectedConfig.label}\n` +
-      `Price: MUR ${selectedConfig.pricePerPerson} per person \u00b7 MUR ${exactTotal.toLocaleString()} total (${guests.length} guests)\n` +
+      `Price: ${priceLine(selectedConfig)} \u00b7 MUR ${selectedTotal.toLocaleString()} total (${guests.length} guests)\n` +
       `Date: ${eventDate}\n` +
       `Venue: ${eventVenue}\n` +
       `Note: Entry tickets only \u2014 no drinks included\n\n` +
@@ -518,15 +456,6 @@ export function AccessPassport() {
               </p>
             </div>
           )
-        ) : allSoldOut ? (
-          <div className="border border-[#c72d28]/30 bg-[#c72d28]/8 px-8 py-12 text-center max-w-lg mx-auto">
-            <div className="font-black text-[#c72d28] mb-3" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "32px" }}>
-              FULLY BOOKED
-            </div>
-            <p className="text-white/40 text-sm">
-              ACCESS is at full capacity. Follow <span className="text-white/60">@afterdarksocials.mu</span> for updates on future events.
-            </p>
-          </div>
         ) : (
           <>
             {/* ── General Entry Card ── */}
@@ -537,10 +466,10 @@ export function AccessPassport() {
                   {earlyBird ? (
                     <span className="text-[#c72d28] text-[9px] uppercase tracking-[0.25em] font-bold">Early Bird</span>
                   ) : (
-                    <span className="text-white/30 text-[9px] uppercase tracking-[0.25em]">General Entry</span>
+                    <span className="text-white/30 text-[9px] uppercase tracking-[0.25em]">Just you</span>
                   )}
                   <p className="text-white leading-none mt-2 mb-3" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(28px,5vw,42px)" }}>
-                    General Entry
+                    Solo Entry
                   </p>
                   <div className="flex items-baseline gap-3 mb-3">
                     <p className="font-mono font-medium" style={{ color: "#c9962a", fontSize: "28px" }}>
@@ -607,91 +536,108 @@ export function AccessPassport() {
               </p>
               <p className="text-[10px] uppercase tracking-[0.2em] mb-6" style={{ color: "rgba(201,150,42,0.6)" }}>{eventDate} · {eventVenue}</p>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {Object.entries(TABLE_CONFIG).map(([key, fallback]) => {
-                  const config = inventory[key] ?? fallback;
-                  const used = inventory[key]?.used ?? 0;
-                  const remaining = config.capacity - used;
-                  const soldOut = remaining <= 0;
-                  const isSelected = selectedTable === key;
-
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => !soldOut && selectTable(key as TableKey)}
-                      disabled={soldOut}
-                      className={[
-                        "text-left p-6 border transition-all duration-200",
-                        soldOut
-                          ? "opacity-40 pointer-events-none border-white/15"
-                          : isSelected
-                            ? "border-[#c9962a] bg-[#c9962a]/5"
-                            : "border-white/15 hover:border-[#c9962a]/50",
-                      ].join(" ")}
-                    >
-                      {/* Label */}
-                      <span className="text-white leading-none block mb-2" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "22px" }}>
-                        {config.label}
-                      </span>
-
-                      {/* Pricing */}
-                      <p className="text-[#c9962a] text-[13px] font-mono font-medium mb-0.5">MUR {config.pricePerPerson} per person</p>
-                      <p className="text-[12px] font-mono text-white/50 mb-3">{config.totalLabel}</p>
-
-                      {/* Capacity */}
-                      <p className="text-[#c9962a]/60 text-[9px] uppercase tracking-[0.25em] font-medium mb-2">Up to {config.maxGuests} guests</p>
-
-                      {/* Remaining */}
-                      {!soldOut && (
-                        <p className="text-white/30 text-[9px] uppercase tracking-[0.2em] mb-3">
-                          {remaining} {remaining === 1 ? "table" : "tables"} remaining
-                        </p>
-                      )}
-                      {soldOut && (
-                        <p className="text-[#c72d28] text-[9px] uppercase tracking-[0.2em] mb-3 font-medium">Sold Out</p>
-                      )}
-
-                      {/* Description */}
-                      <p className="text-white/40 text-[11px] leading-snug mb-3">{config.description}</p>
-
-                      {/* Drinks note */}
-                      <p className="text-[10px] text-white/25" style={{ fontStyle: "italic" }}>Drinks not included.</p>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* FIX 6 — next step prompt, only when no table selected */}
-              {!selectedTable && (
-                <p className="text-center italic mt-5" style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)" }}>
-                  Select a table above to fill in your group details and receive your passes.
-                </p>
-              )}
-
-              {/* Variable-size section: let the customer pick exactly how many guests within the min/max range */}
-              {selectedConfig && selectedConfig.minGuests !== selectedConfig.maxGuests && (
-                <div className="mt-8 max-w-xs">
-                  <label htmlFor="guest-count" className={labelCls}>
-                    Number of Guests ({selectedConfig.minGuests}–{selectedConfig.maxGuests})
-                  </label>
-                  <input
-                    id="guest-count"
-                    type="number"
-                    min={selectedConfig.minGuests}
-                    max={selectedConfig.maxGuests}
-                    value={guests.length}
-                    onChange={(e) => {
-                      const n = parseInt(e.target.value, 10);
-                      if (!isNaN(n)) {
-                        setGuestCount(Math.max(selectedConfig.minGuests, Math.min(selectedConfig.maxGuests, n)));
-                      }
-                    }}
-                    className={inputCls}
-                  />
-                  <p className="text-white/20 text-[9px] mt-1.5 uppercase tracking-[0.15em]">
-                    Total: MUR {(guests.length * selectedConfig.pricePerPerson).toLocaleString()} · final total confirmed on approval
-                  </p>
+              {ticketTypes.length === 0 ? (
+                <p className="text-white/30 text-sm">Table reservations for this night open soon — Solo Entry is available above.</p>
+              ) : allTablesSoldOut ? (
+                <div className="border border-[#c72d28]/30 bg-[#c72d28]/8 px-8 py-10 text-center max-w-lg">
+                  <div className="font-black text-[#c72d28] mb-2" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "28px" }}>
+                    TABLES FULLY BOOKED
+                  </div>
+                  <p className="text-white/40 text-sm">All tables are taken — Solo Entry above is still open.</p>
                 </div>
+              ) : (
+                <>
+                  {/* Area tabs */}
+                  <div className="flex border border-white/15 w-full sm:w-fit mb-3" role="tablist" aria-label="Choose an area">
+                    {areasWithTables.map((area) => {
+                      const active = area === activeArea;
+                      const left = ticketTypes.filter((t) => t.area === area).reduce((n, t) => n + t.available, 0);
+                      return (
+                        <button
+                          key={area}
+                          type="button"
+                          role="tab"
+                          aria-selected={active}
+                          onClick={() => selectArea(area)}
+                          className={`flex-1 sm:flex-none px-4 sm:px-8 py-3 text-[10px] uppercase tracking-[0.2em] font-bold transition-colors border-r border-white/15 last:border-r-0 ${
+                            active ? "bg-[#c9962a] text-black" : "text-white/50 hover:text-white"
+                          } ${left <= 0 && !active ? "opacity-50" : ""}`}
+                        >
+                          {ACCESS_AREA_LABELS[area]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {activeArea && <p className="text-white/40 text-[11px] mb-6">{AREA_BLURBS[activeArea]}</p>}
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {areaTypes.map((t) => {
+                      const soldOut = t.available <= 0;
+                      const isSelected = selectedTableId === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => !soldOut && selectTable(t)}
+                          disabled={soldOut}
+                          className={[
+                            "text-left p-6 border transition-all duration-200",
+                            soldOut
+                              ? "opacity-40 pointer-events-none border-white/15"
+                              : isSelected
+                                ? "border-[#c9962a] bg-[#c9962a]/5"
+                                : "border-white/15 hover:border-[#c9962a]/50",
+                          ].join(" ")}
+                        >
+                          <span className="text-white leading-none block mb-2" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "22px" }}>
+                            {t.label}
+                          </span>
+                          <p className="text-[#c9962a] text-[13px] font-mono font-medium mb-0.5">{priceLine(t)}</p>
+                          <p className="text-[12px] font-mono text-white/50 mb-3">{totalLine(t)}</p>
+                          {soldOut ? (
+                            <p className="text-[#c72d28] text-[9px] uppercase tracking-[0.2em] mb-3 font-medium">Sold Out</p>
+                          ) : (
+                            <p className="text-white/30 text-[9px] uppercase tracking-[0.2em] mb-3">
+                              {t.available} {t.available === 1 ? "table" : "tables"} remaining
+                            </p>
+                          )}
+                          <p className="text-[10px] text-white/25" style={{ fontStyle: "italic" }}>Drinks not included.</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {!selectedConfig && (
+                    <p className="text-center italic mt-5" style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)" }}>
+                      Pick an area, then a table, to fill in your group details and receive your passes.
+                    </p>
+                  )}
+
+                  {/* Let the customer pick exactly how many guests within the min/max range */}
+                  {selectedConfig && selectedConfig.minGuests !== selectedConfig.maxGuests && (
+                    <div className="mt-8 max-w-xs">
+                      <label htmlFor="guest-count" className={labelCls}>
+                        Number of Guests ({selectedConfig.minGuests}–{selectedConfig.maxGuests})
+                      </label>
+                      <input
+                        id="guest-count"
+                        type="number"
+                        min={selectedConfig.minGuests}
+                        max={selectedConfig.maxGuests}
+                        value={guests.length}
+                        onChange={(e) => {
+                          const n = parseInt(e.target.value, 10);
+                          if (!isNaN(n)) {
+                            setGuestCount(Math.max(selectedConfig.minGuests, Math.min(selectedConfig.maxGuests, n)));
+                          }
+                        }}
+                        className={inputCls}
+                      />
+                      <p className="text-white/20 text-[9px] mt-1.5 uppercase tracking-[0.15em]">
+                        Total: MUR {selectedTotal.toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -772,9 +718,9 @@ export function AccessPassport() {
                   {/* Summary + send */}
                   <div className="border-t border-white/10 pt-8 flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-white text-sm font-mono">{selectedConfig.label}</p>
-                      <p className="text-[#c9962a] text-xs font-mono">MUR {selectedConfig.pricePerPerson} per person</p>
-                      <p className="text-white/30 text-[9px] font-mono mt-0.5">MUR {(guests.length * selectedConfig.pricePerPerson).toLocaleString()} total</p>
+                      <p className="text-white text-sm font-mono">{accessTicketTypeFullLabel(selectedConfig)}</p>
+                      <p className="text-[#c9962a] text-xs font-mono">{priceLine(selectedConfig)}</p>
+                      <p className="text-white/30 text-[9px] font-mono mt-0.5">MUR {selectedTotal.toLocaleString()} total</p>
                       <p className="text-white/30 text-[9px] uppercase tracking-[0.15em] mt-0.5">
                         {guests.length} {guests.length === 1 ? "pass" : "passes"}
                       </p>
@@ -800,7 +746,7 @@ export function AccessPassport() {
                       <PassportCard
                         pass={{
                           name: guests[activeGuest]?.name ?? "",
-                          tableLabel: selectedConfig.label,
+                          tableLabel: accessTicketTypeFullLabel(selectedConfig),
                           photo: guests[activeGuest]?.photo ?? "",
                           id: guests[activeGuest]?.passId ?? "",
                           date: eventDate,

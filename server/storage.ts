@@ -1,6 +1,6 @@
-import { type User, type InsertUser, type Ticket, type InsertTicket, type TicketPurchase, type InsertTicketPurchase, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, type AccessReservation, type GalleryPhoto, type InsertGalleryPhoto, type AccessTableInventory, type EventTicketTier, type InsertEventTicketTier, type AccessEvent, type InsertAccessEvent, users, tickets, ticketPurchases, events, heroSlides, accessReservations, galleryPhotos, accessTableInventory, eventTicketTiers, accessEvents } from "@shared/schema";
+import { type User, type InsertUser, type Ticket, type InsertTicket, type TicketPurchase, type InsertTicketPurchase, type Event, type InsertEvent, type HeroSlide, type InsertHeroSlide, type AccessReservation, type GalleryPhoto, type InsertGalleryPhoto, type AccessTableInventory, type EventTicketTier, type InsertEventTicketTier, type AccessEvent, type InsertAccessEvent, type AccessTicketType, type InsertAccessTicketType, users, tickets, ticketPurchases, events, heroSlides, accessReservations, galleryPhotos, accessTableInventory, eventTicketTiers, accessEvents, accessTicketTypes } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, ne } from "drizzle-orm";
+import { eq, desc, asc, and, ne } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 function slugify(name: string): string {
@@ -77,14 +77,14 @@ export interface IStorage {
   deleteHeroSlide(id: string): Promise<boolean>;
 
   // Access reservation operations
-  createAccessReservation(data: { tableType: string; tableLabel: string; guestsJson: string; eventId?: string | null }): Promise<AccessReservation>;
+  createAccessReservation(data: { tableType: string; tableLabel: string; guestsJson: string; eventId?: string | null; ticketTypeId?: string | null }): Promise<AccessReservation>;
   getAllAccessReservations(): Promise<AccessReservation[]>;
   getAccessReservation(id: string): Promise<AccessReservation | undefined>;
   approveAccessReservation(id: string): Promise<AccessReservation | undefined>;
   rejectAccessReservation(id: string): Promise<AccessReservation | undefined>;
   getAccessReservationCounts(eventId?: string): Promise<Record<string, { confirmed: number; pending: number }>>;
   getReservationCountByType(tableType: string): Promise<number>;
-  createAdminSinglePass(data: { tableType: string; tableLabel: string; guestsJson: string; eventId?: string | null }): Promise<AccessReservation>;
+  createAdminSinglePass(data: { tableType: string; tableLabel: string; guestsJson: string; eventId?: string | null; ticketTypeId?: string | null }): Promise<AccessReservation>;
   countAdminSinglePassesByType(tableType: string): Promise<number>;
   deleteAccessReservation(id: string): Promise<boolean>;
   updateAccessReservationEventId(id: string, eventId: string): Promise<AccessReservation | undefined>;
@@ -110,6 +110,16 @@ export interface IStorage {
   createAccessEvent(event: InsertAccessEvent): Promise<AccessEvent>;
   updateAccessEvent(id: string, event: Partial<InsertAccessEvent>): Promise<AccessEvent | undefined>;
   deleteAccessEvent(id: string): Promise<boolean>;
+
+  // Access ticket types (per-edition table options)
+  getAccessTicketTypes(eventId: string): Promise<AccessTicketType[]>;
+  getAllAccessTicketTypes(): Promise<AccessTicketType[]>;
+  countReservationsByTicketType(ticketTypeId: string): Promise<number>;
+  getAccessTicketType(id: string): Promise<AccessTicketType | undefined>;
+  createAccessTicketType(data: InsertAccessTicketType): Promise<AccessTicketType>;
+  updateAccessTicketType(id: string, data: Partial<InsertAccessTicketType>): Promise<AccessTicketType | undefined>;
+  deleteAccessTicketType(id: string): Promise<boolean>;
+  getAccessTicketTypeCounts(eventId: string): Promise<Record<string, { confirmed: number; pending: number }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -421,7 +431,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Access reservation operations
-  async createAccessReservation(data: { tableType: string; tableLabel: string; guestsJson: string; eventId?: string | null }): Promise<AccessReservation> {
+  async createAccessReservation(data: { tableType: string; tableLabel: string; guestsJson: string; eventId?: string | null; ticketTypeId?: string | null }): Promise<AccessReservation> {
     const [row] = await db
       .insert(accessReservations)
       .values({ ...data, status: "pending_payment" })
@@ -473,7 +483,7 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async createAdminSinglePass(data: { tableType: string; tableLabel: string; guestsJson: string; eventId?: string | null }): Promise<AccessReservation> {
+  async createAdminSinglePass(data: { tableType: string; tableLabel: string; guestsJson: string; eventId?: string | null; ticketTypeId?: string | null }): Promise<AccessReservation> {
     const [row] = await db
       .insert(accessReservations)
       .values({ ...data, status: "approved", source: "admin_single", approvedAt: new Date() })
@@ -622,10 +632,68 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAccessEvent(id: string): Promise<boolean> {
+    await db.delete(accessTicketTypes).where(eq(accessTicketTypes.eventId, id));
     const result = await db
       .delete(accessEvents)
       .where(eq(accessEvents.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // Access ticket type operations
+  async getAccessTicketTypes(eventId: string): Promise<AccessTicketType[]> {
+    return db
+      .select()
+      .from(accessTicketTypes)
+      .where(eq(accessTicketTypes.eventId, eventId))
+      .orderBy(asc(accessTicketTypes.order), asc(accessTicketTypes.createdAt));
+  }
+
+  async getAllAccessTicketTypes(): Promise<AccessTicketType[]> {
+    return db.select().from(accessTicketTypes).orderBy(asc(accessTicketTypes.order), asc(accessTicketTypes.createdAt));
+  }
+
+  // Every reservation ever made on this type (rejected included), so table
+  // numbers in pass IDs never repeat.
+  async countReservationsByTicketType(ticketTypeId: string): Promise<number> {
+    const rows = await db.select().from(accessReservations).where(eq(accessReservations.ticketTypeId, ticketTypeId));
+    return rows.length;
+  }
+
+  async getAccessTicketType(id: string): Promise<AccessTicketType | undefined> {
+    const [row] = await db.select().from(accessTicketTypes).where(eq(accessTicketTypes.id, id));
+    return row || undefined;
+  }
+
+  async createAccessTicketType(data: InsertAccessTicketType): Promise<AccessTicketType> {
+    const [row] = await db.insert(accessTicketTypes).values(data).returning();
+    return row;
+  }
+
+  async updateAccessTicketType(id: string, data: Partial<InsertAccessTicketType>): Promise<AccessTicketType | undefined> {
+    const [row] = await db
+      .update(accessTicketTypes)
+      .set(data)
+      .where(eq(accessTicketTypes.id, id))
+      .returning();
+    return row || undefined;
+  }
+
+  async deleteAccessTicketType(id: string): Promise<boolean> {
+    const result = await db.delete(accessTicketTypes).where(eq(accessTicketTypes.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Confirmed/pending reservation counts per ticket type, for one edition.
+  async getAccessTicketTypeCounts(eventId: string): Promise<Record<string, { confirmed: number; pending: number }>> {
+    const rows = await db.select().from(accessReservations).where(eq(accessReservations.eventId, eventId));
+    const result: Record<string, { confirmed: number; pending: number }> = {};
+    for (const row of rows) {
+      if (!row.ticketTypeId) continue;
+      if (!result[row.ticketTypeId]) result[row.ticketTypeId] = { confirmed: 0, pending: 0 };
+      if (row.status === "approved") result[row.ticketTypeId].confirmed++;
+      else if (row.status === "pending_payment") result[row.ticketTypeId].pending++;
+    }
+    return result;
   }
 }
 
