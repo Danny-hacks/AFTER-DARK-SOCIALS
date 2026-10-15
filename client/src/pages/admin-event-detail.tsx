@@ -166,24 +166,24 @@ export default function AdminEventDetailPage() {
   const [autoShareTicket, setAutoShareTicket] = useState(false);
   const [showCreateTicket, setShowCreateTicket] = useState(false);
   const [manualTicket, setManualTicket] = useState({
-    referenceCode: "", customerName: "", customerEmail: "", customerPhone: "",
+    customerName: "", customerEmail: "", customerPhone: "",
     ticketType: "", paymentMethod: "MCB Juice",
   });
 
   const createTicketMutation = useMutation({
     mutationFn: (data: typeof manualTicket & { eventId: string; price: string; deliveryMethod: string }) =>
-      apiRequest("POST", "/api/admin/tickets", data),
-    onSuccess: () => {
+      apiRequest("POST", "/api/admin/tickets", data).then((r) => r.json() as Promise<{ ticket: TicketType }>),
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] });
-      setManualTicket({ referenceCode: "", customerName: "", customerEmail: "", customerPhone: "", ticketType: "", paymentMethod: "MCB Juice" });
-      toast({ title: "Ticket created" });
+      setManualTicket({ customerName: "", customerEmail: "", customerPhone: "", ticketType: "", paymentMethod: "MCB Juice" });
+      toast({ title: "Ticket created", description: res?.ticket?.referenceCode ? `Reference ${res.ticket.referenceCode}` : undefined });
     },
     onError: () => toast({ title: "Failed to create ticket", variant: "destructive" }),
   });
 
   function submitManualTicket() {
-    if (!manualTicket.referenceCode.trim() || !manualTicket.customerName.trim() || !manualTicket.ticketType) {
-      toast({ title: "Reference code, name, and ticket type are required", variant: "destructive" });
+    if (!manualTicket.customerName.trim() || !manualTicket.ticketType) {
+      toast({ title: "Name and ticket type are required", variant: "destructive" });
       return;
     }
     const matchedTier = tiers.find((t) => t.name === manualTicket.ticketType);
@@ -724,14 +724,9 @@ export default function AdminEventDetailPage() {
               <div className="border-t border-white/10 p-5">
                 <p className="text-white/20 text-[10px] mb-5">
                   For walk-ins, manual sales, or anything outside the normal purchase flow.
+                  The reference number and QR code are generated automatically — each ticket is unique.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <input
-                    value={manualTicket.referenceCode}
-                    onChange={(e) => setManualTicket({ ...manualTicket, referenceCode: e.target.value })}
-                    placeholder="Reference Code *"
-                    className={inputCls}
-                  />
                   <input
                     value={manualTicket.customerName}
                     onChange={(e) => setManualTicket({ ...manualTicket, customerName: e.target.value })}

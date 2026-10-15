@@ -4,7 +4,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, Check, X, Clock, ChevronDown, ChevronUp, Download, MessageSquare, Plus, Trash2, Pencil, Save, Search } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { PassportCard, type PassFields } from "@/components/passport-card";
-import { generatePassPDF, buildPassPDF, downloadBlob, passFileName } from "@/lib/generatePassCanvas";
+import { generatePassPDF, buildPassPDF, passFileName } from "@/lib/generatePassCanvas";
+import { shareFilesToWhatsApp, shareOutcomeToast, type ShareOutcome } from "@/lib/shareFiles";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ACCESS_AREAS, ACCESS_AREA_LABELS, type AccessTableInventory, type AccessEvent } from "@shared/schema";
@@ -58,45 +59,10 @@ function parseGuests(json: string): Guest[] {
   try { return JSON.parse(json); } catch { return []; }
 }
 
-// WhatsApp number for wa.me: digits only, local 8-digit Mauritian numbers get 230.
-function waNumber(phone: string | undefined): string {
-  const digits = (phone ?? "").replace(/\D/g, "");
-  return digits.length === 8 ? `230${digits}` : digits;
-}
-
 // The person who booked is guest 1 on public reservations; fall back to the
 // first guest who left a number.
 function bookerOf(guests: Guest[]): Guest | undefined {
   return guests[0]?.phone?.trim() ? guests[0] : guests.find((g) => g.phone?.trim()) ?? guests[0];
-}
-
-/**
- * Same approach as AFTR tickets: on a phone the native share sheet hands the
- * PDF(s) straight to WhatsApp (pick the booker's chat). On desktop, WhatsApp
- * Web can't receive files from a link, so download them and open a prefilled
- * chat with the booker for a manual attach.
- */
-async function sharePasses(opts: {
-  files: { blob: Blob; name: string }[];
-  message: string;
-  title: string;
-  phone?: string;
-}): Promise<"shared" | "downloaded" | "cancelled"> {
-  const files = opts.files.map((f) => new File([f.blob], f.name, { type: "application/pdf" }));
-  if (navigator.share && navigator.canShare?.({ files })) {
-    try {
-      await navigator.share({ title: opts.title, text: opts.message, files });
-      return "shared";
-    } catch (err) {
-      if ((err as Error)?.name === "AbortError") return "cancelled";
-      // Share failed for another reason — fall through to download.
-    }
-  }
-  opts.files.forEach((f, i) => setTimeout(() => downloadBlob(f.blob, f.name), i * 300));
-  setTimeout(() => {
-    window.open(`https://wa.me/${waNumber(opts.phone)}?text=${encodeURIComponent(opts.message)}`, "_blank");
-  }, opts.files.length * 300 + 300);
-  return "downloaded";
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -265,9 +231,10 @@ export default function AdminAccessPage() {
     ? `${accessTicketTypeFullLabel(singleTicketType)} #${singleTableNum}`
     : "Solo Entry";
 
+  // Preview only — the server assigns the next free ID on save.
   const livePassId = singleTicketType
-    ? `ACC-${accessPassPrefix(singleTicketType)}-${singleTableNum}001`
-    : "ACC-SE???";
+    ? `ACC-${accessPassPrefix(singleTicketType)}-${singleTableNum}###`
+    : "ACC-SE###";
 
   const singleBody = () => ({
     name: singleName,
@@ -302,9 +269,10 @@ export default function AdminAccessPage() {
   // Single pass actions
   async function handleSaveOnly() {
     if (!singleName.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
-    await singleMutation.mutateAsync(singleBody());
+    const raw = await singleMutation.mutateAsync(singleBody());
+    const res = await (raw as Response).json();
     resetSingleForm();
-    toast({ title: "Pass saved", description: `Pass ID: ${livePassId}` });
+    toast({ title: "Pass saved", description: `Pass ID: ${res.passId}` });
   }
 
   async function handleDownloadPass() {
@@ -326,7 +294,7 @@ export default function AdminAccessPage() {
     const passId: string = res.passId;
     const tableLabel: string = res.tableLabel ?? computedTableLabel;
     const blob = await buildPassPDF({ name: singleName, table: tableLabel, date: currentEventDate, venue: currentEventVenue, passId, photoUrl: singlePhoto || undefined });
-    const outcome = await sharePasses({
+    const outcome = await shareFilesToWhatsApp({
       files: [{ blob, name: passFileName(passId) }],
       title: `ACCESS Pass - ${singleName}`,
       phone: singlePhone,
@@ -356,13 +324,8 @@ export default function AdminAccessPage() {
     );
   }
 
-  function shareToast(outcome: "shared" | "downloaded" | "cancelled", count: number) {
-    if (outcome === "shared") return { title: "Ready to send", description: `Pick the booker's WhatsApp chat — ${count === 1 ? "the pass is" : `all ${count} passes are`} attached.` };
-    if (outcome === "cancelled") return { title: "Share cancelled" };
-    return {
-      title: count === 1 ? "PDF downloaded" : `${count} PDFs downloaded`,
-      description: "WhatsApp Web can't auto-attach files — drag the downloaded PDF(s) into the chat that just opened.",
-    };
+  function shareToast(outcome: ShareOutcome, count: number) {
+    return shareOutcomeToast(outcome, count, "the booker's");
   }
 
   // Send one guest's pass to the person who booked the table.
@@ -373,7 +336,7 @@ export default function AdminAccessPage() {
     setSendingId(`${r.id}:${guest.passId}`);
     try {
       const blob = await buildPassPDF({ name: guest.name, table: r.tableLabel, date, venue, passId: guest.passId });
-      const outcome = await sharePasses({
+      const outcome = await shareFilesToWhatsApp({
         files: [{ blob, name: passFileName(guest.passId) }],
         title: `ACCESS Pass - ${guest.name}`,
         phone: booker?.phone,
@@ -410,7 +373,7 @@ export default function AdminAccessPage() {
         guests.map((g, i) => `${i + 1}. ${g.name.toUpperCase()} — ${g.passId}`).join("\n") +
         `\n\nEach guest presents their own pass at the door — forward them to your group.\n` +
         `After Dark Socials · @afterdarksocials.mu`;
-      const outcome = await sharePasses({
+      const outcome = await shareFilesToWhatsApp({
         files,
         title: `ACCESS Passes - ${r.tableLabel}`,
         phone: booker?.phone,
@@ -603,7 +566,7 @@ export default function AdminAccessPage() {
                       className="w-full bg-transparent border border-white/15 text-white text-sm px-4 py-3 focus:outline-none focus:border-[#c9962a]/50"
                     />
                     <p className="text-white/20 text-[9px] mt-1.5 uppercase tracking-[0.15em]">
-                      Pass ID will be: {livePassId}
+                      Pass ID: {livePassId} (next free number, assigned on save)
                     </p>
                   </div>
                 )}

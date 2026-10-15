@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 // html-to-image (not html2canvas) for all exports — html2canvas doesn't
 // support CSS background-clip:text, so the gold gradient wordmark rendered
 // as a solid block in downloaded/shared tickets even though it looked right
@@ -34,6 +34,131 @@ function captureOptions(node: HTMLElement) {
     height: node.offsetHeight,
   };
 }
+
+/** Renders the AFTR ticket PDF (A4 landscape) from a rendered ticket card. */
+export async function ticketNodeToPdfBlob(node: HTMLElement): Promise<Blob> {
+  const canvas = await toCanvas(node, captureOptions(node));
+  const imgData = canvas.toDataURL('image/png');
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const pdfWidth = pdf.internal.pageSize.getWidth();
+  const pdfHeight = pdf.internal.pageSize.getHeight();
+  const ratio = canvas.width / canvas.height;
+  let imgWidth = pdfWidth - 20;
+  let imgHeight = imgWidth / ratio;
+  if (imgHeight > pdfHeight - 20) {
+    imgHeight = pdfHeight - 20;
+    imgWidth = imgHeight * ratio;
+  }
+  pdf.addImage(imgData, 'PNG', (pdfWidth - imgWidth) / 2, (pdfHeight - imgHeight) / 2, imgWidth, imgHeight);
+  return pdf.output('blob');
+}
+
+/** The ticket design itself — shared by the single-ticket preview and "send all". */
+export const AftrTicketCard = forwardRef<HTMLDivElement, { ticket: Ticket; event?: Event }>(function AftrTicketCard({ ticket, event }, ref) {
+  const eventName = event?.name ?? "AFTR";
+  const eventDateVenue = [event?.date, event?.venue].filter(Boolean).join(" · ");
+  const displayPrice = ticket.ticketType === 'Golden VIP' && ticket.price === 'Rs 350' ? 'Rs 700' : ticket.price;
+  // Generate QR code URL (using a QR code service). Only the ticket's own
+  // qrCode is encoded — it's already a globally unique UUID on its own, and
+  // embedding ticket.id too made this ambiguous to parse back out, since both
+  // are UUIDs containing hyphens (see qr-scanner.tsx).
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`AFTR-TICKET-${ticket.qrCode}`)}`;
+
+  return (
+      <div
+        ref={ref}
+        className="w-full max-w-3xl mx-auto rounded-lg text-white relative"
+        style={{ backgroundColor: "#0d0d0d", boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}
+      >
+        {/* Punched holes along the outer top/bottom edges */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            left: 6, right: 6, height: 26, top: -13,
+            backgroundImage: "radial-gradient(circle, #0a0a0a 8px, transparent 8.5px)",
+            backgroundSize: "26px 26px", backgroundRepeat: "repeat-x", backgroundPosition: "13px center",
+          }}
+        />
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            left: 6, right: 6, height: 26, bottom: -13,
+            backgroundImage: "radial-gradient(circle, #0a0a0a 8px, transparent 8.5px)",
+            backgroundSize: "26px 26px", backgroundRepeat: "repeat-x", backgroundPosition: "13px center",
+          }}
+        />
+
+        <div className="flex">
+          {/* Main info */}
+          <div className="relative flex-1 min-w-0 p-6 sm:p-7 flex flex-col justify-center gap-3">
+            <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.35em] m-0">E-Ticket</p>
+            <h1
+              className="leading-none truncate"
+              style={{
+                fontFamily: "'Bebas Neue', Impact, sans-serif",
+                fontSize: "clamp(28px, 5.5vw, 40px)",
+                letterSpacing: "0.015em",
+                lineHeight: 0.92,
+                background: "linear-gradient(180deg, #f5d76e 0%, #c9962a 55%, #8a6a1f 100%)",
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                textShadow: "0 1px 0 rgba(255,255,255,0.15), 0 2px 1px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.5)",
+              }}
+            >
+              {eventName}
+            </h1>
+            {(eventDateVenue || event?.time) && (
+              <p className="text-[11px] font-semibold text-white/65 uppercase tracking-[0.06em] truncate">
+                {[eventDateVenue, event?.time].filter(Boolean).join(" · ")}
+              </p>
+            )}
+            <div className="flex items-baseline justify-between gap-4 pt-3" style={{ borderTop: "1px dashed rgba(255,255,255,0.15)" }}>
+              <span className="text-base sm:text-lg font-bold truncate">{ticket.customerName}</span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.08em] shrink-0" style={{ color: "#f0c869" }}>
+                {ticket.ticketType}
+              </span>
+            </div>
+            <p className="font-mono text-[11px] text-white/40 tracking-wide m-0">
+              {ticket.referenceCode} &nbsp;&bull;&nbsp; {displayPrice}
+            </p>
+          </div>
+
+          {/* Straight dashed tear line with punched notches at the seam */}
+          <div
+            className="relative shrink-0"
+            style={{
+              width: 20,
+              backgroundImage: "repeating-linear-gradient(to bottom, #c9962a 0 5px, transparent 5px 10px)",
+              backgroundSize: "2px 10px",
+              backgroundRepeat: "repeat-y",
+              backgroundPosition: "center",
+            }}
+          >
+            <div className="absolute rounded-full" style={{ left: "50%", top: 0, transform: "translate(-50%, -50%)", width: 26, height: 26, background: "#0a0a0a" }} />
+            <div className="absolute rounded-full" style={{ left: "50%", top: "100%", transform: "translate(-50%, -50%)", width: 26, height: 26, background: "#0a0a0a" }} />
+          </div>
+
+          {/* QR stub */}
+          <div className="shrink-0 flex flex-col items-center justify-center gap-2" style={{ width: 220, padding: 22 }}>
+            <div className="bg-white p-2.5 rounded">
+              <img
+                src={qrCodeUrl}
+                alt="Ticket QR Code"
+                className="block"
+                style={{ width: 170, height: 170 }}
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzMzMzMzMyIvPjx0ZXh0IHg9IjYwIiB5PSI2MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMiIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkFGVFI8L3RleHQ+PC9zdmc+';
+                }}
+              />
+            </div>
+            <p className="text-white/30 text-[9px] uppercase tracking-[0.15em] text-center m-0">To be scanned at the gate</p>
+          </div>
+        </div>
+      </div>
+  );
+});
 
 export function TicketGenerator({ ticket, autoShare }: TicketGeneratorProps) {
   const ticketRef = useRef<HTMLDivElement>(null);
@@ -374,12 +499,6 @@ IMPORTANT: Please find your ticket PDF attached to this email. This PDF is your 
     }
   };
 
-  // Generate QR code URL (using a QR code service). Only the ticket's own
-  // qrCode is encoded — it's already a globally unique UUID on its own, and
-  // embedding ticket.id too made this ambiguous to parse back out, since both
-  // are UUIDs containing hyphens (see qr-scanner.tsx).
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`AFTR-TICKET-${ticket.qrCode}`)}`;
-
   return (
     <div className="space-y-4">
       {/* Digital Ticket — one flat dark background throughout, gold used only
@@ -389,98 +508,7 @@ IMPORTANT: Please find your ticket PDF attached to this email. This PDF is your 
           bg-[#0a0a0a]) so they read as real cut-outs, not a colored shape —
           the toCanvas/toPng calls above are set to the same color for the
           same reason when exporting. */}
-      <div
-        ref={ticketRef}
-        className="w-full max-w-3xl mx-auto rounded-lg text-white relative"
-        style={{ backgroundColor: "#0d0d0d", boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}
-      >
-        {/* Punched holes along the outer top/bottom edges */}
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            left: 6, right: 6, height: 26, top: -13,
-            backgroundImage: "radial-gradient(circle, #0a0a0a 8px, transparent 8.5px)",
-            backgroundSize: "26px 26px", backgroundRepeat: "repeat-x", backgroundPosition: "13px center",
-          }}
-        />
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            left: 6, right: 6, height: 26, bottom: -13,
-            backgroundImage: "radial-gradient(circle, #0a0a0a 8px, transparent 8.5px)",
-            backgroundSize: "26px 26px", backgroundRepeat: "repeat-x", backgroundPosition: "13px center",
-          }}
-        />
-
-        <div className="flex">
-          {/* Main info */}
-          <div className="relative flex-1 min-w-0 p-6 sm:p-7 flex flex-col justify-center gap-3">
-            <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.35em] m-0">E-Ticket</p>
-            <h1
-              className="leading-none truncate"
-              style={{
-                fontFamily: "'Bebas Neue', Impact, sans-serif",
-                fontSize: "clamp(28px, 5.5vw, 40px)",
-                letterSpacing: "0.015em",
-                lineHeight: 0.92,
-                background: "linear-gradient(180deg, #f5d76e 0%, #c9962a 55%, #8a6a1f 100%)",
-                WebkitBackgroundClip: "text",
-                backgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                textShadow: "0 1px 0 rgba(255,255,255,0.15), 0 2px 1px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.5)",
-              }}
-            >
-              {eventName}
-            </h1>
-            {(eventDateVenue || event?.time) && (
-              <p className="text-[11px] font-semibold text-white/65 uppercase tracking-[0.06em] truncate">
-                {[eventDateVenue, event?.time].filter(Boolean).join(" · ")}
-              </p>
-            )}
-            <div className="flex items-baseline justify-between gap-4 pt-3" style={{ borderTop: "1px dashed rgba(255,255,255,0.15)" }}>
-              <span className="text-base sm:text-lg font-bold truncate">{ticket.customerName}</span>
-              <span className="text-[11px] font-bold uppercase tracking-[0.08em] shrink-0" style={{ color: "#f0c869" }}>
-                {ticket.ticketType}
-              </span>
-            </div>
-            <p className="font-mono text-[11px] text-white/40 tracking-wide m-0">
-              {ticket.referenceCode} &nbsp;&bull;&nbsp; {displayPrice}
-            </p>
-          </div>
-
-          {/* Straight dashed tear line with punched notches at the seam */}
-          <div
-            className="relative shrink-0"
-            style={{
-              width: 20,
-              backgroundImage: "repeating-linear-gradient(to bottom, #c9962a 0 5px, transparent 5px 10px)",
-              backgroundSize: "2px 10px",
-              backgroundRepeat: "repeat-y",
-              backgroundPosition: "center",
-            }}
-          >
-            <div className="absolute rounded-full" style={{ left: "50%", top: 0, transform: "translate(-50%, -50%)", width: 26, height: 26, background: "#0a0a0a" }} />
-            <div className="absolute rounded-full" style={{ left: "50%", top: "100%", transform: "translate(-50%, -50%)", width: 26, height: 26, background: "#0a0a0a" }} />
-          </div>
-
-          {/* QR stub */}
-          <div className="shrink-0 flex flex-col items-center justify-center gap-2" style={{ width: 220, padding: 22 }}>
-            <div className="bg-white p-2.5 rounded">
-              <img
-                src={qrCodeUrl}
-                alt="Ticket QR Code"
-                className="block"
-                style={{ width: 170, height: 170 }}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzMzMzMzMyIvPjx0ZXh0IHg9IjYwIiB5PSI2MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMiIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkFGVFI8L3RleHQ+PC9zdmc+';
-                }}
-              />
-            </div>
-            <p className="text-white/30 text-[9px] uppercase tracking-[0.15em] text-center m-0">To be scanned at the gate</p>
-          </div>
-        </div>
-      </div>
+      <AftrTicketCard ref={ticketRef} ticket={ticket} event={event} />
 
       {/* Action Buttons */}
       <div className="flex gap-4 justify-center">

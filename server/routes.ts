@@ -18,7 +18,7 @@ import connectPg from "connect-pg-simple";
 import nodemailer from "nodemailer";
 import { appendTicketToSheet, initializeSheetHeaders } from "./googleSheets";
 import { pool } from "./db";
-import { ticketRefPrefix } from "./ticketRef";
+import { ticketRefPrefix, generateTicketRef } from "./ticketRef";
 import { accessPassPrefix, accessTicketTypeFullLabel, withAvailability } from "@shared/accessTickets";
 
 // Simple admin credentials - in production, use proper authentication
@@ -189,7 +189,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Ticket management routes (protected)
   app.post("/api/admin/tickets", requireAuth, async (req, res) => {
     try {
-      const rawData = insertTicketSchema.parse(req.body);
+      // Manual tickets get their reference generated here (same format as
+      // verified orders, prefixed with the event's volume) unless one is
+      // explicitly supplied — typed references risked duplicates/typos.
+      const body = { ...req.body };
+      if (!body.referenceCode || !String(body.referenceCode).trim()) {
+        const event = body.eventId ? await storage.getEvent(body.eventId) : undefined;
+        body.referenceCode = await generateTicketRef(
+          ticketRefPrefix(event?.volume),
+          async (ref) => !!(await storage.getTicketByReference(ref)),
+        );
+      }
+      const rawData = insertTicketSchema.parse(body);
       // Enforce correct price per ticket type
       const correctPrice =
         rawData.ticketType === "Golden VIP" ? "Rs 700" : rawData.price;
@@ -744,11 +755,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create multiple tickets based on quantity (each with unique reference/QR code)
       for (let i = 0; i < quantity; i++) {
-        const randomPart = Math.random()
-          .toString(36)
-          .substring(2, 8)
-          .toUpperCase();
-        const referenceCode = `${refPrefix}-${randomPart}`;
+        const referenceCode = await generateTicketRef(
+          refPrefix,
+          async (ref) => !!(await storage.getTicketByReference(ref)),
+        );
         const holderName = i === 0 ? purchase.customerName : (guestNames[i - 1]?.trim() || purchase.customerName);
 
         const ticket = await storage.createTicket({
@@ -1004,6 +1014,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Pricing/capacity now lives in the access_table_inventory table (admin-editable
   // via /api/admin/access/inventory) instead of a hardcoded const.
 
+  // Every ACCESS pass ID already issued — new IDs are checked against this
+  // so admin-issued and public passes can never share an ID.
+  async function usedPassIds(): Promise<Set<string>> {
+    const ids = new Set<string>();
+    for (const r of await storage.getAllAccessReservations()) {
+      try {
+        for (const g of JSON.parse(r.guestsJson) as { passId?: string }[]) if (g.passId) ids.add(g.passId);
+      } catch {}
+    }
+    return ids;
+  }
+
+  // First table number from `start` whose guest pass IDs are all unused.
+  function freeTableNumber(used: Set<string>, start: number, guestCount: number, makeId: (table: number, guest: number) => string): number {
+    let table = start;
+    while (Array.from({ length: guestCount }, (_, i) => makeId(table, i + 1)).some((id) => used.has(id))) table++;
+    return table;
+  }
+
   app.get("/api/access/capacity", async (_req, res) => {
     try {
       const inventory = await storage.getAllTableInventory();
@@ -1068,12 +1097,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (withAvailability(type, counts[type.id]).available <= 0) {
           return res.status(400).json({ error: "This table option is fully booked" });
         }
-        const tableNumber = (await storage.countReservationsByTicketType(type.id)) + 1;
         const prefix = accessPassPrefix(type);
+        const makeId = (table: number, guest: number) => `ACC-${prefix}-${table}${String(guest).padStart(3, "0")}`;
+        const tableNumber = freeTableNumber(
+          await usedPassIds(),
+          (await storage.countReservationsByTicketType(type.id)) + 1,
+          guests.length,
+          makeId,
+        );
         const guestsWithPassIds = (guests as { name: string; phone?: string }[]).map((g, i) => ({
           name: g.name,
           phone: g.phone ?? "",
-          passId: `ACC-${prefix}-${tableNumber}${String(i + 1).padStart(3, "0")}`,
+          passId: makeId(tableNumber, i + 1),
         }));
         await storage.createAccessReservation({
           tableType: type.area,
@@ -1095,13 +1130,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "This table type is fully booked" });
       }
       // Assign the next table number for this type (non-rejected count + 1)
-      const existingCount = await storage.getReservationCountByType(tableType);
-      const tableNumber = existingCount + 1;
       // Generate server-side pass IDs: ACC-[tableNumber][guestIndex padded 3 digits]
+      const makeId = (table: number, guest: number) => `ACC-${table}${String(guest).padStart(3, "0")}`;
+      const tableNumber = freeTableNumber(
+        await usedPassIds(),
+        (await storage.getReservationCountByType(tableType)) + 1,
+        guests.length,
+        makeId,
+      );
       const guestsWithPassIds = (guests as { name: string; phone?: string }[]).map((g, i) => ({
         name: g.name,
         phone: g.phone ?? "",
-        passId: `ACC-${tableNumber}${String(i + 1).padStart(3, "0")}`,
+        passId: makeId(tableNumber, i + 1),
       }));
       await storage.createAccessReservation({
         tableType,
@@ -1228,15 +1268,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid table number" });
       }
       accessEvent = await storage.getAccessEvent(type.eventId);
-      passId = `ACC-${accessPassPrefix(type)}-${tNum}001`;
+      // Next free seat on that table (…001, …002, …) so a pass never
+      // duplicates one already issued.
+      const used = await usedPassIds();
+      let seat = 1;
+      while (used.has(`ACC-${accessPassPrefix(type)}-${tNum}${String(seat).padStart(3, "0")}`)) seat++;
+      passId = `ACC-${accessPassPrefix(type)}-${tNum}${String(seat).padStart(3, "0")}`;
       tableLabel = `${accessTicketTypeFullLabel(type)} #${tNum}`;
       reservationTableType = type.area;
     } else if (tableType === "single_entry") {
       const inventoryConfig = await storage.getTableInventory(tableType);
       if (!inventoryConfig) return res.status(400).json({ error: "Invalid table type" });
       accessEvent = await storage.getUpcomingAccessEvent();
-      const count = await storage.countAdminSinglePassesByType("single_entry");
-      passId = `ACC-SE${(count + 1).toString().padStart(3, "0")}`;
+      const used = await usedPassIds();
+      let n = (await storage.countAdminSinglePassesByType("single_entry")) + 1;
+      while (used.has(`ACC-SE${n.toString().padStart(3, "0")}`)) n++;
+      passId = `ACC-SE${n.toString().padStart(3, "0")}`;
       tableLabel = "Solo Entry";
       reservationTableType = "single_entry";
     } else {

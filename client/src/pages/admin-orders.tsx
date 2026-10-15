@@ -8,6 +8,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AdminLayout } from "@/components/admin-layout";
 import { TicketGenerator } from "@/components/ticket-generator";
+import { SendAllTickets } from "@/components/send-all-tickets";
 import { TicketClassFilter, matchesTicketClass, type TicketClass } from "@/components/ticket-class-filter";
 import type { Event, Ticket as TicketType, TicketPurchase } from "@shared/schema";
 
@@ -152,6 +153,8 @@ export default function AdminOrdersPage() {
 
   const [viewingTicket, setViewingTicket] = useState<TicketType | null>(null);
   const [autoShareTicket, setAutoShareTicket] = useState(false);
+  // Order whose tickets are open in the "send all to buyer" dialog
+  const [sendAllOrderId, setSendAllOrderId] = useState<string | null>(null);
 
   const verifyMutation = useMutation({
     mutationFn: (id: string) => apiRequest("POST", `/api/admin/purchases/${id}/verify`),
@@ -519,6 +522,20 @@ export default function AdminOrdersPage() {
 
                 {orderTickets.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
+                    {orderTickets.length > 1 && (
+                      <div className="flex items-center gap-3 flex-wrap pb-2">
+                        <button
+                          onClick={() => setSendAllOrderId(p.id)}
+                          className="flex items-center gap-1.5 bg-[#25D366] text-black text-[9px] uppercase tracking-[0.15em] font-bold px-3 py-2 hover:bg-[#1ebe5b] transition-colors"
+                        >
+                          <SiWhatsapp className="w-3 h-3" />
+                          Send all {orderTickets.length} tickets to buyer
+                        </button>
+                        <span className="text-white/25 text-[10px]">
+                          {orderTickets.filter((t) => t.isDelivered).length}/{orderTickets.length} sent
+                        </span>
+                      </div>
+                    )}
                     {orderTickets.map((t) => renderTicketRow(t))}
                   </div>
                 )}
@@ -527,6 +544,33 @@ export default function AdminOrdersPage() {
           })}
         </div>
       )}
+
+      {(() => {
+        const order = sendAllOrderId ? purchases.find((x) => x.id === sendAllOrderId) : undefined;
+        const orderTickets = sendAllOrderId ? ticketsByPurchase.get(sendAllOrderId) ?? [] : [];
+        return (
+          <Dialog open={!!order} onOpenChange={(open) => { if (!open) setSendAllOrderId(null); }}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#0a0a0a] border-white/15 rounded-none">
+              <DialogHeader>
+                <DialogTitle className="text-white">All tickets — {order?.customerName}</DialogTitle>
+              </DialogHeader>
+              {order && (
+                <SendAllTickets
+                  tickets={orderTickets}
+                  buyerName={order.customerName}
+                  buyerPhone={order.customerPhone}
+                  onSent={async () => {
+                    await Promise.all(
+                      orderTickets.filter((t) => !t.isDelivered).map((t) => apiRequest("PATCH", `/api/admin/tickets/${t.id}/deliver`)),
+                    ).catch(() => toast({ title: "Couldn't mark all tickets as sent", variant: "destructive" }));
+                    queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets"] });
+                  }}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       <Dialog open={!!viewingTicket} onOpenChange={(open) => { if (!open) { setViewingTicket(null); setAutoShareTicket(false); } }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#0a0a0a] border-white/15 rounded-none">
