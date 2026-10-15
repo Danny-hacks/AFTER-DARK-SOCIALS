@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, Check, X, Clock, ChevronDown, ChevronUp, Download, MessageSquare, Plus, Trash2, Pencil, Save, Search } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { PassportCard, type PassFields } from "@/components/passport-card";
-import { generatePassPDF } from "@/lib/generatePassCanvas";
+import { generatePassPDF, buildPassPDF, downloadBlob, passFileName } from "@/lib/generatePassCanvas";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ACCESS_AREAS, ACCESS_AREA_LABELS, type AccessTableInventory, type AccessEvent } from "@shared/schema";
@@ -58,17 +58,45 @@ function parseGuests(json: string): Guest[] {
   try { return JSON.parse(json); } catch { return []; }
 }
 
-function buildWaUrl(guest: Guest, tableLabel: string, eventDate: string): string {
-  const clean = (guest.phone ?? "").replace(/[\s\-\+\(\)]/g, "");
-  const msg =
-    `Your ACCESS pass is confirmed.\n\n` +
-    `Name: ${guest.name.toUpperCase()}\n` +
-    `Table: ${tableLabel.toUpperCase()}\n` +
-    `Date: ${eventDate}\n` +
-    `Pass ID: ${guest.passId}\n\n` +
-    `Your pass has been attached to this message.\n\n` +
-    `After Dark Socials · @afterdarksocials.mu`;
-  return `https://wa.me/${clean}?text=${encodeURIComponent(msg)}`;
+// WhatsApp number for wa.me: digits only, local 8-digit Mauritian numbers get 230.
+function waNumber(phone: string | undefined): string {
+  const digits = (phone ?? "").replace(/\D/g, "");
+  return digits.length === 8 ? `230${digits}` : digits;
+}
+
+// The person who booked is guest 1 on public reservations; fall back to the
+// first guest who left a number.
+function bookerOf(guests: Guest[]): Guest | undefined {
+  return guests[0]?.phone?.trim() ? guests[0] : guests.find((g) => g.phone?.trim()) ?? guests[0];
+}
+
+/**
+ * Same approach as AFTR tickets: on a phone the native share sheet hands the
+ * PDF(s) straight to WhatsApp (pick the booker's chat). On desktop, WhatsApp
+ * Web can't receive files from a link, so download them and open a prefilled
+ * chat with the booker for a manual attach.
+ */
+async function sharePasses(opts: {
+  files: { blob: Blob; name: string }[];
+  message: string;
+  title: string;
+  phone?: string;
+}): Promise<"shared" | "downloaded" | "cancelled"> {
+  const files = opts.files.map((f) => new File([f.blob], f.name, { type: "application/pdf" }));
+  if (navigator.share && navigator.canShare?.({ files })) {
+    try {
+      await navigator.share({ title: opts.title, text: opts.message, files });
+      return "shared";
+    } catch (err) {
+      if ((err as Error)?.name === "AbortError") return "cancelled";
+      // Share failed for another reason — fall through to download.
+    }
+  }
+  opts.files.forEach((f, i) => setTimeout(() => downloadBlob(f.blob, f.name), i * 300));
+  setTimeout(() => {
+    window.open(`https://wa.me/${waNumber(opts.phone)}?text=${encodeURIComponent(opts.message)}`, "_blank");
+  }, opts.files.length * 300 + 300);
+  return "downloaded";
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -297,11 +325,15 @@ export default function AdminAccessPage() {
     const res = await (raw as Response).json();
     const passId: string = res.passId;
     const tableLabel: string = res.tableLabel ?? computedTableLabel;
-    console.log("[handleSendWhatsApp] passId:", passId, "tableLabel:", tableLabel);
-    await generatePassPDF({ name: singleName, table: tableLabel, date: currentEventDate, venue: currentEventVenue, passId, photoUrl: singlePhoto || undefined });
-    if (res.whatsappUrl) window.open(res.whatsappUrl, "_blank");
+    const blob = await buildPassPDF({ name: singleName, table: tableLabel, date: currentEventDate, venue: currentEventVenue, passId, photoUrl: singlePhoto || undefined });
+    const outcome = await sharePasses({
+      files: [{ blob, name: passFileName(passId) }],
+      title: `ACCESS Pass - ${singleName}`,
+      phone: singlePhone,
+      message: passMessage({ name: singleName, passId }, tableLabel, currentEventDate, currentEventVenue),
+    });
     resetSingleForm();
-    toast({ title: "Pass sent", description: singlePhone ? "PDF downloaded · WhatsApp opened" : "PDF downloaded (no phone provided)" });
+    toast(shareToast(outcome, 1));
   }
 
   // Per-guest download / send
@@ -311,9 +343,85 @@ export default function AdminAccessPage() {
     toast({ title: "Downloading…", description: `ACCESS-PASS-${guest.passId}.pdf` });
   }
 
-  function sendGuestWhatsApp(guest: Guest, r: Reservation) {
-    downloadGuestPass(guest, r);
-    setTimeout(() => window.open(buildWaUrl(guest, r.tableLabel, eventInfoFor(r).date), "_blank"), 400);
+  function passMessage(guest: { name: string; passId: string }, tableLabel: string, date: string, venue: string) {
+    return (
+      `Your ACCESS pass is confirmed.\n\n` +
+      `Name: ${guest.name.toUpperCase()}\n` +
+      `Table: ${tableLabel.toUpperCase()}\n` +
+      `Date: ${date}\n` +
+      `Venue: ${venue}\n` +
+      `Pass ID: ${guest.passId}\n\n` +
+      `Present this pass at the door.\n` +
+      `After Dark Socials · @afterdarksocials.mu`
+    );
+  }
+
+  function shareToast(outcome: "shared" | "downloaded" | "cancelled", count: number) {
+    if (outcome === "shared") return { title: "Ready to send", description: `Pick the booker's WhatsApp chat — ${count === 1 ? "the pass is" : `all ${count} passes are`} attached.` };
+    if (outcome === "cancelled") return { title: "Share cancelled" };
+    return {
+      title: count === 1 ? "PDF downloaded" : `${count} PDFs downloaded`,
+      description: "WhatsApp Web can't auto-attach files — drag the downloaded PDF(s) into the chat that just opened.",
+    };
+  }
+
+  // Send one guest's pass to the person who booked the table.
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  async function sendGuestPass(guest: Guest, r: Reservation) {
+    const booker = bookerOf(parseGuests(r.guestsJson));
+    const { date, venue } = eventInfoFor(r);
+    setSendingId(`${r.id}:${guest.passId}`);
+    try {
+      const blob = await buildPassPDF({ name: guest.name, table: r.tableLabel, date, venue, passId: guest.passId });
+      const outcome = await sharePasses({
+        files: [{ blob, name: passFileName(guest.passId) }],
+        title: `ACCESS Pass - ${guest.name}`,
+        phone: booker?.phone,
+        message: passMessage(guest, r.tableLabel, date, venue),
+      });
+      toast(shareToast(outcome, 1));
+    } catch {
+      toast({ title: "Failed to generate pass", variant: "destructive" });
+    } finally {
+      setSendingId(null);
+    }
+  }
+
+  // Send every pass on the table to the person who booked, in one go.
+  async function sendAllToBooker(r: Reservation) {
+    const guests = parseGuests(r.guestsJson);
+    const booker = bookerOf(guests);
+    const { date, venue } = eventInfoFor(r);
+    setSendingId(`${r.id}:all`);
+    try {
+      const files: { blob: Blob; name: string }[] = [];
+      for (const g of guests) {
+        files.push({
+          blob: await buildPassPDF({ name: g.name, table: r.tableLabel, date, venue, passId: g.passId }),
+          name: passFileName(g.passId),
+        });
+      }
+      const message =
+        `Your ACCESS table is confirmed.\n\n` +
+        `Table: ${r.tableLabel.toUpperCase()}\n` +
+        `Date: ${date}\n` +
+        `Venue: ${venue}\n\n` +
+        `Passes (${guests.length}):\n` +
+        guests.map((g, i) => `${i + 1}. ${g.name.toUpperCase()} — ${g.passId}`).join("\n") +
+        `\n\nEach guest presents their own pass at the door — forward them to your group.\n` +
+        `After Dark Socials · @afterdarksocials.mu`;
+      const outcome = await sharePasses({
+        files,
+        title: `ACCESS Passes - ${r.tableLabel}`,
+        phone: booker?.phone,
+        message,
+      });
+      toast(shareToast(outcome, files.length));
+    } catch {
+      toast({ title: "Failed to generate passes", variant: "destructive" });
+    } finally {
+      setSendingId(null);
+    }
   }
 
   const allReservations = data?.reservations ?? [];
@@ -1028,6 +1136,9 @@ export default function AdminAccessPage() {
                               <span className="text-white/20">{i + 1}.</span>
                               <span className="text-white/70">{g.name || "—"}</span>
                               {g.phone && <span className="text-white/25">{g.phone}</span>}
+                              {guests.length > 1 && bookerOf(guests) === g && (
+                                <span className="text-[8px] uppercase tracking-[0.2em] font-bold px-1.5 py-0.5 bg-white/10 text-white/50">Booker</span>
+                              )}
                               {isApproved && g.passId && (
                                 <span className="text-[#c9962a]/80 tracking-wider">{g.passId}</span>
                               )}
@@ -1044,21 +1155,38 @@ export default function AdminAccessPage() {
                                   <Download className="w-2.5 h-2.5" />
                                   Download
                                 </button>
-                                {g.phone?.trim() && (
-                                  <button
-                                    onClick={() => sendGuestWhatsApp(g, r)}
-                                    className="flex items-center gap-1 border border-[#c9962a]/30 hover:border-[#c9962a] text-[#c9962a]/60 hover:text-[#c9962a] text-[8px] uppercase tracking-[0.15em] font-bold px-2.5 py-1.5 transition-colors"
-                                    title={`Send pass to ${g.name} via WhatsApp`}
-                                  >
-                                    <MessageSquare className="w-2.5 h-2.5" />
-                                    Send
-                                  </button>
-                                )}
+                                <button
+                                  onClick={() => sendGuestPass(g, r)}
+                                  disabled={sendingId !== null}
+                                  className="flex items-center gap-1 border border-[#c9962a]/30 hover:border-[#c9962a] text-[#c9962a]/60 hover:text-[#c9962a] text-[8px] uppercase tracking-[0.15em] font-bold px-2.5 py-1.5 transition-colors disabled:opacity-40"
+                                  title={`Send ${g.name}'s pass to the booker via WhatsApp`}
+                                >
+                                  {sendingId === `${r.id}:${g.passId}` ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <MessageSquare className="w-2.5 h-2.5" />}
+                                  Send
+                                </button>
                               </div>
                             )}
                           </div>
                         ))}
                       </div>
+
+                      {/* ── Send every pass to the booker ── */}
+                      {isApproved && guests.length > 1 && (
+                        <div className="flex items-center gap-3 flex-wrap pt-3 border-t border-white/5">
+                          <button
+                            onClick={() => sendAllToBooker(r)}
+                            disabled={sendingId !== null}
+                            className="flex items-center gap-1.5 text-black text-[8px] uppercase tracking-[0.2em] font-bold px-4 py-2 transition-colors disabled:opacity-40"
+                            style={{ backgroundColor: "#c9962a" }}
+                          >
+                            {sendingId === `${r.id}:all` ? <Loader2 className="w-3 h-3 animate-spin" /> : <MessageSquare className="w-3 h-3" />}
+                            Send all {guests.length} passes to booker
+                          </button>
+                          <span className="text-white/25 text-[9px]">
+                            {bookerOf(guests)?.phone?.trim() ? `${bookerOf(guests)!.name} · ${bookerOf(guests)!.phone}` : "No number on this booking — pick the chat in WhatsApp"}
+                          </span>
+                        </div>
+                      )}
 
                       {/* ── Approve / reject actions on pending rows ── */}
                       {isPending && (

@@ -319,6 +319,12 @@ export function AccessPassport() {
       toast({ title: `Please fill in the name for Guest ${unfilled + 1}`, variant: "destructive" });
       return;
     }
+    // Guest 1 is the person booking — all the table's passes are sent to them.
+    if (guests[0].phone.replace(/\D/g, "").length < 7) {
+      setActiveGuest(0);
+      toast({ title: "Please add your WhatsApp number", description: "We send your table's passes to it once payment is confirmed.", variant: "destructive" });
+      return;
+    }
 
     // Open the tab synchronously, before the request below — mobile browsers
     // (Safari especially) revoke "this came from a tap" permission the
@@ -706,7 +712,7 @@ export function AccessPassport() {
                         activeGuest === i ? "border-l-2 border-l-[#c9962a]" : "border-l-2 border-l-transparent",
                       ].join(" ")}
                     >
-                      <p className="text-[#c9962a] text-[10px] uppercase tracking-[0.3em] mb-6">Guest {i + 1}</p>
+                      <p className="text-[#c9962a] text-[10px] uppercase tracking-[0.3em] mb-6">{i === 0 ? "Guest 1 · You (booking)" : `Guest ${i + 1}`}</p>
 
                       <div className="mb-6">
                         <label htmlFor={`guest-name-${i}`} className={labelCls}>Full Name *</label>
@@ -751,7 +757,7 @@ export function AccessPassport() {
                       </div>
 
                       <div>
-                        <label htmlFor={`guest-phone-${i}`} className={labelCls}>WhatsApp Number (Optional)</label>
+                        <label htmlFor={`guest-phone-${i}`} className={labelCls}>{i === 0 ? "Your WhatsApp Number *" : "WhatsApp Number (Optional)"}</label>
                         <input
                           id={`guest-phone-${i}`}
                           type="tel"
@@ -761,7 +767,9 @@ export function AccessPassport() {
                           placeholder="+230 5XXX XXXX"
                           className={inputCls}
                         />
-                        <p className="text-white/20 text-[9px] mt-1.5 uppercase tracking-[0.15em]">Their pass will be sent here</p>
+                        <p className="text-white/20 text-[9px] mt-1.5 uppercase tracking-[0.15em]">
+                          {i === 0 ? "All your table's passes are sent here" : "Optional — for our records"}
+                        </p>
                       </div>
                     </div>
                   ))}

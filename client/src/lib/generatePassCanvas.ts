@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 
-interface PassData {
+export interface PassData {
   name: string;
   table: string;
   date: string;
@@ -9,7 +9,28 @@ interface PassData {
   photoUrl?: string;
 }
 
+export function passFileName(passId: string): string {
+  return `ACCESS-PASS-${passId}.pdf`;
+}
+
+/** Draws the pass and downloads it as a PDF. */
 export async function generatePassPDF(data: PassData): Promise<void> {
+  downloadBlob(await buildPassPDF(data), passFileName(data.passId));
+}
+
+export function downloadBlob(blob: Blob, fileName: string) {
+  const blobUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+}
+
+/** Draws the pass and returns it as a PDF blob (for sharing or downloading). */
+export async function buildPassPDF(data: PassData): Promise<Blob> {
   await document.fonts.ready;
 
   const CARD_W = 856;
@@ -247,15 +268,7 @@ export async function generatePassPDF(data: PassData): Promise<void> {
     format: [85.6, 54],
   });
   pdf.addImage(imgData, "PNG", 0, 0, 85.6, 54);
-  const pdfBlob = pdf.output("blob");
-  const blobUrl = URL.createObjectURL(pdfBlob);
-  const link = document.createElement("a");
-  link.href = blobUrl;
-  link.download = `ACCESS-PASS-${data.passId}.pdf`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  return pdf.output("blob");
 }
 
 function roundRect(
