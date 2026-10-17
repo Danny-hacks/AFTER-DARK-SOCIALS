@@ -20,7 +20,7 @@ import nodemailer from "nodemailer";
 import { appendTicketToSheet, initializeSheetHeaders } from "./googleSheets";
 import { pool } from "./db";
 import { ticketRefPrefix, generateTicketRef } from "./ticketRef";
-import { accessPassPrefix, accessTicketTypeFullLabel, isOnSale, withAvailability } from "@shared/accessTickets";
+import { accessPassPrefix, accessTicketTypeFullLabel, isOnSale, isSoloType, withAvailability } from "@shared/accessTickets";
 
 // Simple admin credentials - in production, use proper authentication
 const ADMIN_USERNAME = "aftr_admin";
@@ -1264,11 +1264,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (ticketTypeId) {
       const type = await storage.getAccessTicketType(ticketTypeId);
       if (!type) return res.status(400).json({ error: "Invalid table option" });
+      accessEvent = await storage.getAccessEvent(type.eventId);
+      if (isSoloType(type)) {
+        // Solo option (e.g. "Entry + Free Mask"): no table — same pass ID
+        // format as public solo bookings, next free number.
+        const makeId = (n: number) => `ACC-${accessPassPrefix(type)}-${n}001`;
+        const n = freeTableNumber(await usedPassIds(), (await storage.countReservationsByTicketType(type.id)) + 1, 1, (t) => makeId(t));
+        passId = makeId(n);
+        tableLabel = accessTicketTypeFullLabel(type);
+        reservationTableType = type.area;
+      } else {
       const tNum = parseInt(tableNumber, 10);
       if (isNaN(tNum) || tNum < 1) {
         return res.status(400).json({ error: "Invalid table number" });
       }
-      accessEvent = await storage.getAccessEvent(type.eventId);
       // Next free seat on that table (…001, …002, …) so a pass never
       // duplicates one already issued.
       const used = await usedPassIds();
@@ -1277,6 +1286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       passId = `ACC-${accessPassPrefix(type)}-${tNum}${String(seat).padStart(3, "0")}`;
       tableLabel = `${accessTicketTypeFullLabel(type)} #${tNum}`;
       reservationTableType = type.area;
+      }
     } else if (tableType === "single_entry") {
       const inventoryConfig = await storage.getTableInventory(tableType);
       if (!inventoryConfig) return res.status(400).json({ error: "Invalid table type" });

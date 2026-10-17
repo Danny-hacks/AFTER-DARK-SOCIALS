@@ -226,16 +226,23 @@ export default function AdminAccessPage() {
   }
 
   const singleTicketType = singleType === "single_entry" ? undefined : ticketTypeById[singleType];
+  const singleIsSoloOption = singleTicketType?.area === ACCESS_SOLO_AREA;
+  // Table number only applies to table options, not Solo Entry
+  const needsTableNumber = !!singleTicketType && !singleIsSoloOption;
   const singleMaxTable = Math.max(1, singleTicketType?.capacity ?? 1);
 
-  const computedTableLabel = singleTicketType
-    ? `${accessTicketTypeFullLabel(singleTicketType)} #${singleTableNum}`
-    : "Solo Entry";
+  const computedTableLabel = !singleTicketType
+    ? "Solo Entry"
+    : singleIsSoloOption
+      ? accessTicketTypeFullLabel(singleTicketType)
+      : `${accessTicketTypeFullLabel(singleTicketType)} #${singleTableNum}`;
 
   // Preview only — the server assigns the next free ID on save.
-  const livePassId = singleTicketType
-    ? `ACC-${accessPassPrefix(singleTicketType)}-${singleTableNum}###`
-    : "ACC-SE###";
+  const livePassId = !singleTicketType
+    ? "ACC-SE###"
+    : singleIsSoloOption
+      ? `ACC-${accessPassPrefix(singleTicketType)}-###`
+      : `ACC-${accessPassPrefix(singleTicketType)}-${singleTableNum}###`;
 
   const singleBody = () => ({
     name: singleName,
@@ -532,7 +539,16 @@ export default function AdminAccessPage() {
                     onChange={(e) => { setSingleType(e.target.value); setSingleTableNum(1); }}
                     className="w-full bg-[#0a0a0a] border border-white/15 text-white text-sm px-4 py-3 focus:outline-none focus:border-[#c9962a]/50"
                   >
-                    <option value="single_entry">Solo Entry</option>
+                    {currentTicketTypes.some((t) => t.area === ACCESS_SOLO_AREA) ? (
+                      <optgroup label="Solo Entry">
+                        {currentTicketTypes.filter((t) => t.area === ACCESS_SOLO_AREA).map((t) => (
+                          <option key={t.id} value={t.id}>{t.label} · MUR {t.price.toLocaleString()}</option>
+                        ))}
+                        <option value="single_entry">Solo Entry (no option)</option>
+                      </optgroup>
+                    ) : (
+                      <option value="single_entry">Solo Entry</option>
+                    )}
                     {ACCESS_AREAS.map((area) => {
                       const areaTypes = currentTicketTypes.filter((t) => t.area === area);
                       if (areaTypes.length === 0) return null;
@@ -552,8 +568,8 @@ export default function AdminAccessPage() {
                   )}
                 </div>
 
-                {/* Table / Section Number — hidden for single_entry */}
-                {singleType !== "single_entry" && (
+                {/* Table / Section Number — tables only */}
+                {needsTableNumber && (
                   <div>
                     <label className="block text-[9px] text-[#c9962a]/60 uppercase tracking-[0.3em] mb-2">
                       {`Table Number (1–${singleMaxTable})`}
@@ -571,7 +587,7 @@ export default function AdminAccessPage() {
                     </p>
                   </div>
                 )}
-                {singleType === "single_entry" && (
+                {!needsTableNumber && (
                   <p className="text-white/20 text-[9px] uppercase tracking-[0.15em]">
                     Pass ID will be: {livePassId} (assigned on save)
                   </p>
