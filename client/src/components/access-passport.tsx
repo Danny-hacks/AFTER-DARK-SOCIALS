@@ -686,7 +686,7 @@ export function AccessPassport() {
               <p className="text-white leading-none mb-1" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(40px, 6vw, 72px)" }}>
                 Reserve Your Table
               </p>
-              <p className="text-[10px] uppercase tracking-[0.2em] mb-6" style={{ color: "rgba(201,150,42,0.6)" }}>{eventDate} · {eventVenue}</p>
+              <p className="text-xs uppercase tracking-[0.2em] mb-6 font-semibold" style={{ color: "rgba(201,150,42,0.85)" }}>{eventDate} · {eventVenue}</p>
 
               {tableTypes.length === 0 ? (
                 <p className="text-white/30 text-sm">Table reservations for this night open soon — Solo Entry is available above.</p>
@@ -720,7 +720,7 @@ export function AccessPassport() {
                       );
                     })}
                   </div>
-                  {activeArea && <p className="text-white/40 text-[11px] mb-6">{AREA_BLURBS[activeArea]}</p>}
+                  {activeArea && <p className="text-white/70 text-sm leading-relaxed mb-6">{AREA_BLURBS[activeArea]}</p>}
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     {areaTypes.map((t) => {
@@ -740,26 +740,29 @@ export function AccessPassport() {
                                 : "border-white/15 hover:border-[#c9962a]/50",
                           ].join(" ")}
                         >
-                          <span className="text-white leading-none block mb-2" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "22px" }}>
+                          <span className="text-white leading-none block mb-3" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "28px" }}>
                             {t.label}
                           </span>
-                          <p className="text-[#c9962a] text-[13px] font-mono font-medium mb-0.5">{priceLine(t)}</p>
-                          <p className="text-[12px] font-mono text-white/50 mb-3">{totalLine(t)}</p>
+                          <p className="text-[#c9962a] text-base font-mono font-semibold mb-1">{priceLine(t)}</p>
+                          <p className="text-sm font-mono text-white/80 mb-4">{totalLine(t)}</p>
+                          {t.description && (
+                            <p className="text-white/75 text-sm leading-relaxed mb-4 whitespace-pre-line">{t.description}</p>
+                          )}
                           {soldOut ? (
-                            <p className="text-[#c72d28] text-[9px] uppercase tracking-[0.2em] mb-3 font-medium">Sold Out</p>
+                            <p className="text-[#c72d28] text-[11px] uppercase tracking-[0.2em] mb-3 font-bold">Sold Out</p>
                           ) : (
-                            <p className="text-white/30 text-[9px] uppercase tracking-[0.2em] mb-3">
-                              {t.available} {t.available === 1 ? "table" : "tables"} remaining
+                            <p className={`text-[11px] uppercase tracking-[0.2em] mb-3 font-semibold ${t.available <= 2 ? "text-[#c72d28]" : "text-white/60"}`}>
+                              {t.available <= 2 ? "Only " : ""}{t.available} {t.available === 1 ? "table" : "tables"} remaining
                             </p>
                           )}
-                          <p className="text-[10px] text-white/25" style={{ fontStyle: "italic" }}>Drinks not included.</p>
+                          <p className="text-[12px] text-white/60 font-medium">Entry tickets only · Drinks not included.</p>
                         </button>
                       );
                     })}
                   </div>
 
                   {!selectedConfig && (
-                    <p className="text-center italic mt-5" style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)" }}>
+                    <p className="text-center mt-6 text-white/55 text-sm">
                       Pick an area, then a table, to fill in your group details and receive your passes.
                     </p>
                   )}
@@ -784,7 +787,7 @@ export function AccessPassport() {
                         }}
                         className={inputCls}
                       />
-                      <p className="text-white/20 text-[9px] mt-1.5 uppercase tracking-[0.15em]">
+                      <p className="text-[#c9962a] text-sm font-mono font-semibold mt-2">
                         Total: MUR {selectedTotal.toLocaleString()}
                       </p>
                     </div>
@@ -872,10 +875,10 @@ export function AccessPassport() {
                   {/* Summary + send */}
                   <div className="border-t border-white/10 pt-8 flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-white text-sm font-mono">{accessTicketTypeFullLabel(selectedConfig)}</p>
-                      <p className="text-[#c9962a] text-xs font-mono">{priceLine(selectedConfig)}</p>
-                      <p className="text-white/30 text-[9px] font-mono mt-0.5">MUR {selectedTotal.toLocaleString()} total</p>
-                      <p className="text-white/30 text-[9px] uppercase tracking-[0.15em] mt-0.5">
+                      <p className="text-white text-base font-mono font-semibold">{accessTicketTypeFullLabel(selectedConfig)}</p>
+                      <p className="text-[#c9962a] text-sm font-mono mt-0.5">{priceLine(selectedConfig)}</p>
+                      <p className="text-white/80 text-sm font-mono font-semibold mt-1">MUR {selectedTotal.toLocaleString()} total</p>
+                      <p className="text-white/55 text-[11px] uppercase tracking-[0.15em] mt-1">
                         {guests.length} {guests.length === 1 ? "pass" : "passes"}
                       </p>
                     </div>
