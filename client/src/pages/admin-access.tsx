@@ -8,8 +8,9 @@ import { generatePassPDF, buildPassPDF, passFileName } from "@/lib/generatePassC
 import { shareFilesToWhatsApp, shareOutcomeToast, type ShareOutcome } from "@/lib/shareFiles";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ACCESS_AREAS, ACCESS_AREA_LABELS, type AccessTableInventory, type AccessEvent } from "@shared/schema";
+import { ACCESS_AREAS, ACCESS_AREA_LABELS, ACCESS_SOLO_AREA, type AccessTableInventory, type AccessEvent } from "@shared/schema";
 import {
+  accessAreaLabel,
   accessPassPrefix,
   accessTicketTypeFullLabel,
   accessTicketTypeTotal,
@@ -408,7 +409,7 @@ export default function AdminAccessPage() {
     r.ticketTypeId ? ticketTypeById[r.ticketTypeId]?.area ?? r.tableType : null;
   const matchesKind = (r: Reservation, f: string) =>
     f === "all" ? true
-    : f === "solo" ? r.tableType === "single_entry"
+    : f === "solo" ? r.tableType === "single_entry" || r.tableType === ACCESS_SOLO_AREA
     : f.startsWith("area:") ? reservationArea(r) === f.slice(5)
     : f.startsWith("type:") ? r.ticketTypeId === f.slice(5)
     : true;
@@ -731,7 +732,7 @@ export default function AdminAccessPage() {
                 <p className="text-white/20 text-xs">No table options for this edition — set them up under ACCESS Events → Tables.</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {ACCESS_AREAS.map((area) => {
+                  {[ACCESS_SOLO_AREA, ...ACCESS_AREAS].map((area) => {
                     const areaTypes = editionTicketTypes.filter((t) => t.area === area);
                     if (areaTypes.length === 0) return null;
                     return (
@@ -740,7 +741,7 @@ export default function AdminAccessPage() {
                           className="text-white font-black leading-none mb-4"
                           style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "24px" }}
                         >
-                          {ACCESS_AREA_LABELS[area]}
+                          {accessAreaLabel(area)}
                         </h3>
                         <div className="space-y-3">
                           {areaTypes.map((t) => {

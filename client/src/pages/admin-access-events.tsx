@@ -29,6 +29,7 @@ const emptyForm = {
   earlyBirdDeadline: "",
   earlyBirdPrice: "",
   regularPrice: "",
+  entryNote: "",
 };
 
 function parseLineup(json: string | null): LineupEntry[] {
@@ -65,6 +66,7 @@ function eventToForm(ev: AccessEvent): typeof emptyForm {
     earlyBirdDeadline: toDatetimeLocal(ev.earlyBirdDeadline),
     earlyBirdPrice: ev.earlyBirdPrice != null ? String(ev.earlyBirdPrice) : "",
     regularPrice: ev.regularPrice != null ? String(ev.regularPrice) : "",
+    entryNote: ev.entryNote ?? "",
   };
 }
 
@@ -77,6 +79,7 @@ function formToPayload(data: typeof emptyForm) {
     earlyBirdDeadline: earlyBirdDeadline ? new Date(earlyBirdDeadline).toISOString() : null,
     earlyBirdPrice: earlyBirdPrice ? parseInt(earlyBirdPrice, 10) : null,
     regularPrice: regularPrice ? parseInt(regularPrice, 10) : null,
+    entryNote: rest.entryNote.trim() || null,
   };
 }
 
@@ -115,6 +118,12 @@ function AccessEventFormFields({ form, setForm }: { form: typeof emptyForm; setF
       <div>
         <label className={labelCls}>Description</label>
         <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className={`${inputCls} resize-none`} />
+      </div>
+
+      <div>
+        <label className={labelCls}>Important Note (optional)</label>
+        <input value={form.entryNote} onChange={(e) => setForm({ ...form, entryNote: e.target.value })} placeholder="e.g. Masks are mandatory — no mask, no entry." className={inputCls} />
+        <p className="text-white/20 text-[10px] mt-1.5">Shown prominently above Solo Entry and tables on the booking page — dress codes, rules, etc.</p>
       </div>
 
       <div>

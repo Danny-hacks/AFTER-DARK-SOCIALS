@@ -1,4 +1,4 @@
-import { ACCESS_AREA_LABELS, type AccessArea, type AccessTicketType } from "./schema";
+import { ACCESS_AREA_LABELS, ACCESS_SOLO_AREA, type AccessArea, type AccessTicketType } from "./schema";
 
 /** A ticket type plus its live booking numbers for its edition. */
 export type AccessTicketTypeWithAvailability = AccessTicketType & {
@@ -9,7 +9,17 @@ export type AccessTicketTypeWithAvailability = AccessTicketType & {
 };
 
 export function accessAreaLabel(area: string): string {
+  if (area === ACCESS_SOLO_AREA) return "Solo Entry";
   return ACCESS_AREA_LABELS[area as AccessArea] ?? area;
+}
+
+export function isSoloType(type: Pick<AccessTicketType, "area">): boolean {
+  return type.area === ACCESS_SOLO_AREA;
+}
+
+/** False once the option's "available until" time has passed. */
+export function isOnSale(type: Pick<AccessTicketType, "availableUntil">, now = Date.now()): boolean {
+  return !type.availableUntil || new Date(type.availableUntil).getTime() > now;
 }
 
 /** "VIP Lounge — Table for 4" — what's stored on the reservation and shown everywhere. */
@@ -24,6 +34,7 @@ export function accessTicketTypeTotal(type: Pick<AccessTicketType, "price" | "pr
 
 /** Short pass-ID prefix encoding area and size, e.g. V4, T5, B12. */
 export function accessPassPrefix(type: Pick<AccessTicketType, "area" | "maxGuests">): string {
+  if (type.area === ACCESS_SOLO_AREA) return "S";
   const letter = type.area === "vip_lounge" ? "V" : type.area === "terrace" ? "T" : "B";
   return `${letter}${type.maxGuests}`;
 }

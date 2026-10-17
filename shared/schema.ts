@@ -261,6 +261,9 @@ export const accessEvents = pgTable("access_events", {
   regularPrice: integer("regular_price"),
   // free text, e.g. "Kultur'M, Brand X" — shown as "In collaboration with ..."
   collaborators: text("collaborators"),
+  // Important note shown prominently on the booking section, e.g. a dress
+  // code like "Masks are mandatory". Null = none.
+  entryNote: text("entry_note"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -276,9 +279,10 @@ export const insertAccessEventSchema = createInsertSchema(accessEvents, {
 export type InsertAccessEvent = z.infer<typeof insertAccessEventSchema>;
 export type AccessEvent = typeof accessEvents.$inferSelect;
 
-// Bookable table options for one ACCESS edition, set up by admin per edition
-// (e.g. "VIP Lounge — Table for 4"). Solo Entry is not one of these — it
-// keeps its own pricing on the edition (earlyBirdPrice/regularPrice).
+// Bookable options for one ACCESS edition, set up by admin per edition:
+// tables (e.g. "VIP Lounge — Table for 4") in one of ACCESS_AREAS, and
+// Solo Entry options (area "solo", one person each). When an edition has no
+// solo options, Solo Entry falls back to the edition's earlyBird/regular price.
 export const ACCESS_AREAS = ["vip_lounge", "terrace", "bar_area"] as const;
 export type AccessArea = (typeof ACCESS_AREAS)[number];
 export const ACCESS_AREA_LABELS: Record<AccessArea, string> = {
@@ -287,10 +291,12 @@ export const ACCESS_AREA_LABELS: Record<AccessArea, string> = {
   bar_area: "Bar Area",
 };
 
+export const ACCESS_SOLO_AREA = "solo";
+
 export const accessTicketTypes = pgTable("access_ticket_types", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   eventId: varchar("event_id").notNull(),
-  area: text("area").notNull(), // one of ACCESS_AREAS
+  area: text("area").notNull(), // one of ACCESS_AREAS, or ACCESS_SOLO_AREA
   label: text("label").notNull(), // e.g. "Table for 4", "Section (8–12 guests)"
   minGuests: integer("min_guests").notNull().default(1),
   maxGuests: integer("max_guests").notNull().default(1),
@@ -302,10 +308,17 @@ export const accessTicketTypes = pgTable("access_ticket_types", {
   // Admin override for "tables used" — replaces the real confirmed count.
   manualUsed: integer("manual_used"),
   order: integer("order").notNull().default(0),
+  // Shown under the option on the booking page. Null = none.
+  description: text("description"),
+  // Option disappears from the booking page after this (e.g. early bird).
+  // Null = available until the night.
+  availableUntil: timestamp("available_until"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertAccessTicketTypeSchema = createInsertSchema(accessTicketTypes).omit({
+export const insertAccessTicketTypeSchema = createInsertSchema(accessTicketTypes, {
+  availableUntil: z.coerce.date().nullable().optional(),
+}).omit({
   id: true,
   createdAt: true,
 });

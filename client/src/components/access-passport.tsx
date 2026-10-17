@@ -13,6 +13,8 @@ import { ACCESS_AREAS, ACCESS_AREA_LABELS, type AccessArea, type AccessEvent, ty
 import {
   accessTicketTypeFullLabel,
   accessTicketTypeTotal,
+  isOnSale,
+  isSoloType,
   type AccessTicketTypeWithAvailability,
 } from "@shared/accessTickets";
 import { queryClient } from "@/lib/queryClient";
@@ -221,11 +223,22 @@ export function AccessPassport() {
     select: (data) => data.ticketTypes ?? [],
     staleTime: 30_000,
   });
-  const areasWithTables = ACCESS_AREAS.filter((a) => ticketTypes.some((t) => t.area === a));
+  // Solo Entry options (e.g. "Bring your own mask" / "Mask at the gate") and
+  // tables come from the same list; options past their "available until"
+  // time are hidden.
+  const onSaleTypes = ticketTypes.filter((t) => isOnSale(t));
+  const soloOptions = onSaleTypes.filter(isSoloType);
+  const tableTypes = onSaleTypes.filter((t) => !isSoloType(t));
+  const [soloOptionId, setSoloOptionId] = useState<string | null>(null);
+  const selectedSolo =
+    soloOptions.find((t) => t.id === soloOptionId && t.available > 0) ?? soloOptions.find((t) => t.available > 0) ?? null;
+  const entryNote = currentEvent?.entryNote?.trim() || "";
+
+  const areasWithTables = ACCESS_AREAS.filter((a) => tableTypes.some((t) => t.area === a));
   const activeArea: AccessArea | null =
     selectedArea && areasWithTables.includes(selectedArea) ? selectedArea : areasWithTables[0] ?? null;
-  const areaTypes = ticketTypes.filter((t) => t.area === activeArea);
-  const allTablesSoldOut = ticketTypes.length > 0 && ticketTypes.every((t) => t.available <= 0);
+  const areaTypes = tableTypes.filter((t) => t.area === activeArea);
+  const allTablesSoldOut = tableTypes.length > 0 && tableTypes.every((t) => t.available <= 0);
 
   const selectedConfig = ticketTypes.find((t) => t.id === selectedTableId) ?? null;
   const selectedTotal = selectedConfig ? accessTicketTypeTotal(selectedConfig, guests.length) : 0;
@@ -278,21 +291,38 @@ export function AccessPassport() {
 
     // Open the tab synchronously, before the request below — mobile browsers
     // revoke "this came from a tap" permission the moment we await anything.
+    if (soloOptions.length > 0 && !selectedSolo) {
+      toast({ title: "Solo Entry is sold out", variant: "destructive" });
+      return;
+    }
     const waWindow = window.open("", "_blank");
 
     setSendingGeneral(true);
+    const guestsBody = [{ name: geName.trim(), phone: gePhone.trim() }];
     try {
-      await fetch("/api/access/apply", {
+      const res = await fetch("/api/access/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tableType: "single_entry",
-          guests: [{ name: geName.trim(), phone: gePhone.trim() }],
-        }),
+        body: JSON.stringify(
+          selectedSolo ? { ticketTypeId: selectedSolo.id, guests: guestsBody } : { tableType: "single_entry", guests: guestsBody },
+        ),
       });
+      // A chosen option can sell out or end between page load and tap —
+      // tell them instead of sending a WhatsApp request we can't honour.
+      if (selectedSolo && !res.ok) {
+        const err = await res.json().catch(() => ({}));
+        waWindow?.close();
+        setSendingGeneral(false);
+        queryClient.invalidateQueries({ queryKey: ["/api/access/ticket-types"] });
+        toast({ title: err.error || "That option is no longer available", description: "Please pick another option.", variant: "destructive" });
+        return;
+      }
     } catch {}
+    queryClient.invalidateQueries({ queryKey: ["/api/access/ticket-types"] });
 
-    const tierLabel = earlyBird ? `Solo Entry (Early Bird) MUR ${earlyBirdPrice}` : `Solo Entry MUR ${regularPrice}`;
+    const tierLabel = selectedSolo
+      ? `${selectedSolo.label} — MUR ${selectedSolo.price.toLocaleString()}`
+      : earlyBird ? `Solo Entry (Early Bird) MUR ${earlyBirdPrice}` : `Solo Entry MUR ${regularPrice}`;
     const msg =
       `Hi, I'd like to reserve a Solo Entry ticket for ACCESS on ${eventDate} at ${eventVenue}.\n\n` +
       `Ticket: ${tierLabel}\n` +
@@ -515,10 +545,68 @@ export function AccessPassport() {
           )
         ) : (
           <>
+            {/* ── Important note (e.g. dress code) ── */}
+            {entryNote && (
+              <div className="mb-8 border border-[#c72d28]/50 bg-[#c72d28]/10 px-5 py-4 flex items-start gap-3">
+                <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.3em] font-bold shrink-0 pt-0.5">Important</span>
+                <p className="text-white text-sm leading-relaxed">{entryNote}</p>
+              </div>
+            )}
+
             {/* ── General Entry Card ── */}
             <div className="mb-12 border border-white/10 p-6 md:p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
                 {/* Left: badge, title, price, notes */}
+                {soloOptions.length > 0 ? (
+                <div>
+                  <span className="text-white/30 text-[9px] uppercase tracking-[0.25em]">Just you · pick your entry</span>
+                  <p className="text-white leading-none mt-2 mb-5" style={{ fontFamily: "'Bebas Neue', Impact, sans-serif", fontSize: "clamp(28px,5vw,42px)" }}>
+                    Solo Entry
+                  </p>
+                  <div className="space-y-3" role="radiogroup" aria-label="Solo Entry options">
+                    {soloOptions.map((opt) => {
+                      const soldOut = opt.available <= 0;
+                      const active = selectedSolo?.id === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={active}
+                          disabled={soldOut}
+                          onClick={() => setSoloOptionId(opt.id)}
+                          className={`w-full text-left p-4 border transition-colors ${
+                            soldOut ? "opacity-40 border-white/10"
+                            : active ? "border-[#c9962a] bg-[#c9962a]/5"
+                            : "border-white/15 hover:border-[#c9962a]/50"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-3 min-w-0">
+                              <span className={`mt-1 w-3 h-3 rounded-full border shrink-0 ${active ? "border-[#c9962a] bg-[#c9962a]" : "border-white/30"}`} />
+                              <div className="min-w-0">
+                                <p className="text-white text-sm font-medium leading-snug">{opt.label}</p>
+                                {opt.description && (
+                                  <p className="text-white/45 text-[12px] leading-relaxed mt-1.5 whitespace-pre-line">{opt.description}</p>
+                                )}
+                                {opt.availableUntil && !soldOut && (
+                                  <p className="text-white/25 text-[9px] uppercase tracking-[0.15em] mt-2">
+                                    Until {new Date(opt.availableUntil).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+                                  </p>
+                                )}
+                                {soldOut && <p className="text-[#c72d28] text-[9px] uppercase tracking-[0.2em] mt-2 font-medium">Sold Out</p>}
+                              </div>
+                            </div>
+                            <p className="font-mono font-medium shrink-0" style={{ color: "#c9962a", fontSize: "20px" }}>
+                              MUR {opt.price.toLocaleString()}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                ) : (
                 <div>
                   {earlyBird ? (
                     <span className="text-[#c72d28] text-[9px] uppercase tracking-[0.25em] font-bold">Early Bird</span>
@@ -545,6 +633,7 @@ export function AccessPassport() {
                     </div>
                   )}
                 </div>
+                )}
 
                 {/* Right: name, phone, button */}
                 <div className="flex flex-col justify-center space-y-4">
@@ -570,9 +659,15 @@ export function AccessPassport() {
                       className={inputCls}
                     />
                   </div>
+                  {selectedSolo && (
+                    <p className="text-white/50 text-[11px]">
+                      Selected: <span className="text-white">{selectedSolo.label}</span>{" "}
+                      <span className="font-mono text-[#c9962a]">· MUR {selectedSolo.price.toLocaleString()}</span>
+                    </p>
+                  )}
                   <button
                     onClick={handleGeneralEntryWA}
-                    disabled={sendingGeneral}
+                    disabled={sendingGeneral || (soloOptions.length > 0 && !selectedSolo)}
                     className="flex items-center gap-2 bg-[#c72d28] hover:bg-[#a01f1f] disabled:opacity-40 text-white text-[9px] uppercase tracking-[0.2em] font-bold px-6 py-3.5 transition-colors self-start"
                   >
                     <SiWhatsapp className="w-3 h-3" />
@@ -593,7 +688,7 @@ export function AccessPassport() {
               </p>
               <p className="text-[10px] uppercase tracking-[0.2em] mb-6" style={{ color: "rgba(201,150,42,0.6)" }}>{eventDate} · {eventVenue}</p>
 
-              {ticketTypes.length === 0 ? (
+              {tableTypes.length === 0 ? (
                 <p className="text-white/30 text-sm">Table reservations for this night open soon — Solo Entry is available above.</p>
               ) : allTablesSoldOut ? (
                 <div className="border border-[#c72d28]/30 bg-[#c72d28]/8 px-8 py-10 text-center max-w-lg">

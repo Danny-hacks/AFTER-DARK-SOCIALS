@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, Plus, Trash2, Copy, Sparkles } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ACCESS_AREAS, ACCESS_AREA_LABELS, type AccessArea } from "@shared/schema";
+import { ACCESS_AREAS, ACCESS_AREA_LABELS, ACCESS_SOLO_AREA, type AccessArea } from "@shared/schema";
 import type { AccessTicketTypeWithAvailability } from "@shared/accessTickets";
 
 const inputCls =
@@ -18,7 +18,32 @@ type Draft = {
   price: string;
   capacity: string;
   manualUsed: string;
+  description: string;
+  availableUntil: string; // datetime-local value, "" = no deadline
 };
+
+type OptionArea = AccessArea | typeof ACCESS_SOLO_AREA;
+
+// datetime-local wants "YYYY-MM-DDTHH:mm" in local time
+function toLocalInput(value: string | Date | null): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+const emptySoloDraft = (): Draft => ({
+  label: "",
+  minGuests: "1",
+  maxGuests: "1",
+  pricingMode: "flat",
+  price: "",
+  capacity: "100",
+  manualUsed: "",
+  description: "",
+  availableUntil: "",
+});
 
 const emptyDraft: Draft = {
   label: "",
@@ -28,6 +53,8 @@ const emptyDraft: Draft = {
   price: "",
   capacity: "1",
   manualUsed: "",
+  description: "",
+  availableUntil: "",
 };
 
 function typeToDraft(t: AccessTicketTypeWithAvailability): Draft {
@@ -39,19 +66,24 @@ function typeToDraft(t: AccessTicketTypeWithAvailability): Draft {
     price: String(t.price),
     capacity: String(t.capacity),
     manualUsed: t.manualUsed === null ? "" : String(t.manualUsed),
+    description: t.description ?? "",
+    availableUntil: toLocalInput(t.availableUntil),
   };
 }
 
-function draftToPayload(d: Draft, area: AccessArea) {
+function draftToPayload(d: Draft, area: OptionArea) {
+  const solo = area === ACCESS_SOLO_AREA;
   return {
     area,
     label: d.label,
-    minGuests: d.minGuests,
-    maxGuests: d.maxGuests,
-    pricingMode: d.pricingMode,
+    minGuests: solo ? "1" : d.minGuests,
+    maxGuests: solo ? "1" : d.maxGuests,
+    pricingMode: solo ? "flat" : d.pricingMode,
     price: d.price,
     capacity: d.capacity,
     manualUsed: d.manualUsed.trim() === "" ? null : d.manualUsed,
+    description: d.description,
+    availableUntil: d.availableUntil ? new Date(d.availableUntil).toISOString() : null,
   };
 }
 
@@ -60,8 +92,38 @@ function invalidateTicketTypes() {
   queryClient.invalidateQueries({ queryKey: ["/api/access/ticket-types"] });
 }
 
-function DraftFields({ draft, setDraft }: { draft: Draft; setDraft: (d: Draft) => void }) {
+function DraftFields({ draft, setDraft, solo }: { draft: Draft; setDraft: (d: Draft) => void; solo?: boolean }) {
   const perPerson = draft.pricingMode === "per_person";
+  if (solo) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+        <div className="col-span-2 sm:col-span-3">
+          <label className={smallLabel}>Name</label>
+          <input value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })} placeholder="Early Bird — Bring Your Own Mask" className={inputCls} />
+        </div>
+        <div>
+          <label className={smallLabel}>Rs / person</label>
+          <input type="number" min={0} value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} className={inputCls} />
+        </div>
+        <div>
+          <label className={smallLabel}>Tickets available</label>
+          <input type="number" min={0} value={draft.capacity} onChange={(e) => setDraft({ ...draft, capacity: e.target.value })} className={inputCls} />
+        </div>
+        <div>
+          <label className={smallLabel}>Used override</label>
+          <input type="number" min={0} value={draft.manualUsed} onChange={(e) => setDraft({ ...draft, manualUsed: e.target.value })} placeholder="auto" className={inputCls} />
+        </div>
+        <div className="col-span-2 sm:col-span-4">
+          <label className={smallLabel}>Description</label>
+          <textarea value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} rows={2} placeholder="Shown under the option on the booking page" className={`${inputCls} resize-none`} />
+        </div>
+        <div className="col-span-2">
+          <label className={smallLabel}>Available until (optional)</label>
+          <input type="datetime-local" value={draft.availableUntil} onChange={(e) => setDraft({ ...draft, availableUntil: e.target.value })} className={inputCls} />
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
       <div className="col-span-2">
@@ -99,6 +161,14 @@ function DraftFields({ draft, setDraft }: { draft: Draft; setDraft: (d: Draft) =
         <label className={smallLabel}>Used override</label>
         <input type="number" min={0} value={draft.manualUsed} onChange={(e) => setDraft({ ...draft, manualUsed: e.target.value })} placeholder="auto" className={inputCls} />
       </div>
+      <div className="col-span-2 sm:col-span-4">
+        <label className={smallLabel}>Description (optional)</label>
+        <input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder="Shown on the table card" className={inputCls} />
+      </div>
+      <div className="col-span-2">
+        <label className={smallLabel}>Available until (optional)</label>
+        <input type="datetime-local" value={draft.availableUntil} onChange={(e) => setDraft({ ...draft, availableUntil: e.target.value })} className={inputCls} />
+      </div>
     </div>
   );
 }
@@ -110,7 +180,7 @@ function TicketTypeRow({ type }: { type: AccessTicketTypeWithAvailability }) {
   const dirty = JSON.stringify(draft) !== JSON.stringify(typeToDraft(type));
 
   const save = useMutation({
-    mutationFn: () => apiRequest("PATCH", `/api/admin/access/ticket-types/${type.id}`, draftToPayload(draft, type.area as AccessArea)),
+    mutationFn: () => apiRequest("PATCH", `/api/admin/access/ticket-types/${type.id}`, draftToPayload(draft, type.area as OptionArea)),
     onSuccess: () => { invalidateTicketTypes(); toast({ title: "Table option saved" }); },
     onError: () => toast({ title: "Failed to save", variant: "destructive" }),
   });
@@ -122,10 +192,11 @@ function TicketTypeRow({ type }: { type: AccessTicketTypeWithAvailability }) {
 
   return (
     <div className="border border-white/10 p-3 space-y-2">
-      <DraftFields draft={draft} setDraft={setDraft} />
+      <DraftFields draft={draft} setDraft={setDraft} solo={type.area === ACCESS_SOLO_AREA} />
       <div className="flex items-center gap-3 flex-wrap">
         <p className="text-[10px] text-white/30 flex-1">
           {type.used}/{type.capacity} booked · {type.pending} pending · {type.available} left
+          {type.availableUntil && new Date(type.availableUntil).getTime() < Date.now() && <span className="text-[#c72d28]"> · ended</span>}
           {type.manualUsed !== null && <span className="text-[#c9962a]"> · override on</span>}
         </p>
         {dirty && (
@@ -157,16 +228,18 @@ function TicketTypeRow({ type }: { type: AccessTicketTypeWithAvailability }) {
   );
 }
 
-function AddTicketType({ eventId, area, nextOrder }: { eventId: string; area: AccessArea; nextOrder: number }) {
+function AddTicketType({ eventId, area, nextOrder }: { eventId: string; area: OptionArea; nextOrder: number }) {
   const { toast } = useToast();
+  const solo = area === ACCESS_SOLO_AREA;
+  const fresh = () => (solo ? emptySoloDraft() : emptyDraft);
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const [draft, setDraft] = useState<Draft>(fresh);
   const create = useMutation({
     mutationFn: () =>
       apiRequest("POST", `/api/admin/access/events/${eventId}/ticket-types`, { ...draftToPayload(draft, area), order: nextOrder }),
     onSuccess: () => {
       invalidateTicketTypes();
-      setDraft(emptyDraft);
+      setDraft(fresh());
       setOpen(false);
       toast({ title: "Table option added" });
     },
@@ -186,7 +259,7 @@ function AddTicketType({ eventId, area, nextOrder }: { eventId: string; area: Ac
   }
   return (
     <div className="border border-dashed border-[#c9962a]/40 p-3 space-y-2">
-      <DraftFields draft={draft} setDraft={setDraft} />
+      <DraftFields draft={draft} setDraft={setDraft} solo={solo} />
       <div className="flex gap-2">
         <button
           onClick={() => {
@@ -271,8 +344,16 @@ export function AccessTicketTypesEditor({ eventId }: { eventId: string }) {
           Add standard set
         </button>
       </div>
-      <p className="text-white/20 text-[10px] -mt-4">
-        Solo Entry uses the edition's early-bird / regular price above. "Per table" options book the whole table;
+      <div className="space-y-2">
+        <p className="text-white text-xs font-medium uppercase tracking-[0.15em]">Solo Entry options</p>
+        <p className="text-white/20 text-[10px]">
+          One person each. Leave empty to use the edition's early-bird / regular price instead.
+        </p>
+        {types.filter((t) => t.area === ACCESS_SOLO_AREA).map((t) => <TicketTypeRow key={t.id} type={t} />)}
+        <AddTicketType eventId={eventId} area={ACCESS_SOLO_AREA} nextOrder={nextOrder} />
+      </div>
+
+      <p className="text-white/20 text-[10px]"> "Per table" options book the whole table;
         "Per person" lets guests pick how many (min–max). "Used override" replaces the booked count — leave blank for automatic.
       </p>
 

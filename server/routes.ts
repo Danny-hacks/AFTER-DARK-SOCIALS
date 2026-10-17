@@ -12,6 +12,7 @@ import {
   insertAccessEventSchema,
   insertAccessTicketTypeSchema,
   ACCESS_AREAS,
+  ACCESS_SOLO_AREA,
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -19,7 +20,7 @@ import nodemailer from "nodemailer";
 import { appendTicketToSheet, initializeSheetHeaders } from "./googleSheets";
 import { pool } from "./db";
 import { ticketRefPrefix, generateTicketRef } from "./ticketRef";
-import { accessPassPrefix, accessTicketTypeFullLabel, withAvailability } from "@shared/accessTickets";
+import { accessPassPrefix, accessTicketTypeFullLabel, isOnSale, withAvailability } from "@shared/accessTickets";
 
 // Simple admin credentials - in production, use proper authentication
 const ADMIN_USERNAME = "aftr_admin";
@@ -1087,8 +1088,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Table booking against one of this edition's ticket types
       if (ticketTypeId) {
         const type = await storage.getAccessTicketType(ticketTypeId);
-        if (!type || !currentEvent || type.eventId !== currentEvent.id) {
-          return res.status(400).json({ error: "This table option is no longer available" });
+        if (!type || !currentEvent || type.eventId !== currentEvent.id || !isOnSale(type)) {
+          return res.status(400).json({ error: "This option is no longer available" });
         }
         if (guests.length < type.minGuests || guests.length > type.maxGuests) {
           return res.status(400).json({ error: `This option is for ${type.minGuests}–${type.maxGuests} guests` });
@@ -1463,7 +1464,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const manualUsedRaw = body.manualUsed;
     return insertAccessTicketTypeSchema.parse({
       eventId,
-      area: (ACCESS_AREAS as readonly string[]).includes(body.area) ? body.area : "vip_lounge",
+      area: body.area === ACCESS_SOLO_AREA || (ACCESS_AREAS as readonly string[]).includes(body.area) ? body.area : "vip_lounge",
       label: String(body.label ?? "").trim() || `Table for ${maxGuests}`,
       minGuests,
       maxGuests,
@@ -1474,6 +1475,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? null
         : Math.max(0, parseInt(manualUsedRaw, 10) || 0),
       order: parseInt(body.order, 10) || 0,
+      description: String(body.description ?? "").trim() || null,
+      availableUntil: body.availableUntil ? body.availableUntil : null,
     });
   };
 
@@ -1535,6 +1538,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           capacity: t.capacity,
           manualUsed: null,
           order: t.order,
+          description: t.description,
+          // Deadlines belong to the old night — set new ones per edition.
+          availableUntil: null,
         });
       }
       res.json({ success: true, copied: toCopy.length, from: source.name });
