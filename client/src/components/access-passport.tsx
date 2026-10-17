@@ -547,9 +547,9 @@ export function AccessPassport() {
           <>
             {/* ── Important note (e.g. dress code) ── */}
             {entryNote && (
-              <div className="mb-8 border border-[#c72d28]/50 bg-[#c72d28]/10 px-5 py-4 flex items-start gap-3">
-                <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.3em] font-bold shrink-0 pt-0.5">Important</span>
-                <p className="text-white text-sm leading-relaxed">{entryNote}</p>
+              <div className="mb-8 border border-[#c72d28]/50 bg-[#c72d28]/10 px-4 py-4 sm:px-5 flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
+                <span className="text-[#c72d28] text-[10px] uppercase tracking-[0.3em] font-bold shrink-0 sm:pt-0.5">Important</span>
+                <p className="text-white text-sm leading-relaxed min-w-0">{entryNote}</p>
               </div>
             )}
 
